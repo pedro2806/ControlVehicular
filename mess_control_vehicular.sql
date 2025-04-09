@@ -37,7 +37,7 @@ CREATE TABLE `cambio_llantas` (
   `kilometraje_ult_cambio` int NOT NULL,
   `medida_llanta` int NOT NULL,
   `estatus` varchar(200) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -52,7 +52,7 @@ CREATE TABLE `checklist` (
   `id_usuario` int NOT NULL,
   `id_revisor` int NOT NULL,
   `motivo` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -66,7 +66,7 @@ CREATE TABLE `checklist_asientos` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -84,7 +84,7 @@ CREATE TABLE `checklist_documentacion` (
   `no_tarjeta` int NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` varchar(900) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -98,7 +98,7 @@ CREATE TABLE `checklist_espejos_ventanas` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -113,7 +113,7 @@ CREATE TABLE `checklist_estereos_aire` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -127,7 +127,7 @@ CREATE TABLE `checklist_faros` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -141,7 +141,7 @@ CREATE TABLE `checklist_golpes_exterior` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -155,7 +155,7 @@ CREATE TABLE `checklist_limpiaParabrisas` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -169,7 +169,7 @@ CREATE TABLE `checklist_limpieza` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -185,7 +185,7 @@ CREATE TABLE `checklist_llantas` (
   `medidas` int NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -199,7 +199,7 @@ CREATE TABLE `checklist_placas` (
   `si_no` varchar(2) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -214,7 +214,7 @@ CREATE TABLE `checklist_puertas_llave` (
   `duplicado_llaves` varchar(10) NOT NULL,
   `observaciones` varchar(100) NOT NULL,
   `foto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -229,7 +229,7 @@ CREATE TABLE `documentacion` (
   `refrendo_actual` int NOT NULL,
   `seguro_auto` int NOT NULL,
   `verificacion_vigente` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -244,7 +244,7 @@ CREATE TABLE `fotos` (
   `id_coche` int NOT NULL,
   `fecha` date NOT NULL,
   `imagen` varchar(900) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -260,7 +260,7 @@ CREATE TABLE `hojalateria` (
   `estatus` varchar(100) NOT NULL,
   `kilometraje_inicio` int NOT NULL,
   `kilometraje_fin` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -284,7 +284,7 @@ CREATE TABLE `inventario` (
   `fecha_registro` date NOT NULL,
   `km_mantenimiento` int NOT NULL,
   `referencia` varchar(200) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 --
 -- Volcado de datos para la tabla `inventario`
@@ -389,7 +389,7 @@ CREATE TABLE `kilometrajes` (
   `id_coche` int NOT NULL,
   `km` int NOT NULL,
   `fecha` date NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -407,7 +407,7 @@ CREATE TABLE `mantenimientos` (
   `descripcion` varchar(100) NOT NULL,
   `solicitante` varchar(50) NOT NULL,
   `VoBo_jefe` varchar(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -424,7 +424,7 @@ CREATE TABLE `prestamos` (
   `estatus` varchar(50) NOT NULL,
   `kilometraje_inicio` int NOT NULL,
   `kilometraje_fin` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -441,7 +441,7 @@ CREATE TABLE `revisiones` (
   `anticongelante` varchar(20) NOT NULL,
   `liquido_frenos` varchar(20) NOT NULL,
   `limpia_parabrisas` varchar(25) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -466,7 +466,7 @@ CREATE TABLE `siniestros` (
   `partes_dañadas` varchar(50) NOT NULL,
   `ubicacion_vehiculo` varchar(50) NOT NULL,
   `contacto` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -479,7 +479,7 @@ CREATE TABLE `tipos_fotos` (
   `solicitud_mantenimiento` varchar(200) NOT NULL,
   `reporte_siniestro` varchar(200) NOT NULL,
   `otro` varchar(200) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 -- --------------------------------------------------------
 
@@ -496,7 +496,7 @@ CREATE TABLE `usuarios` (
   `id_jefe` int NOT NULL,
   `estatus` varchar(50) NOT NULL,
   `correo` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
 
 --
 -- Índices para tablas volcadas

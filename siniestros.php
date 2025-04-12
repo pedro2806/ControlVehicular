@@ -50,8 +50,6 @@
                                 <tr>
                                     <th>Placa</th>
                                     <th>Modelo</th>
-                                    <th>Color</th>
-                                    <th>Año</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -61,6 +59,10 @@
                         </table>
                     </div>
 
+                    <!-- CONTENEDOR INFO AUTO -->
+                    <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
+
+                    <!-- FORMULARIO DEL SINIESTRO -->
                     <form id="formRegistroSiniestro">
                         <!-- Content Row -->
                         <div class = "row">
@@ -76,8 +78,8 @@
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Tipo de Vehiculo:</label> 
-                                <select class="form-control" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
-                                    <option value="0">Seleccione...</option>
+                                <select class="form-select" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
+                                    <option value="">Seleccione...</option>
                                     <option value="Propio">A mi nombre</option>
                                     <option value="Prestado">Prestado</option>
                                 </select>       
@@ -93,7 +95,6 @@
                         <br>
                         <!-- Content Row -->
                         <h1 class = "h5 mb-0 text-gray-800">Ubicacion</h1>
-                        <br>
                         <div class="row">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Origen:</label>  
@@ -123,29 +124,22 @@
                                 <label>Servicio:</label>
                                 <input type = "text" class = "form-control" id = "servicio" name = "servicio">
                             </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Coordenadas:</label>  
-                                <input class = "form-control" id = "coordenadas" name = "coordenadas" type="text" pattern="^-?[0-9]+(\.[0-9]+)?,\s*-?[0-9]+(\.[0-9]+)?$" placeholder="Ej: 19.4326, -99.1332" required>
-                            </div>
                         </div>
                         <br>
                         <!-- Content Row -->
                         <div class = "row">
                             <h1 class = "h5 mb-0 text-gray-800">Detalles del Automovil</h1>
-                            <br>
-                            <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Kilometraje:</label>  
-                                <input class = "form-control" id = "kilometraje" name = "kilometraje" type="number" min="0" required>
+                                <input class = "form-control" id = "kilometraje" name = "kilometraje" type="number" min="0">
                             </div>
                             <br>
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Gasolina:</label>
-                                <select class = "form-control" id = "gasolina" name = "gasolina" required>
-                                    <option value = "0">Seleccione...</option>
+                                <select class = "form-select" id = "gasolina" name = "gasolina">
+                                    <option value = "">Seleccione...</option>
+                                    <option value = "SD">Sin Datos</option>
                                     <option value = "1/8">1/8</option>
                                     <option value = "2/8">2/8</option>
                                     <option value = "3/8">3/8</option>    
@@ -180,7 +174,7 @@
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-6 col-md-6 col-sm-6 col-6">
                                 <label>Foto del Siniestro:</label>
                                 <input 
                                     type="file" 
@@ -189,10 +183,12 @@
                                     name="foto" 
                                     accept="image/*" 
                                     capture="environment" 
-                                    ><!--required-->
+                                    required>
                             </div>
                         </div>
                         <br>
+                        <input type="hidden" id = "coordenadas" name = "coordenadas">
+                        <input type="hidden" id = "id_coche" name = "id_coche">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Confirmar</button>
                         </center>
@@ -203,7 +199,7 @@
             <footer class = "sticky-footer bg-white">
                 <div class = "container my-auto">
                     <div class = "copyright text-center my-auto">
-                        <span>Copyright &copy; MESS@2025</span>
+                        <span>Copyright &copy; MESS2025</span>
                     </div>
                 </div>
             </footer>
@@ -228,6 +224,27 @@
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos();
+
+            // Llenar automáticamente los campos de fecha y hora
+            const now = new Date();
+            const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
+
+            $("#fecha").val(fecha); // Establecer la fecha actual
+            $("#hora").val(hora); // Establecer la hora actual
+
+            // Obtener coordenadas del usuario
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const lat = position.coords.latitude.toFixed(6); 
+                        const lon = position.coords.longitude.toFixed(6); 
+                        $("#coordenadas").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo
+                    }
+                );
+            } else {
+                console.error("Geolocalización no soportada por el navegador.");
+            }
         });
         
          // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
@@ -235,28 +252,51 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_siniestro",
-                data: { accion: "consultarInventario" }, 
+                data: { accion: "consultarInventario" },
                 dataType: "json",
                 success: function (respuesta) {
-                    var tabla = $("#tablaInventario");
-                    tabla.empty(); // Limpiar la tabla antes de cargar los datos
-
-                    // Recorrer los datos y agregarlos a la tabla
+                    var tabla = $("#tablaInventario tbody");
+                    tabla.empty(); 
                     respuesta.forEach(function (vehiculo) {
-                        var fila = `
-                            <tr>
+                        var fila = 
+                            `<tr>
                                 <td>${vehiculo.placa}</td>
                                 <td>${vehiculo.modelo}</td>
-                                <td>${vehiculo.color}</td>
-                                <td>${vehiculo.anio}</td>
                                 <td>
-                                    <button class="btn btn-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.placa}')">
-                                        <i class="fas fa-check"></i>
-                                    </button>
+                                    <center>
+                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_coche}', '${vehiculo.placa}')">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </center>
                                 </td>
-                            </tr>
-                        `;
+                            </tr>`;
                         tabla.append(fila);
+                    });
+                    $("#tablaInventario").DataTable({
+                        destroy: true, // Permitir reinicializar la tabla
+                        language: {
+                            decimal: ",",
+                            thousands: ".",
+                            processing: "Procesando...",
+                            search: "Buscar:",
+                            lengthMenu: "Mostrar _MENU_ registros",
+                            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                            infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                            infoFiltered: "(filtrado de _MAX_ registros totales)",
+                            loadingRecords: "Cargando...",
+                            zeroRecords: "No se encontraron resultados",
+                            emptyTable: "No hay datos disponibles en la tabla",
+                            paginate: {
+                                first: "Primero",
+                                previous: "Anterior",
+                                next: "Siguiente",
+                                last: "Último"
+                            },
+                            aria: {
+                                sortAscending: ": activar para ordenar la columna de manera ascendente",
+                                sortDescending: ": activar para ordenar la columna de manera descendente"
+                            }
+                        }
                     });
                 },
                 error: function () {
@@ -271,13 +311,15 @@
         }
 
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(placa) {
-            Swal.fire({
-                icon: "success",
-                title: "Vehículo seleccionado",
-                text: `Has seleccionado el vehículo con placa: ${placa}`,
-                confirmButtonText: "Aceptar"
-            });
+        function seleccionarVehiculo(id_coche, placa) {
+            // Actualizar el contenido del contenedor con la placa seleccionada
+            $("#placaSeleccionada")
+                .text(`Vehículo seleccionado: ${placa}`)
+                .show();
+            $("#id_coche").val(id_coche);
+
+            // Ocultar la tabla de inventario
+            $("#tablaInventario").closest(".container").hide();
         }
 
         //FUNCION REGISTRO DE SINIESTRO
@@ -285,7 +327,7 @@
             var fecha = $("#fecha").val();
             var hora = $("#hora").val();
             var origen = $("#origen").val();
-            var destino = $("#destino").val(); 
+            var destino = $("#destino").val();
             var lugar = $("#lugar").val();
             var empresa = $("#empresa").val();
             var servicio = $("#servicio").val();
@@ -297,58 +339,139 @@
             var contacto = $("#contacto").val();
             var descripcion = $("#descripcion").val();
             var tipo_carro = $("#tipo_carro").val();
-            var nombre_dueno = $("#nombre_dueno").val(); 
-            var noEmpleado = "<?php echo $_COOKIE['noEmpleado']; ?>"; // Obtener el valor de la cookie
-            var accion = "registroSiniestro";
-            
+            var nombre_dueno = $("#nombre_dueno").val();
+            var rutaImagen = $("#foto")[0].files[0];
+            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
+            var id_coche = $("#id_coche").val();
+
+            // Validar que la placa esté seleccionada
+            if (!placa) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Placa no seleccionada',
+                    text: 'Por favor, selecciona un vehículo antes de continuar.',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
+
             // Validar que los campos requeridos no estén vacíos
-            if (!fecha || !hora || !origen || !destino || !kilometraje || !gasolina || !ubicacion || !daños || !contacto || !descripcion || tipo_carro === "Prestado" && !nombre_dueno) {
+            if (!fecha || !hora || !origen || !destino || !ubicacion || !daños || 
+                !contacto || !descripcion || (tipo_carro === "Prestado" && !nombre_dueno) || !foto) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
                     text: 'Por favor, completa todos los campos requeridos antes de enviar.',
                     confirmButtonText: 'Aceptar'
                 });
-                return; // Detener la ejecución si hay campos vacíos
+                return;
             }
-            
+
+            // Subir la imagen y registrar el siniestro
+            enviaImg(function (rutaImagen) {
+                var accion = "registroSiniestro";
+                console.log("Ruta de la imagen:", rutaImagen); // Verificar la ruta de la imagen
+                $.ajax({
+                    type: "POST",
+                    url: "acciones_siniestro",
+                    data:{  id_coche, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
+                            kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro,
+                            nombre_dueno, placa, rutaImagen, accion 
+                        },
+                    dataType: 'json',
+                    success: function (respuesta) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: 'Siniestro registrado exitosamente.',
+                            confirmButtonText: 'Aceptar'
+                        });
+                        //$("#formRegistroSiniestro")[0].reset();
+                        //$("#placaSeleccionada").hide();
+                        //$("#tablaInventario").closest(".container").show();
+                    },
+                    error: function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Hubo un problema al registrar el siniestro.',
+                            confirmButtonText: 'Aceptar'
+                        });
+                    }
+                });
+            });
+        }
+
+        //FUNCION PARA MANEJAR CARPETAS Y FOTO
+        //callback: hace que la función "RegistrarSiniestro" se ejecute después de enviar la imagen
+        function enviaImg(callback) {
+            var formData = new FormData();
+            var foto = $("#foto")[0].files[0];
+            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim(); // Obtener la placa seleccionada
+        
+            if (!placa) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Placa no seleccionada',
+                    text: 'Por favor, selecciona un vehículo antes de continuar.',
+                    confirmButtonText: 'Aceptar'
+                });
+                callback(null);
+                return;
+            }
+        
+            if (!foto) {
+                console.log("No se seleccionó ninguna foto.");
+                callback(null);
+                return;
+            }
+        
+            formData.append("foto", foto);
+            formData.append("placa", placa);
+            formData.append("accion", "manejarCarpetasYFoto");
+        
             $.ajax({
                 type: "POST",
                 url: "acciones_siniestro",
-                data: { fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas, 
-                        kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro, 
-                        nombre_dueno, noEmpleado, accion},
-                dataType: 'json', 
+                data: formData,
+                processData: false, 
+                contentType: false, 
+                dataType: 'json',
                 success: function (respuesta) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Éxito!',
-                        text: 'Siniestro registrado exitosamente.',
-                        confirmButtonText: 'Aceptar'
-                    });
-                    //document.getElementById("formRegistroSiniestro").reset(); // Limpiar el formulario
+                    if (respuesta.success) {
+                        callback(respuesta.rutaImagen);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: respuesta.message,
+                            confirmButtonText: 'Aceptar'
+                        });
+                        callback(null);
+                    }
                 },
                 error: function () {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Hubo un problema al registrar el siniestro.',
+                        text: 'Hubo un problema al manejar la foto y las carpetas.',
                         confirmButtonText: 'Aceptar'
                     });
+                    callback(null);
                 }
             });
-        } 
+        }
 
         //FUNCION PARA MOSTRAR CAMPO DEL DUEÑO DEL VEHICULO
         function mostrarCampoDueno() {
             var tipo_carro = $("#tipo_carro").val();
-            var campo_dueno = document.getElementById("campo_dueno"); // Seleccionar el elemento directamente
+            var campo_dueno = $("#campo_dueno");
 
             if (tipo_carro === "Prestado") {
-                campo_dueno.style.display = "block"; // Mostrar el campo
+                campo_dueno.show(); // Mostrar el campo
                 $("#nombre_dueno").attr("required", true); // Hacer el campo obligatorio
             } else {
-                campo_dueno.style.display = "none"; // Ocultar el campo
+                campo_dueno.hide(); // Ocultar el campo
                 $("#nombre_dueno").removeAttr("required"); // Quitar la obligatoriedad
             }
         }

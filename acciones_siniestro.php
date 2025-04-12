@@ -31,29 +31,18 @@ $modelo = $_POST["modelo"];
 $color = $_POST["color"];
 $anio = $_POST["anio"];
 $noEmpleado = $_COOKIE['noEmpleado'];
+$id_usuario = $_COOKIE['id_usuario'];
+$foto = $_POST["rutaImagen"];
 /*----------------------------------------------------------------------------*/
 
 //Registro de Siniestro
 if ($accion == "registroSiniestro") {
 
-    /*$rutaFoto = null; // Inicializar la ruta de la foto como null
-    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $nombreArchivo = $_FILES['foto']['name'];
-        $rutaTemporal = $_FILES['foto']['tmp_name'];
-        $rutaDestino = "uploads/" . $nombreArchivo;
-
-        if (move_uploaded_file($rutaTemporal, $rutaDestino)) {
-            $rutaFoto = $rutaDestino; // Guardar la ruta de la foto si se subió correctamente
-        } else {
-            echo json_encode(["success" => false, "message" => "Error al subir la foto."]);
-            exit;
-        }
-    }*/
     $sqlregistro = "INSERT INTO siniestros 
-                    (fecha_registro, fecha, tipo_carro, nombre_dueno, hora, kilometraje, gasolina, origen, destino, lugar, 
+                    (id_coche, fecha_registro, fecha, tipo_carro, nombre_dueno, hora, kilometraje, gasolina, origen, destino, lugar, 
                     empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto, foto)
-                    VALUES ('$fecha_registro', '$fecha', '$tipo_carro', '$nombre_dueno', '$hora', '$kilometraje', '$gasolina', '$origen', '$destino',
-                            '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto', '$rutaFoto')";
+                    VALUES ('$id_coche', '$fecha_registro', '$fecha', '$tipo_carro', '$nombre_dueno', '$hora', '$kilometraje', '$gasolina', '$origen', '$destino',
+                            '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto', '$foto')";
                             
     $resultregistro = $conn->query($sqlregistro);
     // Verificar si la consulta fue exitosa
@@ -64,12 +53,51 @@ if ($accion == "registroSiniestro") {
     }
 }
 
+//Creacion de carpeta
+if ($accion == "manejarCarpetasYFoto") {
+    
+    $rutaBase = "img_control_vehicular";
+    $rutaPlaca = $rutaBase . "/" . $placa;
+    $rutaSiniestros = $rutaPlaca . "/Siniestros";
+
+    if (!file_exists($rutaPlaca)) {
+        mkdir($rutaPlaca, 0777, true);
+    }
+    if (!file_exists($rutaSiniestros)) {
+        mkdir($rutaSiniestros, 0777, true);
+    }
+
+    // Manejar la subida de la imagen
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+        $rutaImagen = $placa . "_Siniestro_" . date("Ymd_his") . "." . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        $rutaTemporal = $_FILES['foto']['tmp_name'];
+        $rutaDestino = $rutaSiniestros . "/" . $rutaImagen;
+
+        if (move_uploaded_file($rutaTemporal, $rutaDestino)) {
+            echo json_encode([
+                "success" => true,
+                "rutaImagen" => $rutaImagen
+            ]);
+        } else {
+            echo json_encode([
+                "success" => false,
+                "message" => "Error al mover la imagen al destino."
+            ]);
+        }
+    } else {
+        echo json_encode([
+            "success" => false,
+            "message" => "No se recibió ninguna imagen o hubo un error al subirla."
+        ]);
+    }
+    exit;
+}
 // Consulta para obtener los datos de la tabla "inventario"
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos = "SELECT placa, modelo, color, anio 
+    $sqlConsultaVehiculos = "SELECT id_coche, placa, modelo 
             FROM inventario 
-            WHERE id_usuario = '$noEmpleado'";
+            WHERE id_usuario = '$id_usuario'";
     $result = $conn->query($sqlConsultaVehiculos);
 
     $vehiculos = [];

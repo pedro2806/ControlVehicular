@@ -94,7 +94,7 @@
             $pass = $_POST['InputPassword'];
             $usuario = explode('@', $usuario)[0];
             
-            $Qempresas  =  "SELECT  *, TIMESTAMPDIFF(YEAR,fechaIngreso,CURDATE()) AS antiguedad, rol FROM usuarios WHERE usuario  = '".$usuario."@mess.com.mx' and password  =  '".$pass."' AND estatus = 1";
+            $Qempresas  =  "SELECT  * FROM usuarios WHERE usuario  = '".$usuario."@mess.com.mx' and password  =  '".$pass."' AND estatus = 1";
             $res2 = mysqli_query($conn, $Qempresas);
             
             if (!$res2) {
@@ -107,32 +107,23 @@
                 while ($row2 = mysqli_fetch_array($res2)) {
                     $nombreEmpleado = $row2["nombre"];
                     $noEmpleado = $row2["noEmpleado"];
-                    $antiguedad = $row2["antiguedad"];
-                    $diasD = $row2["diasdisponibles"];
+                    $id_usuario = $row2["id_usuario"];
                     $rol = $row2["rol"];
                 }
             }
-    
+            
             if($nr == 1)
             {            
-                
-                echo '<script>document.cookie = "antiguedad='.$antiguedad.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                echo '<script>document.cookie = "id_usuario='.$id_usuario.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "nombredelusuario='.$nombreEmpleado.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "noEmpleado='.$noEmpleado.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
-                echo '<script>document.cookie = "diasD='.$diasD.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "rol='.$rol.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
-                
-                
-                
-                   
                 echo '<script>window.location.assign("inicio")</script>';
-                
             }
             else if ($nr  ==  0)
             {
                 echo '<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>';
                 echo '<script>swal("Usuario o contraseña incorrectos!", "Vuelve a intentar!", "error");</script>';
-                
             }
             
         }

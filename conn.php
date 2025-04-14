@@ -1,6 +1,6 @@
 <?php 
 
-$conn = mysqli_connect("localhost", "webmess_incidencias", "Pipmytrade123", "mess_control_vehicular");
+$conn = mysqli_connect("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");
 //incidencias2023
 
     // Check connection
@@ -13,7 +13,7 @@ $conn = mysqli_connect("localhost", "webmess_incidencias", "Pipmytrade123", "mes
 
 <?php
 // Crear conexión
-$conn = new mysqli("localhost", "webmess_incidencias", "Pipmytrade123", "mess_control_vehicular");
+$conn = new mysqli("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");
 // Verificar si la conexión fue exitosa
 if ($conn->connect_error) {
     die("Error en la conexión: " . $conn->connect_error);

@@ -6,7 +6,7 @@ date_default_timezone_set('America/Mexico_City');
 
 $accion = $_POST["accion"];
 
-$id_coche = $_POST["id_coche"];
+$id_vehiculo = $_POST["id_vehiculo"];
 $fecha = $_POST["fecha"];
 $hora = $_POST["hora"];
 $kilometraje = $_POST["kilometraje"];
@@ -23,7 +23,7 @@ $ubicacion_vehiculo = $_POST["ubicacion"];
 $contacto = $_POST["contacto"];
 
 $tipo_carro = $_POST["tipo_carro"];
-$nombre_dueno = $_POST["nombre_dueno"];
+$id_dueno = $_POST["id_dueno"];
 $fecha_registro = date("Y-m-d H:i:s");
 $placa = $_POST["placa"];
 $marca = $_POST["marca"];
@@ -39,9 +39,9 @@ $foto = $_POST["rutaImagen"];
 if ($accion == "registroSiniestro") {
 
     $sqlregistro = "INSERT INTO siniestros 
-                    (id_coche, fecha_registro, fecha, tipo_carro, nombre_dueno, hora, kilometraje, gasolina, origen, destino, lugar, 
+                    (id_vehiculo, fecha_registro, fecha, tipo_carro, id_dueno, hora, kilometraje, gasolina, origen, destino, lugar, 
                     empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto, foto)
-                    VALUES ('$id_coche', '$fecha_registro', '$fecha', '$tipo_carro', '$nombre_dueno', '$hora', '$kilometraje', '$gasolina', '$origen', '$destino',
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$tipo_carro', '$id_dueno', '$hora', '$kilometraje', '$gasolina', '$origen', '$destino',
                             '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto', '$foto')";
                             
     $resultregistro = $conn->query($sqlregistro);
@@ -95,9 +95,9 @@ if ($accion == "manejarCarpetasYFoto") {
 // Consulta para obtener los datos de la tabla "inventario"
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos = "SELECT id_coche, placa, modelo 
-            FROM inventario 
-            WHERE id_usuario = '$id_usuario'";
+    $sqlConsultaVehiculos ="SELECT id_vehiculo, placa, modelo, marca
+                            FROM inventario 
+                            WHERE id_usuario = '$id_usuario'";
     $result = $conn->query($sqlConsultaVehiculos);
 
     $vehiculos = [];

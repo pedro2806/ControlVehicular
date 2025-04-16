@@ -42,14 +42,8 @@
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class = "h3 mb-0 text-black-800">Lista de Mantenimiento</h1>                        
                     </div>
-
-                    <!-- CONTENEDOR INFO AUTO -->
-                    <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-
                     <!-- FORMULARIO DE REGISTRO DE MANTENIMIENTO -->
-                    <div class="container">
-                        <h3 class="h5 mb-0 text-black" style="font-weight: bold;">Lista de Mantenimiento</h3>
+                    <div class="table-responsive">
                         <table id="tablaMantenimientos" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
@@ -83,6 +77,34 @@
     <a class = "scroll-to-top rounded" href = "#page-top">
         <i class = "fas fa-angle-up"></i>
     </a>
+    <!-- Modal para ingresar comentario y fecha programada -->
+    <div class="modal fade" id="modalMantenimiento" tabindex="-1" aria-labelledby="modalMantenimientoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalMantenimientoLabel">Detalles del Mantenimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formModalMantenimiento">
+                        <div class="mb-3">
+                            <label for="fecha_programada" class="form-label">Fecha Programada:</label>
+                            <input type="date" class="form-control" id="fecha_programada" name="fecha_programada" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comentario" class="form-label">Comentario:</label>
+                            <textarea class="form-control" id="comentario" name="comentario" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-success" id="btnGuardarModal">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
@@ -95,7 +117,10 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
     <script type="text/javascript">
     $(document).ready(function() {
         cargarMantenimientos();
@@ -111,8 +136,25 @@
                 processing: "Procesando...",
                 loadingRecords: "Cargando...",
                 zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla"
-            }
+                emptyTable: "No hay datos disponibles en la tabla",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                search: "Buscar:",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                lengthMenu: "Mostrar _MENU_ registros",
+                aria: {
+                    sortAscending: ": activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                }
+            },
+            //Justifica el buscador y la paginación
+            dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
         });
     });
 
@@ -137,8 +179,8 @@
                             <td>${mantenimiento.descripcion}</td>
                             <td>${mantenimiento.VoBo_jefe}</td>
                             <td>
-                                <button id="btnAutorizar" class="btn btn-outline-success" onclick="autorizarMantenimiento()">Autorizar</button>
-                                <button id="btnDenegar" class="btn btn-outline-danger" onclick="denegarMantenimiento()">Denegar</button>
+                                <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})"><ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon></button>
+                                <button class="btn btn-outline-danger" onclick="denegarMantenimiento(${mantenimiento.id_mantenimiento})"><ion-icon name="close-outline" class="fs-6"></ion-icon></button>
                             </td>
                         </tr>`;
                     tabla.append(fila);
@@ -156,78 +198,65 @@
     }
 
     // Función para autorizar un mantenimiento
-    function autorizarMantenimiento() {
-        Swal.fire({
-            title: "¿Estás seguro?",
-            text: "¿Deseas autorizar el mantenimiento seleccionado?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Sí, autorizar",
-            cancelButtonText: "Cancelar"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_mantenimiento",
-                    data: { accion: "autorizarMantenimiento" },
-                    success: function (respuesta) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "¡Autorizado!",
-                            text: "El mantenimiento ha sido autorizado.",
-                            confirmButtonText: "Aceptar"
-                        });
-                        cargarMantenimientos(); 
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "Hubo un problema al autorizar el mantenimiento.",
-                            confirmButtonText: "Aceptar"
-                        });
-                    }
-                });
-            }
-        });
+    function autorizarMantenimiento(id_mantenimiento) {
+        // Guardar el ID del mantenimiento en un atributo del modal
+        $("#modalMantenimiento").data("id_mantenimiento", id_mantenimiento);
+        $("#modalMantenimiento").data("accion", "autorizarMantenimiento");
+        $("#modalMantenimientoLabel").text("Autorizar Mantenimiento");
+        $("#btnGuardarModal").text("Guardar");
+        $("#modalMantenimiento").modal("show");
     }
 
     // Función para denegar un mantenimiento
-    function denegarMantenimiento() {
-        Swal.fire({
-            title: "¿Estás seguro?",
-            text: "¿Deseas denegar el mantenimiento seleccionado?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Sí, denegar",
-            cancelButtonText: "Cancelar"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_mantenimiento",
-                    data: { accion: "denegarMantenimiento" },
-                    success: function (respuesta) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "¡Denegado!",
-                            text: "El mantenimiento ha sido denegado.",
-                            confirmButtonText: "Aceptar"
-                        });
-                        cargarMantenimientos(); 
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "Hubo un problema al denegar el mantenimiento.",
-                            confirmButtonText: "Aceptar"
-                        });
-                    }
+    function denegarMantenimiento(id_mantenimiento) {
+        // Guardar el ID del mantenimiento en un atributo del modal
+        $("#modalMantenimiento").data("id_mantenimiento", id_mantenimiento);
+        $("#modalMantenimiento").data("accion", "denegarMantenimiento");
+        $("#modalMantenimientoLabel").text("Denegar Mantenimiento");
+        $("#btnGuardarModal").text("Guardar");
+        $("#modalMantenimiento").modal("show");
+    }
+
+    // Función para guardar el comentario y la fecha programada
+    $("#btnGuardarModal").on("click", function () {
+        var id_mantenimiento = $("#modalMantenimiento").data("id_mantenimiento");
+        var accion = $("#modalMantenimiento").data("accion");
+        var comentario = $("#comentario").val();
+        var fecha_programada = $("#fecha_programada").val();
+
+        if (!fecha_programada) {
+            Swal.fire({
+                icon: "warning",
+                title: "Campos incompletos",
+                text: "Por favor, completa todos los campos del modal.",
+                confirmButtonText: "Aceptar"
+            });
+            return;
+        }
+        $.ajax({
+            type: "POST",
+            url: "acciones_mantenimiento",
+            data: { accion, id_mantenimiento, comentario, fecha_programada },
+            success: function (respuesta) {
+                Swal.fire({
+                    icon: "success",
+                    title: accion === "autorizarMantenimiento" ? "¡Autorizado!" : "¡Denegado!",
+                    text: "El mantenimiento ha sido actualizado exitosamente.",
+                    confirmButtonText: "Aceptar"
+                });
+                $("#modalMantenimiento").modal("hide"); // Cerrar el modal
+                cargarMantenimientos(); // Recargar la tabla
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al actualizar el mantenimiento.",
+                    confirmButtonText: "Aceptar"
                 });
             }
         });
-    }
+    });
     </script>
 </body>
 </html>

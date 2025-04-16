@@ -7,7 +7,7 @@ date_default_timezone_set('America/Mexico_City');
 $accion = $_POST["accion"];
 
 $id_mantenimiento = $_POST["id_mantenimiento"];
-$id_coche = $_POST["id_coche"];
+$id_vehiculo = $_POST["id_vehiculo"];
 $fecha_registro = date("Y-m-d H:i:s");
 $kilometraje = $_POST["kilometraje"];
 $gasolina = $_POST["gasolina"];
@@ -18,7 +18,7 @@ $VoBo_jefe = $_POST["VoBo_jefe"];
 $fecha_proxi = $_POST["fecha_proxi"];
 $km_proxi = $_POST["km_proxi"];
 $tipo_carro = $_POST["tipo_carro"];
-$nombre_dueno = $_POST["nombre_dueno"];
+$id_dueno = $_POST["id_dueno"];
 
 $noEmpleado = $_COOKIE['noEmpleado'];
 $id_usuario = $_COOKIE['id_usuario'];
@@ -27,6 +27,8 @@ $placa = $_POST["placa"];
 $foto = $_POST["rutaImagen"];
 
 $id_mantenimiento = $_POST["id_mantenimiento"];
+$notas = $_POST['comentario'];
+$fecha_programada = $_POST['fecha_programada'];
 /*---------------------------------------------*/
 
 
@@ -34,10 +36,10 @@ $id_mantenimiento = $_POST["id_mantenimiento"];
 if ($accion == "RegistrarMantenimiento") {
 
     $sqlregistro = "INSERT INTO mantenimientos
-                    (id_coche, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe, 
-                    fecha_proxi, km_proxi, tipo_carro, nombre_dueno, foto)
-                    VALUES ('$id_coche', '$fecha_registro', '$kilometraje', '$gasolina', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE' ,
-                    '$fecha_proxi', '$km_proxi', '$tipo_carro', '$nombre_dueno', '$foto')";                   
+                    (id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe, 
+                    fecha_proxi, km_proxi, tipo_carro, id_dueno, foto)
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE' ,
+                    '$fecha_proxi', '$km_proxi', '$tipo_carro', '$id_dueno', '$foto')";                   
     $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Mantenimiento registrado exitosamente."]);
@@ -87,12 +89,27 @@ if ($accion == "manejarCarpetasYFoto") {
     exit;
 }
 
+//Consulta de Usuarios
+if ($accion == "consultarUsuarios") {
+    $sql = "SELECT id_usuario, nombre FROM usuarios";
+    $result = $conn->query($sql);
+
+    $usuarios = [];
+    while ($row = $result->fetch_assoc()) {
+        $usuarios[] = $row;
+    }
+
+    echo json_encode($usuarios);
+    exit;
+}
+
 //Consulta de Mantenimientos
 if ($accion == "consultarMantenimientos") {
-    $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_coche , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
+    $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
                            mant.descripcion, mant.VoBo_jefe, inv.placa
                     FROM mantenimientos mant
-                    INNER JOIN inventario inv ON mant.id_coche = inv.id_coche";
+                    INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                    WHERE mant.VoBo_jefe = 'PENDIENTE'";
     $result = $conn->query($sqlConsulta);
 
     $mantenimientos = [];
@@ -101,22 +118,24 @@ if ($accion == "consultarMantenimientos") {
     }
 
     echo json_encode($mantenimientos);
-    exit;
 }
 
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
-    $sqlAprobar = "UPDATE mantenimientos SET estado = 'Autorizado' WHERE id = '$id_mantenimiento'";
-    $conn->query($sqlAprobar);
+    $sqlAutoriza = "UPDATE mantenimientos 
+            SET VoBo_jefe = 'Autorizado', notas = '$notas', fecha_programada = '$fecha_programada' 
+            WHERE id_mantenimiento = '$id_mantenimiento'";
+    $resultAutoriza = $conn->query($sqlAutoriza);
     echo json_encode(["success" => true]);
-    exit;
 }
 
 //Denegar Mantenimiento
 if ($accion == "denegarMantenimiento") {
-    $sqlDenegar = "UPDATE mantenimientos SET estado = 'Denegado' WHERE id = '$id_mantenimiento'";
-    $conn->query($sqlDenegar);
+    $sqlDenegar = "UPDATE mantenimientos 
+            SET VoBo_jefe = 'Denegado', notas = '$notas', fecha_programada = '$fecha_programada' 
+            WHERE id_mantenimiento = '$id_mantenimiento'";
+    $resultDenegar = $conn->query($sqlDenegar);
+
     echo json_encode(["success" => true]);
-    exit;
 }
 ?>

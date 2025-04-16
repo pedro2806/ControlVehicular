@@ -40,7 +40,7 @@
 
                     <!-- Page Heading -->
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class = "h3 mb-0 text-gray-800">Registro de Siniestro</h1>                        
+                        <h1 class = "h3 mb-0 text-black-800">Registro de Siniestro</h1>                        
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
@@ -61,6 +61,7 @@
 
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
+                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
 
                     <!-- FORMULARIO DEL SINIESTRO -->
                     <form id="formRegistroSiniestro">
@@ -80,7 +81,8 @@
                                 <label>Tipo de Vehiculo:</label> 
                                 <select class="form-select" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
                                     <option value="">Seleccione...</option>
-                                    <option value="Propio">A mi nombre</option>
+                                    <option value="Asignado">Asignado</option>
+                                    <option value="Propio">Propio</option>
                                     <option value="Prestado">Prestado</option>
                                 </select>       
                             </div>
@@ -88,8 +90,11 @@
                             <br>
                             <!-- Campo adicional para el nombre del dueño -->
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
-                                <label>Nombre del Dueño:</label>
-                                <input type="text" class="form-control" id="nombre_dueno" name="nombre_dueno">
+                                <label>Propietario:</label>
+                                <select class="form-select" id="id_dueno" name="id_dueno" required>
+                                    <option value="">Seleccione...</option>
+                                    <!-- Las opciones se cargarán dinámicamente -->
+                                </select>
                             </div>
                         </div>
                         <br>
@@ -188,7 +193,7 @@
                         </div>
                         <br>
                         <input type="hidden" id = "coordenadas" name = "coordenadas">
-                        <input type="hidden" id = "id_coche" name = "id_coche">
+                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Confirmar</button>
                         </center>
@@ -224,6 +229,7 @@
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos();
+            cargarUsuarios();
 
             // Llenar automáticamente los campos de fecha y hora
             const now = new Date();
@@ -264,7 +270,7 @@
                                 <td>${vehiculo.modelo}</td>
                                 <td>
                                     <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_coche}', '${vehiculo.placa}')">
+                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
                                             <i class="fas fa-check"></i>
                                         </button>
                                     </center>
@@ -311,15 +317,55 @@
         }
 
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_coche, placa) {
+        function seleccionarVehiculo(id_vehiculo, placa) {
             // Actualizar el contenido del contenedor con la placa seleccionada
             $("#placaSeleccionada")
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
-            $("#id_coche").val(id_coche);
+            $("#id_vehiculo").val(id_vehiculo);
+            
+            // Mostrar el botón para cambiar de vehículo
+            $("#btnCambiarVehiculo").show();
 
             // Ocultar la tabla de inventario
             $("#tablaInventario").closest(".container").hide();
+        }
+
+        function cambiarVehiculo() {
+            // Ocultar el contenedor de la placa seleccionada
+            $("#placaSeleccionada").hide();
+
+            // Ocultar el botón para cambiar de vehículo
+            $("#btnCambiarVehiculo").hide();
+
+            // Mostrar la tabla de inventario
+            $("#tablaInventario").closest(".container").show();
+        }
+
+        // Cargar la lista de usuarios 
+        function cargarUsuarios() {
+            $.ajax({
+                type: "POST",
+                url: "acciones_mantenimiento",
+                data: { accion: "consultarUsuarios" },
+                dataType: "json",
+                success: function (respuesta) {
+                    var select = $("#id_dueno");
+                    select.empty(); // Limpiar las opciones existentes
+                    select.append('<option value="">Seleccione un propietario...</option>'); // Opción por defecto
+                    respuesta.forEach(function (usuario) {
+                        select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
+                    });
+                },
+                error: function () {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: "Hubo un problema al cargar la lista de usuarios.",
+                        confirmButtonText: "Aceptar"
+                    });
+                }
+            });
         }
 
         //FUNCION REGISTRO DE SINIESTRO
@@ -339,10 +385,10 @@
             var contacto = $("#contacto").val();
             var descripcion = $("#descripcion").val();
             var tipo_carro = $("#tipo_carro").val();
-            var nombre_dueno = $("#nombre_dueno").val();
+            var id_dueno = $("#id_dueno").val();
             var rutaImagen = $("#foto")[0].files[0];
             var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
-            var id_coche = $("#id_coche").val();
+            var id_vehiculo = $("#id_vehiculo").val();
 
             // Validar que la placa esté seleccionada
             if (!placa) {
@@ -357,7 +403,7 @@
 
             // Validar que los campos requeridos no estén vacíos
             if (!fecha || !hora || !origen || !destino || !ubicacion || !daños || 
-                !contacto || !descripcion || (tipo_carro === "Prestado" && !nombre_dueno) || !foto) {
+                !contacto || !descripcion || (tipo_carro === "Prestado" && !id_dueno) || !foto) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
@@ -374,9 +420,9 @@
                 $.ajax({
                     type: "POST",
                     url: "acciones_siniestro",
-                    data:{  id_coche, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
+                    data:{  id_vehiculo, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
                             kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro,
-                            nombre_dueno, placa, rutaImagen, accion 
+                            id_dueno, placa, rutaImagen, accion 
                         },
                     dataType: 'json',
                     success: function (respuesta) {
@@ -386,9 +432,9 @@
                             text: 'Siniestro registrado exitosamente.',
                             confirmButtonText: 'Aceptar'
                         });
-                        //$("#formRegistroSiniestro")[0].reset();
-                        //$("#placaSeleccionada").hide();
-                        //$("#tablaInventario").closest(".container").show();
+                        $("#formRegistroSiniestro")[0].reset();
+                        $("#btnCambiarVehiculo").hide();
+                        $("#tablaInventario").closest(".container").show();
                     },
                     error: function () {
                         Swal.fire({
@@ -467,12 +513,12 @@
             var tipo_carro = $("#tipo_carro").val();
             var campo_dueno = $("#campo_dueno");
 
-            if (tipo_carro === "Prestado") {
+            if (tipo_carro === "Prestado" || tipo_carro === "Asignado") {
                 campo_dueno.show(); // Mostrar el campo
-                $("#nombre_dueno").attr("required", true); // Hacer el campo obligatorio
+                $("#id_dueno").attr("required", true); // Hacer el campo obligatorio
             } else {
                 campo_dueno.hide(); // Ocultar el campo
-                $("#nombre_dueno").removeAttr("required"); // Quitar la obligatoriedad
+                $("#id_dueno").removeAttr("required"); // Quitar la obligatoriedad
             }
         }
     </script>

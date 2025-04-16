@@ -50,6 +50,7 @@
                                 <tr>
                                     <th>Placa</th>
                                     <th>Modelo</th>
+                                    <th>Marca</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -81,6 +82,7 @@
                                 <label>Tipo de Vehiculo:</label> 
                                 <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()" required>
                                     <option value="">Seleccione...</option>
+                                    <option value="Asignado">Asignado</option>
                                     <option value="Propio">Propio</option>
                                     <option value="Prestado">Prestado</option>
                                 </select>       
@@ -91,7 +93,10 @@
                             <!-- Campo adicional para el nombre del dueño -->
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
                                 <label>Nombre del Propietario:</label>
-                                <input type="text" class="form-control" id="nombre_dueno" name="nombre_dueno">
+                                <select class="form-select" id="id_dueno" name="id_dueno" required>
+                                    <option value="">Seleccione...</option>
+                                    <!-- Las opciones se cargarán dinámicamente -->
+                                </select>
                             </div>
                         </div>
                         <br>
@@ -171,7 +176,7 @@
                             </div>
                         </div>
                         <br>
-                        <input type="hidden" id = "id_coche" name = "id_coche">
+                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarMantenimiento()">Guardar</button>
                         </center>
@@ -226,6 +231,7 @@
                 }
             });
 
+            cargarUsuarios();
             // Llenar automáticamente los campos de fecha y hora
             const now = new Date();
             const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
@@ -250,9 +256,10 @@
                             `<tr>
                                 <td>${vehiculo.placa}</td>
                                 <td>${vehiculo.modelo}</td>
+                                <td>${vehiculo.marca}</td>
                                 <td>
                                     <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_coche}', '${vehiculo.placa}')">
+                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
                                             <i class="fas fa-check"></i>
                                         </button>
                                     </center>
@@ -271,14 +278,40 @@
                 }
             });
         }
-
+        
+        // Cargar la lista de usuarios
+        function cargarUsuarios() {
+            $.ajax({
+                type: "POST",
+                url: "acciones_mantenimiento",
+                data: { accion: "consultarUsuarios" },
+                dataType: "json",
+                success: function (respuesta) {
+                    var select = $("#id_dueno");
+                    select.empty(); // Limpiar las opciones existentes
+                    select.append('<option value="">Seleccione un propietario...</option>'); // Opción por defecto
+                    respuesta.forEach(function (usuario) {
+                        select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
+                    });
+                },
+                error: function () {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: "Hubo un problema al cargar la lista de usuarios.",
+                        confirmButtonText: "Aceptar"
+                    });
+                }
+            });
+        }
+        
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_coche, placa) {
+        function seleccionarVehiculo(id_vehiculo, placa) {
             // Actualizar el contenido del contenedor con la placa seleccionada
             $("#placaSeleccionada")
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
-            $("#id_coche").val(id_coche);
+            $("#id_vehiculo").val(id_vehiculo);
             
             // Mostrar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").show();
@@ -300,18 +333,18 @@
 
         //FUNCION REGISTRO DE MANTENIMIENTO
         function RegistrarMantenimiento() {
-            var id_coche = $("#id_coche").val();
+            var id_vehiculo = $("#id_vehiculo").val();
             var fecha_registro = $("#fecha").val();
             var kilometraje = $("#kilometraje").val();
             var gasolina = $("#gasolina").val();
             var tipo_mantenimiento = $("#servicio").val();
             var descripcion = $("#descripcion").val();
             var solicitante = $("#solicita").val();
-            var VoBo_jefe = "PENDIENTE"; // Valor por defecto
+            var VoBo_jefe = "PENDIENTE"; 
             var fecha_proxi = $("#prox_fecha").val();
             var km_proxi = $("#prox_kilometraje").val();
             var tipo_carro = $("#tipo_carro").val();
-            var nombre_dueno = $("#nombre_dueno").val();
+            var id_dueno = $("#id_dueno").val();
             var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
             var accion = "RegistrarMantenimiento";
             var rutaImagen = $("#foto")[0].files[0];
@@ -322,7 +355,7 @@
             if (!placa) camposFaltantes.push("Vehículo seleccionado");
             if (!fecha_registro) camposFaltantes.push("Fecha del servicio");
             if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
-            if (tipo_carro === "Prestado" && !$("#nombre_dueno").val()) camposFaltantes.push("Nombre del propietario");
+            if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
             if (!solicitante) camposFaltantes.push("Solicitante");
             if (!descripcion) camposFaltantes.push("Descripción");
             if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
@@ -371,8 +404,8 @@
                 $.ajax({
                     type: "POST",
                     url: "acciones_mantenimiento",
-                    data: { id_coche, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, 
-                            fecha_proxi, km_proxi, tipo_carro, nombre_dueno, rutaImagen, accion},
+                    data: { id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, 
+                            fecha_proxi, km_proxi, tipo_carro, id_dueno, rutaImagen, accion},
                     dataType: 'json',
                     success: function (respuesta) {
                         Swal.fire({
@@ -383,6 +416,7 @@
                         });
                         $("#formRegistroMantenimiento")[0].reset();
                         $("#placaSeleccionada").hide();
+                        $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
                     },
                     error: function () {
@@ -462,12 +496,12 @@
             var tipo_carro = $("#tipo_carro").val();
             var campo_dueno = $("#campo_dueno");
 
-            if (tipo_carro === "Prestado") {
+            if (tipo_carro === "Prestado" || tipo_carro === "Asignado") {
                 campo_dueno.show(); // Mostrar el campo
-                $("#nombre_dueno").attr("required", true); // Hacer el campo obligatorio
+                $("#id_dueno").attr("required", true); // Hacer el campo obligatorio
             } else {
                 campo_dueno.hide(); // Ocultar el campo
-                $("#nombre_dueno").removeAttr("required"); // Quitar la obligatoriedad
+                $("#id_dueno").removeAttr("required"); // Quitar la obligatoriedad
             }
         }
     </script>

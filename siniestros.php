@@ -44,7 +44,7 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3>Inventario de Vehículos</h3>
+                        <h3>Selección de Vehículo</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
@@ -179,7 +179,7 @@
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
-                            <div class="col-lg-6 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-8 col-md-12 col-sm-12 col-12">
                                 <label>Foto del Siniestro:</label>
                                 <input 
                                     type="file" 
@@ -195,7 +195,7 @@
                         <input type="hidden" id = "coordenadas" name = "coordenadas">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
-                            <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Confirmar</button>
+                            <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Guardar</button>
                         </center>
                     </form>
                     <br>
@@ -230,15 +230,11 @@
         $(document).ready(function() {
             infoVehiculos();
             cargarUsuarios();
-
-            // Llenar automáticamente los campos de fecha y hora
             const now = new Date();
-            const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-            const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
-
-            $("#fecha").val(fecha); // Establecer la fecha actual
-            $("#hora").val(hora); // Establecer la hora actual
-
+            const fecha = now.toISOString().split('T')[0];
+            const hora = now.toTimeString().split(' ')[0].slice(0, 5); 
+            $("#fecha").val(fecha);
+            $("#hora").val(hora); 
             // Obtener coordenadas del usuario
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -416,7 +412,7 @@
             // Subir la imagen y registrar el siniestro
             enviaImg(function (rutaImagen) {
                 var accion = "registroSiniestro";
-                console.log("Ruta de la imagen:", rutaImagen); // Verificar la ruta de la imagen
+                //console.log("Ruta de la imagen:", rutaImagen); // Verificar la ruta de la imagen
                 $.ajax({
                     type: "POST",
                     url: "acciones_siniestro",
@@ -435,6 +431,7 @@
                         $("#formRegistroSiniestro")[0].reset();
                         $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
+                        location.reload();
                     },
                     error: function () {
                         Swal.fire({

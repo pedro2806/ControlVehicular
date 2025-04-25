@@ -92,13 +92,64 @@ if ($accion == "manejarCarpetasYFoto") {
     }
     exit;
 }
+
 // Consulta para obtener los datos de la tabla "inventario"
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos ="SELECT id_vehiculo, placa, modelo, marca
-                            FROM inventario 
-                            WHERE id_usuario = '$id_usuario'";
+    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+                            FROM inventario inv
+                            LEFT JOIN (
+                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
+                                FROM checklist
+                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
+                            WHERE id_usuario = $id_usuario AND inv.asignado = 'NO'
+                            ORDER BY inv.modelo ASC";
     $result = $conn->query($sqlConsultaVehiculos);
+
+    $vehiculos = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+    }
+    echo json_encode($vehiculos);
+}
+
+// Consulta para obtener los datos de la tabla "inventario"
+if ($accion == "consultarInventarioAsignados") {
+
+    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+                            FROM inventario inv
+                            LEFT JOIN (
+                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
+                                FROM checklist
+                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
+                            WHERE id_usuario = $id_usuario AND inv.asignado = 'NO'
+                            ORDER BY inv.modelo ASC";
+    $result = $conn->query($sqlConsultaVehiculos);
+
+    $vehiculos = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+    }
+    echo json_encode($vehiculos);
+}
+
+
+// Consulta para obtener los datos de la tabla "inventario"
+if ($accion == "consultarInventarioCambio") {
+
+    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+                            FROM inventario inv
+                            LEFT JOIN (
+                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
+                                FROM checklist
+                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
+                            WHERE inv.asignado = 'NO'
+                            ORDER BY inv.modelo ASC";
+    $result = $conn->query($sqlConsultaVehiculos); 
 
     $vehiculos = [];
     if ($result->num_rows > 0) {

@@ -40,20 +40,19 @@
 
                     <!-- Page Heading -->
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class = "h3 mb-0 text-black-800">Lista de Mantenimiento</h1>                        
+                        <h1 class = "h3 mb-0 text-black-800">Lista de Mantenimientos</h1>                        
                     </div>
                     <!-- FORMULARIO DE REGISTRO DE MANTENIMIENTO -->
                     <div class="table-responsive">
                         <table id="tablaMantenimientos" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
                                     <th>Placa</th>
                                     <th>Fecha Registro</th>
                                     <th>Kilometraje</th>
                                     <th>Tipo de Mantenimiento</th>
                                     <th>Descripción</th>
-                                    <th>Estado</th>
+                                    <th>Estatus</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -88,7 +87,7 @@
                 <div class="modal-body">
                     <form id="formModalMantenimiento">
                         <div class="mb-3">
-                            <label for="fecha_programada" class="form-label">Fecha Programada:</label>
+                            <label class="form-label">Fecha Programada:</label>
                             <input type="date" class="form-control" id="fecha_programada" name="fecha_programada" required>
                         </div>
                         <div class="mb-3">
@@ -160,6 +159,8 @@
 
     // Función para cargar los mantenimientos desde la base de datos
     function cargarMantenimientos() {
+        const rol = getCookie('rol'); // Obtener el rol del usuario desde las cookies
+
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento.php",
@@ -168,20 +169,34 @@
             success: function (respuesta) {
                 var tabla = $("#tablaMantenimientos tbody");
                 tabla.empty(); // Limpiar la tabla antes de llenarla
+
+                // Mostrar u ocultar la columna "Acción" según el rol
+                if (rol != 3) {
+                    $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").hide(); // Ocultar columna "Acción"
+                } else {
+                    $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").show(); // Mostrar columna "Acción"
+                }
+
                 respuesta.forEach(function (mantenimiento) {
+                    var botones = "";
+                    if (rol == 3) { 
+                        botones = `
+                            <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})">
+                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="denegarMantenimiento(${mantenimiento.id_mantenimiento})">
+                                <ion-icon name="close-outline" class="fs-6"></ion-icon>
+                            </button>`;
+                    }
                     var fila = `
                         <tr>
-                            <td>${mantenimiento.id_mantenimiento}</td>
                             <td>${mantenimiento.placa}</td>
                             <td>${mantenimiento.fecha_registro}</td>
                             <td>${mantenimiento.kilometraje}</td>
                             <td>${mantenimiento.tipo_mantenimiento}</td>
                             <td>${mantenimiento.descripcion}</td>
                             <td>${mantenimiento.VoBo_jefe}</td>
-                            <td>
-                                <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})"><ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon></button>
-                                <button class="btn btn-outline-danger" onclick="denegarMantenimiento(${mantenimiento.id_mantenimiento})"><ion-icon name="close-outline" class="fs-6"></ion-icon></button>
-                            </td>
+                            <td>${botones}</td>
                         </tr>`;
                     tabla.append(fila);
                 });
@@ -197,23 +212,51 @@
         });
     }
 
+    // Función para obtener el valor de una cookie
+    function getCookie(name) {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                return cookie.substring(name.length + 1);
+            }
+        }
+        return null;
+    }
+
     // Función para autorizar un mantenimiento
     function autorizarMantenimiento(id_mantenimiento) {
-        // Guardar el ID del mantenimiento en un atributo del modal
+        $("#comentario").val("");
         $("#modalMantenimiento").data("id_mantenimiento", id_mantenimiento);
         $("#modalMantenimiento").data("accion", "autorizarMantenimiento");
         $("#modalMantenimientoLabel").text("Autorizar Mantenimiento");
         $("#btnGuardarModal").text("Guardar");
+
+        // Habilitar el campo de fecha para que el usuario pueda ingresarla
+        $("#fecha_programada").val("").prop("disabled", false);
+
+        // Mostrar el contenedor del campo de fecha
+        $("#fecha_programada").closest(".mb-3").show();
+
         $("#modalMantenimiento").modal("show");
     }
 
     // Función para denegar un mantenimiento
     function denegarMantenimiento(id_mantenimiento) {
-        // Guardar el ID del mantenimiento en un atributo del modal
+        $("#comentario").val("");
         $("#modalMantenimiento").data("id_mantenimiento", id_mantenimiento);
         $("#modalMantenimiento").data("accion", "denegarMantenimiento");
         $("#modalMantenimientoLabel").text("Denegar Mantenimiento");
         $("#btnGuardarModal").text("Guardar");
+
+        // Deshabilitar el campo de fecha y asignar la fecha actual
+        const now = new Date();
+        const fechaActual = now.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+        $("#fecha_programada").val(fechaActual).prop("disabled", true); // Asignar fecha y deshabilitar el campo
+
+        // Ocultar el contenedor del campo de fecha
+        $("#fecha_programada").closest(".mb-3").hide(); // Asegúrate de que el contenedor tenga la clase correcta
+
         $("#modalMantenimiento").modal("show");
     }
 
@@ -224,15 +267,6 @@
         var comentario = $("#comentario").val();
         var fecha_programada = $("#fecha_programada").val();
 
-        if (!fecha_programada) {
-            Swal.fire({
-                icon: "warning",
-                title: "Campos incompletos",
-                text: "Por favor, completa todos los campos del modal.",
-                confirmButtonText: "Aceptar"
-            });
-            return;
-        }
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento",

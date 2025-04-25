@@ -44,7 +44,7 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3 class="h5 mb-0 text-black" style="font-weight: bold;">Inventario de Vehículos</h3>
+                        <h3 class="h5 mb-0 text-black" style="font-weight: bold;">Selección de Vehículos</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
@@ -70,11 +70,11 @@
                         <div class = "row">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Servicio:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" required>
+                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" readonly>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Hora:</label> 
-                                <input type = "time" class = "form-control" id = "hora" name = "hora" required>       
+                                <input type = "time" class = "form-control" id = "hora" name = "hora" readonly>       
                             </div>
                             <br>
                             <br>
@@ -111,11 +111,7 @@
                                     <option value = "Correctivo">Correctivo</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Solicitante:</label>  
-                                <input class = "form-control" id = "solicita" name = "solicita" required>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-10 col-md-12 col-sm-12 col-12">
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
@@ -213,32 +209,45 @@
         $(document).ready(function() {
             infoVehiculos();
             $("#tablaInventario").DataTable({
-                destroy: true, // Permitir reinicializar la tabla
-                paging: false, // Quitar paginado
-                ordering: false, // Quitar orden
-                searching: false, // Quitar buscador
-                info: false, // Quitar leyendas a pie de tabla
+                destroy: true,
+                paging: true,
+                pageLength: 5,
+                ordering: true,
+                searching: true,
+                info: true,
                 language: {
                     decimal: ",",
                     thousands: ".",
                     processing: "Procesando...",
                     loadingRecords: "Cargando...",
                     zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla"
+                    emptyTable: "No hay datos disponibles en la tabla",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
+                    },
+                    lengthMenu: "Mostrar _MENU_",
+                    aria: {
+                        sortAscending: ": activar para ordenar la columna de manera ascendente",
+                        sortDescending: ": activar para ordenar la columna de manera descendente"
+                    }
                 },
-                createdRow: function(row, data, dataIndex) {
-                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
-                }
+                //Justifica el buscador y la paginación
+                dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
             });
-
             cargarUsuarios();
             // Llenar automáticamente los campos de fecha y hora
             const now = new Date();
             const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
             const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
-
-            $("#fecha").val(fecha); // Establecer la fecha actual
-            $("#hora").val(hora); // Establecer la hora actual
+            $("#fecha").val(fecha); 
+            $("#hora").val(hora); 
         });
         
          // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
@@ -249,24 +258,23 @@
                 data: { accion: "consultarInventario" },
                 dataType: "json",
                 success: function (respuesta) {
-                    var tabla = $("#tablaInventario tbody");
-                    tabla.empty(); 
+                    var tabla = $("#tablaInventario").DataTable(); // Obtener instancia de DataTable
+                    tabla.clear(); // Limpiar datos existentes en la tabla
+
                     respuesta.forEach(function (vehiculo) {
-                        var fila = 
-                            `<tr>
-                                <td>${vehiculo.placa}</td>
-                                <td>${vehiculo.modelo}</td>
-                                <td>${vehiculo.marca}</td>
-                                <td>
-                                    <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </center>
-                                </td>
-                            </tr>`;
-                        tabla.append(fila);
+                        tabla.row.add([
+                            vehiculo.placa,
+                            vehiculo.modelo,
+                            vehiculo.marca,
+                            `<center>
+                                <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </center>`
+                        ]);
                     });
+
+                    tabla.draw(); // Redibujar la tabla con los nuevos datos
                 },
                 error: function () {
                     Swal.fire({
@@ -339,7 +347,7 @@
             var gasolina = $("#gasolina").val();
             var tipo_mantenimiento = $("#servicio").val();
             var descripcion = $("#descripcion").val();
-            var solicitante = $("#solicita").val();
+            var solicitante = getCookie("id_usuario"); 
             var VoBo_jefe = "PENDIENTE"; 
             var fecha_proxi = $("#prox_fecha").val();
             var km_proxi = $("#prox_kilometraje").val();
@@ -353,17 +361,16 @@
             var camposFaltantes = [];
             // Validar cada campo y agregar al array si está vacío
             if (!placa) camposFaltantes.push("Vehículo seleccionado");
-            if (!fecha_registro) camposFaltantes.push("Fecha del servicio");
             if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
             if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
-            if (!solicitante) camposFaltantes.push("Solicitante");
             if (!descripcion) camposFaltantes.push("Descripción");
             if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
             if (!km_proxi) camposFaltantes.push("Kilometraje del próximo servicio");
             if (!kilometraje) camposFaltantes.push("Kilometraje actual");
             if (!tipo_mantenimiento) camposFaltantes.push("Tipo de servicio");
             if (!contacto) camposFaltantes.push("Contacto");
-            
+
+            //VALIDACIONES DE CAMPOS
             // Si hay campos faltantes, mostrar alerta
             if (camposFaltantes.length > 0) {
                 Swal.fire({
@@ -374,7 +381,6 @@
                 });
                 return;
             }
-
             // Validar que el kilometraje del próximo servicio sea mayor que el kilometraje actual
             if (parseFloat(km_proxi) <= parseFloat(kilometraje)) {
                 Swal.fire({
@@ -385,7 +391,6 @@
                 });
                 return;
             }
-
             // Validar que la fecha del próximo servicio sea mayor que la fecha del servicio actual
             if (new Date(fecha_proxi) <= new Date(fecha_registro)) {
                 Swal.fire({
@@ -396,7 +401,10 @@
                 });
                 return;
             }
-
+            // Si el tipo de carro es "Propio", usar el id_usuario en lugar de id_dueno
+            if (tipo_carro === "Propio") {
+                id_dueno = getCookie("id_usuario");
+            }
             // Subir la imagen y registrar el mantenimiento
             enviaImg(function (rutaImagen) {
                 //var accion = "manejarCarpetasYFoto";
@@ -418,6 +426,7 @@
                         $("#placaSeleccionada").hide();
                         $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
+                        location.reload();
                     },
                     error: function () {
                         Swal.fire({
@@ -503,6 +512,25 @@
                 campo_dueno.hide(); // Ocultar el campo
                 $("#id_dueno").removeAttr("required"); // Quitar la obligatoriedad
             }
+        }
+
+        // Función para denegar un mantenimiento
+        function denegarMantenimiento(id_mantenimiento) {
+            // Guardar el ID del mantenimiento en un atributo del modal
+            $("#modalMantenimiento").data("id_mantenimiento", id_mantenimiento);
+            $("#modalMantenimiento").data("accion", "denegarMantenimiento");
+            $("#modalMantenimientoLabel").text("Denegar Mantenimiento");
+            $("#btnGuardarModal").text("Guardar");
+
+            // Deshabilitar el campo de fecha y asignar la fecha actual
+            const now = new Date();
+            const fechaActual = now.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+            $("#fecha_programada").val(fechaActual).prop("disabled", true); // Asignar fecha y deshabilitar el campo
+
+            // Ocultar el campo de fecha de registro
+            $("#fecha_programada").closest(".form-group").hide();
+
+            $("#modalMantenimiento").modal("show");
         }
     </script>
 </body>

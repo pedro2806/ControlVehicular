@@ -123,7 +123,7 @@ if ($accion == "consultarMantenimientos") {
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
     $sqlAutoriza = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'Autorizado', notas = '$notas', fecha_programada = '$fecha_programada' 
+            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada' 
             WHERE id_mantenimiento = '$id_mantenimiento'";
     $resultAutoriza = $conn->query($sqlAutoriza);
     echo json_encode(["success" => true]);
@@ -132,7 +132,7 @@ if ($accion == "autorizarMantenimiento") {
 //Denegar Mantenimiento
 if ($accion == "denegarMantenimiento") {
     $sqlDenegar = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'Denegado', notas = '$notas', fecha_programada = '$fecha_programada' 
+            SET VoBo_jefe = 'DENEGADO', notas = '$notas', fecha_programada = '$fecha_programada' 
             WHERE id_mantenimiento = '$id_mantenimiento'";
     $resultDenegar = $conn->query($sqlDenegar);
 

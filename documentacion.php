@@ -43,7 +43,7 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3>Inventario de Vehículos</h3>
+                        <h3>Selección de Vehículo</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
@@ -60,100 +60,83 @@
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-
+                    <br>
                     <!-- FORMULARIO DEL DOCUMENTACION    -->
                     <form id="formRegistroDocumentacion">
                         <!-- Content Row -->
                         <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Registro:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" required>
+                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" readonly>
                             </div>
                             <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
                                 <label>Contacto:</label>  
                                 <input class="form-control" id="contacto" name="contacto" type="tel" required>
                             </div>
                             <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Prox. Revisión:</label>
                                 <input type="date" class="form-control" id="prox_fecha" name="prox_fecha" required>
                             </div>
                         </div>
                         <br>
-                        <!-- Content Row -->
-                        <!--<h1 class="h5 mb-0 text-black" style="font-weight: bold;">Detalles del Servicio</h1>-->
+
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Tarjeta de Circulación:</label>
-                                <select class="form-select" id="circulacion" name="circulacion" onchange="mostrarCampoArchivo('circulacion', 'archivoCirculacion')" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="SI">Si</option>
-                                    <option value="NO">No</option>
-                                </select>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row" id="archivoCirculacion" style="display: none;">
-                            <div class="col-lg-10">
-                                <label>Subir Tarjeta de Circulación:</label>
-                                <input type="file" class="form-control" id="archivoCirculacionInput" name="archivoCirculacion" accept="image/png, image/jpeg">
+                            <div class="col-lg-12 col-md-12 col-sm-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="circulacion" name="circulacion" onchange="mostrarCampoArchivoCheckbox('circulacion', 'archivoCirculacion')">
+                                        <label class="form-check-label" for="circulacion">Tarjeta de Circulación</label>
+                                    </div>
+                                    <div id="archivoCirculacion" style="display: none;">
+                                        <input type="file" class="form-control" id="archivoCirculacionInput" name="archivoCirculacion" accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Refrendo:</label>
-                                <select class="form-select" id="refrendo" name="refrendo" onchange="mostrarCampoArchivo('refrendo', 'archivoRefrendo')" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="SI">Si</option>
-                                    <option value="NO">No</option>
-                                </select>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row" id="archivoRefrendo" style="display: none;">
-                            <div class="col-lg-10">
-                                <label>Subir Refrendo:</label>
-                                <input type="file" class="form-control" id="archivoRefrendoInput" name="archivoRefrendo" accept="image/png, image/jpeg">
+                            <div class="col-lg-12 col-md-12 col-sm-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="refrendo" name="refrendo" onchange="mostrarCampoArchivoCheckbox('refrendo', 'archivoRefrendo')">
+                                        <label class="form-check-label" for="refrendo">Refrendo</label>
+                                    </div>
+                                    <div id="archivoRefrendo" style="display: none;">
+                                        <input type="file" class="form-control" id="archivoRefrendoInput" name="archivoRefrendo" accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Poliza de Seguro:</label>
-                                <select class="form-select" id="poliza" name="poliza" onchange="mostrarCampoArchivo('poliza', 'archivoPoliza')" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="SI">Si</option>
-                                    <option value="NO">No</option>
-                                </select>
+                            <div class="col-lg-12 col-md-12 col-sm-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="poliza" name="poliza" onchange="mostrarCampoArchivoCheckbox('poliza', 'archivoPoliza')">
+                                        <label class="form-check-label" for="poliza">Poliza de Seguro</label>
+                                    </div>
+                                    <div id="archivoPoliza" style="display: none;">
+                                        <input type="file" class="form-control" id="archivoPolizaInput" name="archivoPoliza" accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <br>
-                        <div class="row" id="archivoPoliza" style="display: none;">
-                            <div class="col-lg-10">
-                                <label>Subir Poliza de Seguro:</label>
-                                <input type="file" class="form-control" id="archivoPolizaInput" name="archivoPoliza" accept="image/png, image/jpeg">
-                            </div>
-                        </div> 
                         <br>
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Verificacion Vigente:</label>
-                                <select class="form-select" id="verificacion" name="verificacion" onchange="mostrarCampoArchivo('verificacion', 'archivoVerificacion')" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="SI">Si</option>
-                                    <option value="NO">No</option>
-                                </select>
+                            <div class="col-lg-12 col-md-12 col-sm-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="verificacion" name="verificacion" onchange="mostrarCampoArchivoCheckbox('verificacion', 'archivoVerificacion')">
+                                        <label class="form-check-label" for="verificacion">Verificación Vigente</label>
+                                    </div>
+                                    <div id="archivoVerificacion" style="display: none;">
+                                        <input type="file" class="form-control" id="archivoVerificacionInput" name="archivoVerificacion" accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <br>
-                        <div class="row" id="archivoVerificacion" style="display: none;">
-                            <div class="col-lg-10">
-                                <label>Subir Verificacion Vigente:</label>
-                                <input type="file" class="form-control" id="archivoVerificacionInput" name="archivoVerificacion" accept="image/png, image/jpeg">
-                            </div>
-                        </div> 
                         <br>
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
@@ -190,37 +173,6 @@
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos(); 
-            $("#tablaInventario").DataTable({
-                destroy: true, 
-                paging: false, 
-                ordering: false,
-                searching: false,
-                info: false,
-                language: {
-                    decimal: ",",
-                    thousands: ".",
-                    processing: "Procesando...",
-                    search: "Buscar:",
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    loadingRecords: "Cargando...",
-                    zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla",
-                    paginate: {
-                        first: "Primero",
-                        previous: "Anterior",
-                        next: "Siguiente",
-                        last: "Último"
-                    },
-                    aria: {
-                        sortAscending: ": activar para ordenar la columna de manera ascendente",
-                        sortDescending: ": activar para ordenar la columna de manera descendente"
-                    }
-                }
-            });
-
             var fecha = new Date().toISOString().split('T')[0];
             $("#fecha").val(fecha); 
         });
@@ -231,10 +183,6 @@
             var contacto = $("#contacto").val();
             var fecha_prox = $("#prox_fecha").val();
             var id_vehiculo = $("#id_vehiculo").val();
-            var tarjeta_circulacion = $("#circulacion").val();
-            var refrendo_actual = $("#refrendo").val();
-            var seguro_auto = $("#poliza").val();
-            var verificacion_vigente = $("#verificacion").val();
             var archivoCirculacion = $("#archivoCirculacionInput")[0].files[0];
             var archivoRefrendo = $("#archivoRefrendoInput")[0].files[0];
             var archivoPoliza = $("#archivoPolizaInput")[0].files[0];
@@ -253,7 +201,7 @@
             }
 
             // Validar campos condicionales
-            if (tarjeta_circulacion === "SI" && !archivoCirculacion) {
+            if ($("#circulacion").is(":checked") && !archivoCirculacion) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Archivo faltante',
@@ -263,7 +211,7 @@
                 return;
             }
 
-            if (refrendo_actual === "SI" && !archivoRefrendo) {
+            if ($("#refrendo").is(":checked") && !archivoRefrendo) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Archivo faltante',
@@ -273,7 +221,7 @@
                 return;
             }
 
-            if (seguro_auto === "SI" && !archivoPoliza) {
+            if ($("#poliza").is(":checked") && !archivoPoliza) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Archivo faltante',
@@ -283,7 +231,7 @@
                 return;
             }
 
-            if (verificacion_vigente === "SI" && !archivoVerificacion) {
+            if ($("#verificacion").is(":checked") && !archivoVerificacion) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Archivo faltante',
@@ -305,6 +253,12 @@
                     return;
                 }
 
+                // Obtener las rutas de los archivos subidos
+                var tarjeta_circulacion = respuesta.archivoCirculacion || null;
+                var refrendo_actual = respuesta.archivoRefrendo || null;
+                var seguro_auto = respuesta.archivoPoliza || null;
+                var verificacion_vigente = respuesta.archivoVerificacion || null;
+
                 $.ajax({
                     type: "POST",
                     url: "acciones_documentacion",
@@ -317,7 +271,6 @@
                         refrendo_actual: refrendo_actual,
                         seguro_auto: seguro_auto,
                         verificacion_vigente: verificacion_vigente,
-                        ruta_documento: respuesta.rutaDocumentacion,
                         accion: "RegistrarDocumentos"
                     },
                     success: function (respuesta) {
@@ -334,18 +287,17 @@
                             $("#archivoVerificacion").hide();
                             cambiarVehiculo();
                             infoVehiculos();
+                            location.reload(); 
                         });
                     },
                     error: function (xhr, status, error) {
-                        //console.error("Error en la solicitud AJAX:", error); 
-                        //console.error("Detalles del error:", xhr.responseText); 
-                        //console.error("Estado:", status); 
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
                             text: 'Hubo un problema al registrar la documentación.',
                             confirmButtonText: 'Aceptar'
                         });
+                        location.reload();
                     }
                 });
             });
@@ -399,9 +351,8 @@
                 contentType: false, 
                 dataType: 'json',
                 success: function (respuesta) {
-                    //console.log("Respuesta de manejarDocumentos:", respuesta); 
                     if (respuesta.success) {
-                        callback(respuesta); // Callback con la respuesta completa
+                        callback(respuesta.rutasArchivos); // Callback con las rutas de los archivos
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -425,11 +376,11 @@
         }
 
         //FUNCION PARA MOSTRAR CAMPO DE ARCHIVO
-        function mostrarCampoArchivo(selectId, campoId) {
-            var valor = $("#" + selectId).val();
+        function mostrarCampoArchivoCheckbox(checkboxId, campoId) {
+            var isChecked = $("#" + checkboxId).is(":checked");
             var campo = $("#" + campoId);
 
-            if (valor === "SI") {
+            if (isChecked) {
                 campo.show(); // Mostrar el campo
                 $("#" + campoId + "Input").attr("required", true); 
             } else {
@@ -446,11 +397,15 @@
                 data: { accion: "consultarInventario" },
                 dataType: "json",
                 success: function (respuesta) {
-                    var tabla = $("#tablaInventario tbody");
-                    tabla.empty(); 
+                    var tabla = $("#tablaInventario");
+                    tabla.DataTable().destroy(); // Destruir instancia previa de DataTables
+                    var tbody = tabla.find("tbody");
+                    tbody.empty(); // Limpiar el cuerpo de la tabla
+
+                    // Agregar filas dinámicamente
                     respuesta.forEach(function (vehiculo) {
-                        var fila = 
-                            `<tr>
+                        var fila = `
+                            <tr>
                                 <td>${vehiculo.placa}</td>
                                 <td>${vehiculo.modelo}</td>
                                 <td>
@@ -461,7 +416,40 @@
                                     </center>
                                 </td>
                             </tr>`;
-                        tabla.append(fila);
+                        tbody.append(fila);
+                    });
+
+                    // Inicializar DataTables después de cargar los datos
+                    tabla.DataTable({
+                        destroy: true, 
+                        paging: true, 
+                        pageLength: 5, 
+                        ordering: true, 
+                        searching: true,
+                        info: true, 
+                        language: {
+                            decimal: ",",
+                            thousands: ".",
+                            processing: "Procesando...",
+                            loadingRecords: "Cargando...",
+                            zeroRecords: "No se encontraron resultados",
+                            emptyTable: "No hay datos disponibles en la tabla",
+                            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                            infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                            infoFiltered: "(filtrado de _MAX_ registros totales)",
+                            search: "Buscar:",
+                            paginate: {
+                                first: "Primero",
+                                last: "Último",
+                                next: "Siguiente",
+                                previous: "Anterior"
+                            },
+                            lengthMenu: "Mostrar _MENU_ registros",
+                            aria: {
+                                sortAscending: ": activar para ordenar la columna de manera ascendente",
+                                sortDescending: ": activar para ordenar la columna de manera descendente"
+                            }
+                        }
                     });
                 },
                 error: function () {

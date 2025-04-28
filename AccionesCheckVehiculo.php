@@ -141,7 +141,7 @@ if ($opcion == "llenaTVehiculosAsignados") {
 
 if ($opcion == 'guardarCheckIn') {
     // Insert into checklist table
-    $sql = "INSERT INTO checklist (id_coche, fecha, id_usuario, id_revisor, motivo) 
+    $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo) 
         VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo')";
     $resultadoChecklist = mysqli_query($conn, $sql);
     

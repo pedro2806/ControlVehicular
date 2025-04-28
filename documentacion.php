@@ -81,7 +81,6 @@
                             </div>
                         </div>
                         <br>
-
                         <div class="row">
                             <div class="col-lg-12 col-md-12 col-sm-12">
                                 <div class="d-flex align-items-center">
@@ -138,6 +137,7 @@
                             </div>
                         </div>
                         <br>
+                        <input type="hidden" id="placa" name="placa">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarDocumentos()">Guardar</button>
@@ -179,101 +179,99 @@
         
         //FUNCION REGISTRO DE LA DOCUMENTACION
         function RegistrarDocumentos() {
+            var formData = new FormData();
+            var id_vehiculo = $("#id_vehiculo").val();
             var fecha_registro = $("#fecha").val();
             var contacto = $("#contacto").val();
             var fecha_prox = $("#prox_fecha").val();
-            var id_vehiculo = $("#id_vehiculo").val();
-            var archivoCirculacion = $("#archivoCirculacionInput")[0].files[0];
-            var archivoRefrendo = $("#archivoRefrendoInput")[0].files[0];
-            var archivoPoliza = $("#archivoPolizaInput")[0].files[0];
-            var archivoVerificacion = $("#archivoVerificacionInput")[0].files[0];
-            var accion = "RegistrarDocumentos";
+            var placa = $("#placa").val();
 
             // Validar campos obligatorios generales
-            if (!id_vehiculo || !contacto || !fecha_prox || !fecha_registro) {
+            if (!placa || !contacto || !fecha_prox || !fecha_registro) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Algun campo no seleccionado',
-                    text: 'Por favor, completa el formulario antes de continuar.',
+                    title: 'Campos incompletos',
+                    text: 'Por favor, completa todos los campos obligatorios antes de continuar.',
                     confirmButtonText: 'Aceptar'
                 });
                 return;
             }
 
-            // Validar campos condicionales
-            if ($("#circulacion").is(":checked") && !archivoCirculacion) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Archivo faltante',
-                    text: 'Por favor, sube la Tarjeta de Circulación.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
-
-            if ($("#refrendo").is(":checked") && !archivoRefrendo) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Archivo faltante',
-                    text: 'Por favor, sube el archivo de Refrendo.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
-
-            if ($("#poliza").is(":checked") && !archivoPoliza) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Archivo faltante',
-                    text: 'Por favor, sube el archivo de la Póliza de Seguro.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
-
-            if ($("#verificacion").is(":checked") && !archivoVerificacion) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Archivo faltante',
-                    text: 'Por favor, sube el archivo de Verificación Vigente.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
-
-            // Si todas las validaciones pasan, continuar con el flujo
-            enviaImg(function (respuesta) {
-                if (!respuesta || !respuesta.success) {
+            // Validar y agregar imágenes al FormData
+            if ($("#circulacion").is(":checked")) {
+                var archivoCirculacion = $("#archivoCirculacionInput")[0].files[0];
+                if (!archivoCirculacion) {
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Hubo un problema al manejar los documentos.',
+                        icon: 'warning',
+                        title: 'Archivo faltante',
+                        text: 'Por favor, sube la Tarjeta de Circulación.',
                         confirmButtonText: 'Aceptar'
                     });
                     return;
                 }
+                formData.append("archivoCirculacion", archivoCirculacion);
+            }
 
-                // Obtener las rutas de los archivos subidos
-                var tarjeta_circulacion = respuesta.archivoCirculacion || null;
-                var refrendo_actual = respuesta.archivoRefrendo || null;
-                var seguro_auto = respuesta.archivoPoliza || null;
-                var verificacion_vigente = respuesta.archivoVerificacion || null;
+            if ($("#refrendo").is(":checked")) {
+                var archivoRefrendo = $("#archivoRefrendoInput")[0].files[0];
+                if (!archivoRefrendo) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo faltante',
+                        text: 'Por favor, sube el archivo de Refrendo.',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    return;
+                }
+                formData.append("archivoRefrendo", archivoRefrendo);
+            }
 
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_documentacion",
-                    data: {
-                        id_vehiculo: id_vehiculo,
-                        fecha_registro: fecha_registro,
-                        contacto: contacto,
-                        fecha_prox: fecha_prox,
-                        tarjeta_circulacion: tarjeta_circulacion,
-                        refrendo_actual: refrendo_actual,
-                        seguro_auto: seguro_auto,
-                        verificacion_vigente: verificacion_vigente,
-                        accion: "RegistrarDocumentos"
-                    },
-                    success: function (respuesta) {
+            if ($("#poliza").is(":checked")) {
+                var archivoPoliza = $("#archivoPolizaInput")[0].files[0];
+                if (!archivoPoliza) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo faltante',
+                        text: 'Por favor, sube el archivo de la Póliza de Seguro.',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    return;
+                }
+                formData.append("archivoPoliza", archivoPoliza);
+            }
+
+            if ($("#verificacion").is(":checked")) {
+                var archivoVerificacion = $("#archivoVerificacionInput")[0].files[0];
+                if (!archivoVerificacion) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo faltante',
+                        text: 'Por favor, sube el archivo de Verificación Vigente.',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    return;
+                }
+                formData.append("archivoVerificacion", archivoVerificacion);
+            }
+
+            // Agregar otros datos al FormData
+            formData.append("id_vehiculo", id_vehiculo);
+            formData.append("fecha_registro", fecha_registro);
+            formData.append("contacto", contacto);
+            formData.append("fecha_prox", fecha_prox);
+            formData.append("placa", placa);
+            formData.append("accion", "RegistrarDocumentos");
+
+            $.ajax({
+                type: "POST",
+                url: "acciones_documentacion.php",
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function (respuesta) {
+                    console.log("Respuesta del servidor:", respuesta);
+                    if (respuesta.success) {
                         Swal.fire({
                             icon: 'success',
                             title: '¡Éxito!',
@@ -287,19 +285,26 @@
                             $("#archivoVerificacion").hide();
                             cambiarVehiculo();
                             infoVehiculos();
-                            location.reload(); 
+                            location.reload();
                         });
-                    },
-                    error: function (xhr, status, error) {
+                    } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: 'Hubo un problema al registrar la documentación.',
+                            text: respuesta.message,
                             confirmButtonText: 'Aceptar'
                         });
-                        location.reload();
                     }
-                });
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error en la solicitud:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Hubo un problema al registrar la documentación.',
+                        confirmButtonText: 'Aceptar'
+                    });
+                }
             });
         }
 
@@ -351,6 +356,7 @@
                 contentType: false, 
                 dataType: 'json',
                 success: function (respuesta) {
+                    console.log("Respuesta de manejarDocumentos:", respuesta); // Depuración
                     if (respuesta.success) {
                         callback(respuesta.rutasArchivos); // Callback con las rutas de los archivos
                     } else {
@@ -470,6 +476,7 @@
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
+            $("#placa").val(placa);
             
             // Mostrar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").show();

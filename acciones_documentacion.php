@@ -17,77 +17,83 @@ $verificacion_vigente = $_POST["verificacion_vigente"];
 $ruta_documento = $_POST["ruta_documento"];
 $placa = $_POST["placa"];
 
-error_log("Acción recibida: " . $accion);
 /*---------------------------------------------*/
 
 
 //Registro de Mantenimiento
 if ($accion == "RegistrarDocumentos") {
-    $sqlregistro = "INSERT INTO documentacion
-                    (id_vehiculo, fecha_registro, contacto, fecha_prox, tarjeta_circulacion, refrendo_actual, seguro_auto, verificacion_vigente)
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '$tarjeta_circulacion', '$refrendo_actual', '$seguro_auto', '$verificacion_vigente')";                   
-    $resultregistro = $conn->query($sqlregistro);
-    if ($resultregistro) {
-        echo json_encode(["success" => true, "message" => "Registrado exitosamente."]);
-    } else {
-        echo json_encode(["success" => false, "message" => "Error al hacer el registro: " . $conn->error]);
-    }
-    exit;
-}
-
-// Manejar Documentos
-if ($accion == "manejarDocumentos") {
-    error_log("Iniciando manejo de documentos para la placa: " . $placa);
-
     $rutaBase = "img_control_vehicular";
     $rutaPlaca = $rutaBase . "/" . $placa;
     $rutaDocumentacion = $rutaPlaca . "/Documentacion";
 
-    // Crear las carpetas si no existen
+    // Validar que $placa no esté vacío
+    if (empty($placa)) {
+        echo json_encode(["success" => false, "message" => "El valor de la placa está vacío."]);
+        exit;
+    }
+
+    // Crear la carpeta principal con el nombre de la placa si no existe
     if (!file_exists($rutaPlaca)) {
-        if (!mkdir($rutaPlaca, 0777, true)) {
-            error_log("Error al crear la carpeta de la placa: " . $rutaPlaca);
-            echo json_encode(["success" => false, "message" => "Error al crear la carpeta de la placa."]);
-            exit;
-        }
+        mkdir($rutaPlaca, 0777, true);
     }
 
+    // Verificar y crear la subcarpeta "Documentacion"
     if (!file_exists($rutaDocumentacion)) {
-        if (!mkdir($rutaDocumentacion, 0777, true)) {
-            error_log("Error al crear la carpeta de documentación: " . $rutaDocumentacion);
-            echo json_encode(["success" => false, "message" => "Error al crear la carpeta de documentación."]);
-            exit;
+        mkdir($rutaDocumentacion, 0777, true);
+    }
+
+    $rutasArchivos = [
+        'archivoCirculacion' => 'S/R',
+        'archivoRefrendo' => 'S/R',
+        'archivoPoliza' => 'S/R',
+        'archivoVerificacion' => 'S/R'
+    ];
+
+    // Procesar Tarjeta de Circulación
+    if (isset($_FILES['archivoCirculacion']) && $_FILES['archivoCirculacion']['error'] === UPLOAD_ERR_OK) {
+        $nombreArchivo = "TarjetaCirculacion_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoCirculacion']['name'], PATHINFO_EXTENSION);
+        $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
+        if (move_uploaded_file($_FILES['archivoCirculacion']['tmp_name'], $rutaDestino)) {
+            $rutasArchivos['archivoCirculacion'] = $rutaDestino;
         }
     }
 
-    $rutasArchivos = [];
-
-    // Manejar Tarjeta de Circulación
-    if (isset($_FILES['archivoCirculacion'])) {
-        error_log("Procesando archivo de Tarjeta de Circulación...");
-        if ($_FILES['archivoCirculacion']['error'] === UPLOAD_ERR_OK) {
-            $nombreArchivo = "TarjetaCirculacion_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoCirculacion']['name'], PATHINFO_EXTENSION);
-            $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
-            if (move_uploaded_file($_FILES['archivoCirculacion']['tmp_name'], $rutaDestino)) {
-                $rutasArchivos['archivoCirculacion'] = $rutaDestino;
-                error_log("Archivo de Tarjeta de Circulación guardado en: " . $rutaDestino);
-            } else {
-                error_log("Error al mover el archivo de Tarjeta de Circulación.");
-            }
-        } else {
-            error_log("Error en el archivo de Tarjeta de Circulación: " . $_FILES['archivoCirculacion']['error']);
+    // Procesar Refrendo
+    if (isset($_FILES['archivoRefrendo']) && $_FILES['archivoRefrendo']['error'] === UPLOAD_ERR_OK) {
+        $nombreArchivo = "Refrendo_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoRefrendo']['name'], PATHINFO_EXTENSION);
+        $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
+        if (move_uploaded_file($_FILES['archivoRefrendo']['tmp_name'], $rutaDestino)) {
+            $rutasArchivos['archivoRefrendo'] = $rutaDestino;
         }
     }
 
-    // Repite el mismo proceso para los demás archivos (Refrendo, Póliza, Verificación)
-    // ...
+    // Procesar Póliza de Seguro
+    if (isset($_FILES['archivoPoliza']) && $_FILES['archivoPoliza']['error'] === UPLOAD_ERR_OK) {
+        $nombreArchivo = "PolizaSeguro_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoPoliza']['name'], PATHINFO_EXTENSION);
+        $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
+        if (move_uploaded_file($_FILES['archivoPoliza']['tmp_name'], $rutaDestino)) {
+            $rutasArchivos['archivoPoliza'] = $rutaDestino;
+        }
+    }
 
-    // Responder con las rutas de los archivos
-    if (!empty($rutasArchivos)) {
-        echo json_encode(["success" => true, "rutasArchivos" => $rutasArchivos]);
+    // Procesar Verificación
+    if (isset($_FILES['archivoVerificacion']) && $_FILES['archivoVerificacion']['error'] === UPLOAD_ERR_OK) {
+        $nombreArchivo = "Verificacion_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoVerificacion']['name'], PATHINFO_EXTENSION);
+        $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
+        if (move_uploaded_file($_FILES['archivoVerificacion']['tmp_name'], $rutaDestino)) {
+            $rutasArchivos['archivoVerificacion'] = $rutaDestino;
+        }
+    }
+
+    // Registrar en la base de datos
+    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, tarjeta_circulacion, refrendo_actual, seguro_auto, verificacion_vigente)
+            VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
+    $result = $conn->query($sql);
+
+    if ($result) {
+        echo json_encode(["success" => true, "message" => "Documentación registrada exitosamente."]);
     } else {
-        error_log("No se procesaron archivos correctamente.");
-        echo json_encode(["success" => false, "message" => "No se procesaron archivos correctamente."]);
+        echo json_encode(["success" => false, "message" => "Error al registrar la documentación: " . $conn->error]);
     }
     exit;
 }

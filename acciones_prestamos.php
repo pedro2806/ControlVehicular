@@ -40,10 +40,12 @@ $notas_jefe = $_POST["notas_jefe"];
 //Registro de Prestamo
 if ($accion == "RegistrarPrestamo") {
     $sqlregistro = "INSERT INTO prestamos
-                    (id_vehiculo, fecha_registro, id_usuario, id_checklist, fecha_inc_prestamo, fecha_fin_prestamo, estatus, tipo_uso, detalle_tipo_uso, motivo_us)
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$id_usuario', '$id_checklist', '$fecha_inc_prestamo',
-                    '$fecha_fin_prestamo', 'PENDIENTE', '$tipo_uso', '$detalle_tipo_uso', '$motivo')";
-    $resultregistro = $conn->query($sqlregistro);
+
+                    (id_vehiculo, fecha_registro, id_usuario, id_checklist, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us)
+                    VALUES ('0', '$fecha_registro', '$id_usuario', '$id_checklist', '$fecha_inc_prestamo',
+                    '$fecha_fin_prestamo', 'PENDIENTE', '$motivo')";
+    $resultregistro = $conn->query($sqlregistro); 
+
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Préstamo registrado exitosamente."]);
     } else {

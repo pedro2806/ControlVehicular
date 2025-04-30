@@ -57,22 +57,36 @@
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Inicio Prestamo:</label>
-                                <input type="date" class="form-control" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
+                                <input type="datetime-local" class="form-control" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
                             </div>
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Fin Prestamo:</label>
-                                <input type="date" class="form-control" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
+                                <input type="datetime-local" class="form-control" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
                             </div>
                             <br>
-                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
-                                <label>Seleccionar Vehículo:</label>
-                                <select id="id_vehiculo" name="id_vehiculo" class="form-select" required>
-                                    <option value="">Seleccione un vehículo</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
+                        </div>
+                        <div class = "row">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                                <label>Tipo de uso:</label>
+                                <select class="form-select" id="visita_vinculada" name="visita_vinculada" required>
+                                    <option value="" disabled selected>Seleccione una opción</option>
+                                    <option value="Entrega">Entrega</option>
+                                    <option value="Recoleccion">Recolección</option>
+                                    <option value="Prospeccion">Prospección</option>
+                                    <option value="Negociacion">Negociación</option>
+                                    <option value="Proyecto">Proyecto</option>
+                                    <option value="OV">OV</option>
+                                    <option value="OT">OT</option>
                                 </select>
                             </div>
-                            <br>
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                                <label>OV/Cliente/OT/Proyecto:</label>
+                                <input type="text" id = "dato" name = "dato" class="form-control" required>
+                            </div>
+                        </div>
+                        <br>
+                        <div class = "row">
                             <div class="col-lg-12 col-md-12 col-sm-12 col-12">
                                 <label>Motivo:</label>
                                 <textarea class = "form-control" id = "motivo" name = "motivo" required></textarea>
@@ -163,12 +177,13 @@
             var fecha_registro = $("#fecha").val();
             var contacto = $("#contacto").val();
             var fecha_inc_prestamo = $("#fecha_inc_prestamo").val();
-            var fecha_fin_prestamo = $("#fecha_fin_prestamo").val();
-            var id_vehiculo = $("#id_vehiculo").val();
+            var fecha_fin_prestamo = $("#fecha_fin_prestamo").val();            
             var id_usuario = getCookie("id_usuario");
             var id_checklist = $("#id_checklist").val();
             var motivo = $("#motivo").val();
             var accion = "RegistrarPrestamo";
+            var visita_vinculada = $("#visita_vinculada").val();
+            var dato = $("#dato").val();
 
             // Validar campos obligatorios generales
             if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo) {
@@ -184,7 +199,7 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_prestamos",
-                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_vehiculo, id_usuario, id_checklist, motivo, accion },
+                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, visita_vinculada, dato },
                 dataType: "json",
                 success: function (respuesta) {
                     Swal.fire({
@@ -211,6 +226,8 @@
                 }
             });
         }
+
+
     </script>
 </body>
 </html>

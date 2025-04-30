@@ -41,9 +41,9 @@ $notas_jefe = $_POST["notas_jefe"];
 if ($accion == "RegistrarPrestamo") {
     $sqlregistro = "INSERT INTO prestamos
 
-                    (id_vehiculo, fecha_registro, id_usuario, id_checklist, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us)
+                    (id_vehiculo, fecha_registro, id_usuario, id_checklist, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, detalle_tipo_uso)
                     VALUES ('0', '$fecha_registro', '$id_usuario', '$id_checklist', '$fecha_inc_prestamo',
-                    '$fecha_fin_prestamo', 'PENDIENTE', '$motivo')";
+                    '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso', '$detalle_tipo_uso')";
     $resultregistro = $conn->query($sqlregistro); 
 
     if ($resultregistro) {

@@ -171,7 +171,7 @@
             var accion = "RegistrarPrestamo";
 
             // Validar campos obligatorios generales
-            if (!id_vehiculo || !contacto || !fecha_inc_prestamo || !fecha_fin_prestamo) {
+            if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Algun campo no seleccionado',

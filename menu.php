@@ -82,7 +82,13 @@
             </div>
         </div>
     </li>
-
+    <!-- Menú CheckIn -->
+    <li class="nav-item">
+        <a class="nav-link" href="checkVehiculo">
+            <i class="fas fa-fw fa-check"></i>
+            <span>Check In Vehiculo</span>
+        </a>
+    </li>
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 

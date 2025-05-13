@@ -79,17 +79,22 @@ if ($_POST['accion'] == 'mantenimientoVehiculo') {
 
 // Consulta para obtener los siniestros del vehículo 
 if ($_POST['accion'] == 'siniestrosVehiculo') {
-    $sql = "SELECT s.fecha_registro, s.descripcion, f.imagen
+    $sql="SELECT s.fecha_registro, s.fecha, FORMAT(s.hora, 'HH:mm:ss') AS hora, s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, f.imagen, 
+                inv.placa, inv.modelo, inv.marca, inv.anio, inv.usuario
             FROM siniestros s
-            JOIN fotos f ON s.id_vehiculo = f.id_vehiculo
+            LEFT JOIN fotos f ON s.id_siniestro = f.id_formato
+            LEFT JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
             WHERE s.id_vehiculo = $id_vehiculo
             ORDER BY s.fecha_registro DESC
-            LIMIT 1";
+            LIMIT 4";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
-        $siniestro = $result->fetch_assoc();
-        echo json_encode($siniestro);
+        $siniestros = [];
+        while ($row = $result->fetch_assoc()) {
+            $siniestros[] = $row;
+        }
+        echo json_encode($siniestros);
     } else {
         echo json_encode(["error" => "No se encontró información de siniestros."]);
     }

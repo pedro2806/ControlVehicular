@@ -16,15 +16,15 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <title>Control Vehicular</title>
 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
@@ -153,6 +153,69 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Modal Siniestro -->
+                    <div class="modal fade" id="modalSiniestro" tabindex="-1" aria-labelledby="modalSiniestroLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modalSiniestroLabel">Detalles del Siniestro</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Encabezado del Vehículo -->
+                                    <div class="mb-3">
+                                        <h6>Vehículo: <span id="vehiculoSiniestro"></span></h6>
+                                        <p><strong>Placa:</strong> <span id="placaVehiculo"></span></p>
+                                        <p><strong>Modelo:</strong> <span id="modeloVehiculo"></span></p>
+                                        <p><strong>Marca:</strong> <span id="marcaVehiculo"></span></p>
+                                        <p><strong>Año:</strong> <span id="anioVehiculo"></span></p>
+                                        <p><strong>Usuario:</strong> <span id="usuarioVehiculo"></span></p>
+                                    </div>
+                                    <!-- Pestañas -->
+                                    <ul class="nav nav-tabs" id="siniestroTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">Información</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="imagenes-tab" data-bs-toggle="tab" data-bs-target="#imagenes" type="button" role="tab" aria-controls="imagenes" aria-selected="false">Imágenes</button>
+                                        </li>
+                                    </ul>
+                                    <!-- Contenido de las Pestañas -->
+                                    <div class="tab-content mt-3" id="siniestroTabsContent">
+                                        <!-- Pestaña Información -->
+                                        <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+                                            <p><strong>Fecha y Hora:</strong> <span id="fechaHoraSiniestro"></span></p>
+                                            <p><strong>Ubicación:</strong> <span id="ubicacionSiniestro"></span></p>
+                                            <p><strong>Daños:</strong> <span id="partesSiniestro"></span></p>
+                                            <p><strong>Monto Estimado:</strong> <span id="montoSiniestro"></span></p>
+                                            <p><strong>Descripción:</strong></p>
+                                            <p id="descripcionSiniestro"></p>
+                                        </div>
+                                        <!-- Pestaña Imágenes -->
+                                        <div class="tab-pane fade" id="imagenes" role="tabpanel" aria-labelledby="imagenes-tab">
+                                            <div id="carouselSiniestro" class="carousel slide" data-bs-ride="carousel">
+                                                <div class="carousel-inner" id="imagenesCarrusel">
+                                                    <!-- Las imágenes se cargarán dinámicamente -->
+                                                </div>
+                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Anterior</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Siguiente</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <footer class="sticky-footer bg-white">
@@ -172,17 +235,23 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom scripts for all pages-->
     <script src="js/sb-admin-2.min.js"></script>
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script type="text/javascript">
         $(document).ready(function() {
             // Inicializar DataTable
             $('#tablaVerDoc').DataTable({
+                destroy: true,
+                paging: true,
+                pageLength: 5,
+                ordering: true,
+                searching: true,
+                info: true,
                 "language": {
                     "lengthMenu": "Mostrar _MENU_ registros por página",
                     "zeroRecords": "No se encontraron resultados",
@@ -267,7 +336,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         return;
                     }
 
-                    // Actualiza la información del vehículo con estilo
+                    // Actualiza la información del vehículo with style
                     $("#textoVehiculo").html(`
                         <p><strong class="text-primary">Placa:</strong> ${respuesta.placa}</p>
                         <p><strong class="text-primary">Modelo:</strong> ${respuesta.modelo}</p>
@@ -332,8 +401,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         return;
                     }
                     // Construye la ruta completa de la imagen
-                    const rutaBase = `img_control_vehicular/${respuesta.placa}/Mantenimiento/`;
-                    const rutaImagen = rutaBase + (respuesta.foto || "MESS_07_CuboMess_1.png");
+                    const rutaImagen = respuesta.foto || "img/MESS_07_CuboMess_1.png";
 
                     // Actualiza los datos del mantenimiento
                     $("#imagenMantenimiento").attr("src", rutaImagen);
@@ -392,32 +460,67 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $.ajax({
                 type: "POST",
                 url: 'acciones_ver_doc',
-                data: {accion: 'siniestroVehiculo', id_vehiculo: id_vehiculo},
+                data: {accion: 'siniestrosVehiculo', id_vehiculo: id_vehiculo},
                 dataType: "json",
                 success: function(respuesta) {
                     if (respuesta.error) {
                         Swal.fire({
                             icon: "error",
                             title: "Error",
-                            text: "No se pudo cargar la información del siniestro.",
+                            text: respuesta.error,
                             confirmButtonText: "Aceptar"
                         });
                         return;
                     }
-                    // Construye la ruta completa de la imagen
-                    const rutaBase = `img_control_vehicular/${respuesta.placa}/Siniestros/`;
-                    const rutaImagen = rutaBase + (respuesta.foto || "MESS_07_CuboMess_1.png");
 
-                    // Actualiza los datos del siniestro
-                    $("#imagenSiniestro").attr("src", rutaImagen);
-                    $("#fechaSiniestro").text(respuesta.fecha_registro || "N/A");
-                    $("#tipoSiniestro").text(respuesta.tipo_siniestro || "N/A");
-                    $("#descripcionSiniestro").text(respuesta.descripcion || "N/A");
-                    $("#costoSiniestro").text(respuesta.costo || "$0.00");
+                    // Verifica si la respuesta contiene datos
+                    if (respuesta.length > 0) {
+                        const siniestro = respuesta[0]; // Obtén el primer registro
 
-                    // Muestra el modal
-                    const modal = new bootstrap.Modal(document.getElementById("modalSiniestro"));
-                    modal.show();
+                        // Actualiza la información del modal
+                        $("#fechaHoraSiniestro").text(`${siniestro.fecha || "N/A"} ${siniestro.hora || ""}`);
+
+                        $("#ubicacionSiniestro").text(siniestro.lugar || "N/A");
+                        $("#partesSiniestro").text(siniestro.partes_dañadas || "N/A");
+                        $("#montoSiniestro").text(siniestro.monto || "$0.00");
+                        $("#descripcionSiniestro").text(siniestro.descripcion || "Sin descripción.");
+
+                        // Actualiza los datos del vehículo
+                        $("#placaVehiculo").text(respuesta.placa || "N/A");
+                        $("#modeloVehiculo").text(respuesta.modelo || "N/A");
+                        $("#marcaVehiculo").text(respuesta.marca || "N/A");
+                        $("#anioVehiculo").text(respuesta.anio || "N/A");
+                        $("#usuarioVehiculo").text(respuesta.usuario || "N/A");
+
+                        // Cargar imágenes en el carrusel
+                        const imagenesCarrusel = $("#imagenesCarrusel");
+                        imagenesCarrusel.empty();
+                        respuesta.forEach(function (siniestro) {    
+                            if (siniestro.imagen) {
+                                imagenesCarrusel.append(`
+                                    <div class="carousel-item active">
+                                        <img src="${siniestro.imagen}" class="d-block w-100" alt="Imagen del siniestro" style="max-height: 400px; object-fit: contain;">
+                                    </div>
+                                `);
+                            } else {
+                                imagenesCarrusel.append(`
+                                    <div class="carousel-item">
+                                        <img src="img/MESS_07_CuboMess_1.png" class="d-block w-100" alt="Sin imágenes disponibles" style="max-height: 400px; object-fit: contain;">
+                                    </div>
+                                `);
+                            }
+                        });
+                        // Mostrar el modal
+                        const modal = new bootstrap.Modal(document.getElementById("modalSiniestro"));
+                        modal.show();
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "No se encontró información del siniestro.",
+                            confirmButtonText: "Aceptar"
+                        });
+                    }
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({

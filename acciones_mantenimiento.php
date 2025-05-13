@@ -65,9 +65,9 @@ if ($accion == "manejarCarpetasYFoto") {
 
     // Manejar la subida de la imagen
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $rutaImagen = $placa . "_Mantenimiento_" . date("Ymd_his") . "." . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        $rutaImagen = $rutaMantenimiento . "/" . $placa . "_Mantenimiento_" . date("Ymd_his") . "." . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
         $rutaTemporal = $_FILES['foto']['tmp_name'];
-        $rutaDestino = $rutaMantenimiento . "/" . $rutaImagen;
+        $rutaDestino = $rutaImagen;
 
         if (move_uploaded_file($rutaTemporal, $rutaDestino)) {
             echo json_encode([

@@ -56,7 +56,7 @@ if ($accion == "registroSiniestro") {
 
 // Subir imágenes
 if ($accion == "subirImagenes") {
-    $rutaBase = "img_control_vehicular/$placa/Siniestro/";
+    $rutaBase = "img_control_vehicular/$placa/Siniestro";
     if (!file_exists($rutaBase)) {
         mkdir($rutaBase, 0777, true);
         error_log("Carpeta creada: $rutaBase");

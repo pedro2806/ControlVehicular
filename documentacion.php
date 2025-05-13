@@ -62,7 +62,7 @@
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                     <br>
                     <!-- FORMULARIO DEL DOCUMENTACION    -->
-                    <form id="formRegistroDocumentacion">
+                    <form id="formRegistroDocumentacion" style="display: none;">
                         <!-- Content Row -->
                         <div class = "row">
                             <div class="col-lg-4 col-md-6 col-sm-6 col-6">
@@ -82,7 +82,18 @@
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="col-lg-6 col-md-12">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="licencia" name="licencia" onchange="mostrarCampoArchivoCheckbox('licencia', 'archivoLicencia')">
+                                        <label class="form-check-label" for="licencia">Licencia para Conducir</label>
+                                    </div>
+                                    <div id="archivoLicencia" style="display: none;">
+                                        <input type="file" class="form-control" id="archivoLicenciaInput" name="archivoLicencia" accept="image/png, image/jpeg">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-md-12">
                                 <div class="d-flex align-items-center">
                                     <div class="form-check form-switch me-3">
                                         <input class="form-check-input" type="checkbox" id="circulacion" name="circulacion" onchange="mostrarCampoArchivoCheckbox('circulacion', 'archivoCirculacion')">
@@ -96,7 +107,7 @@
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="d-flex align-items-center">
                                     <div class="form-check form-switch me-3">
                                         <input class="form-check-input" type="checkbox" id="refrendo" name="refrendo" onchange="mostrarCampoArchivoCheckbox('refrendo', 'archivoRefrendo')">
@@ -107,10 +118,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="d-flex align-items-center">
                                     <div class="form-check form-switch me-3">
                                         <input class="form-check-input" type="checkbox" id="poliza" name="poliza" onchange="mostrarCampoArchivoCheckbox('poliza', 'archivoPoliza')">
@@ -124,7 +132,7 @@
                         </div>
                         <br>
                         <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12">
+                            <div class="col-lg-6 col-md-12">
                                 <div class="d-flex align-items-center">
                                     <div class="form-check form-switch me-3">
                                         <input class="form-check-input" type="checkbox" id="verificacion" name="verificacion" onchange="mostrarCampoArchivoCheckbox('verificacion', 'archivoVerificacion')">
@@ -174,7 +182,9 @@
         $(document).ready(function() {
             infoVehiculos(); 
             var fecha = new Date().toISOString().split('T')[0];
+            var hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             $("#fecha").val(fecha); 
+            $("#hora").val(hora);
         });
         
         //FUNCION REGISTRO DE LA DOCUMENTACION
@@ -210,6 +220,20 @@
                     return;
                 }
                 formData.append("archivoCirculacion", archivoCirculacion);
+            }
+            
+            if ($("#licencia").is(":checked")) {
+                var archivoLicencia = $("#archivoLicenciaInput")[0].files[0];
+                if (!archivoLicencia) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo faltante',
+                        text: 'Por favor, sube la Licencia para Conducir.',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    return;
+                }
+                formData.append("archivoLicencia", archivoLicencia);
             }
 
             if ($("#refrendo").is(":checked")) {
@@ -270,7 +294,7 @@
                 contentType: false,
                 dataType: 'json',
                 success: function (respuesta) {
-                    console.log("Respuesta del servidor:", respuesta);
+                    //console.log("Respuesta del servidor:", respuesta); // Depuración
                     if (respuesta.success) {
                         Swal.fire({
                             icon: 'success',
@@ -280,12 +304,13 @@
                         }).then(() => {
                             $("#formRegistroDocumentacion")[0].reset();
                             $("#archivoCirculacion").hide();
+                            $("#archivoLicencia").hide();
                             $("#archivoRefrendo").hide();
                             $("#archivoPoliza").hide();
                             $("#archivoVerificacion").hide();
                             cambiarVehiculo();
                             infoVehiculos();
-                            location.reload();
+                            //location.reload();
                         });
                     } else {
                         Swal.fire({
@@ -313,6 +338,7 @@
             var formData = new FormData();
             var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim(); 
             var archivoCirculacion = $("#archivoCirculacionInput")[0].files[0];
+            var archivoLicencia = $("#archivoLicenciaInput")[0].files[0];
             var archivoRefrendo = $("#archivoRefrendoInput")[0].files[0];
             var archivoPoliza = $("#archivoPolizaInput")[0].files[0];
             var archivoVerificacion = $("#archivoVerificacionInput")[0].files[0]; 
@@ -332,6 +358,9 @@
             // Agregar los archivos al FormData si existen
             if (archivoCirculacion) {
                 formData.append("archivoCirculacion", archivoCirculacion);
+            }
+            if (archivoLicencia) {
+                formData.append("archivoLicencia", archivoLicencia);
             }
             if (archivoRefrendo) {
                 formData.append("archivoRefrendo", archivoRefrendo);
@@ -356,9 +385,9 @@
                 contentType: false, 
                 dataType: 'json',
                 success: function (respuesta) {
-                    console.log("Respuesta de manejarDocumentos:", respuesta); // Depuración
+                    //console.log("Respuesta de manejarDocumentos:", respuesta); // Depuración
                     if (respuesta.success) {
-                        callback(respuesta.rutasArchivos); // Callback con las rutas de los archivos
+                        callback(respuesta.rutasArchivos);
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -471,30 +500,22 @@
 
         //FUNCION PARA MANEJAR EL BOTÓN "CHECK"
         function seleccionarVehiculo(id_vehiculo, placa) {
-            // Actualizar el contenido del contenedor con la placa seleccionada
             $("#placaSeleccionada")
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#placa").val(placa);
-            
-            // Mostrar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").show();
-
-            // Ocultar la tabla de inventario
             $("#tablaInventario").closest(".container").hide();
+            $("#formRegistroDocumentacion").show();
         }
         
         //FUNCION PARA CAMBIAR DE VEHÍCULO
         function cambiarVehiculo() {
-            // Ocultar el contenedor de la placa seleccionada
             $("#placaSeleccionada").hide();
-
-            // Ocultar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").hide();
-
-            // Mostrar la tabla de inventario
             $("#tablaInventario").closest(".container").show();
+            $("#formRegistroDocumentacion").hide();
         }
     </script>
 </body>

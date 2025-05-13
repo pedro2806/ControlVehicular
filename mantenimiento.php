@@ -65,7 +65,7 @@
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
 
                     <!-- FORMULARIO DEL MANTENIMIENTO -->
-                    <form id="formRegistroMantenimiento">
+                    <form id="formRegistroMantenimiento" style="display: none;">
                         <!-- Content Row -->
                         <div class = "row">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
@@ -242,7 +242,6 @@
                 dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
             });
             cargarUsuarios();
-            // Llenar automáticamente los campos de fecha y hora
             const now = new Date();
             const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
             const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
@@ -315,28 +314,20 @@
         
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
         function seleccionarVehiculo(id_vehiculo, placa) {
-            // Actualizar el contenido del contenedor con la placa seleccionada
             $("#placaSeleccionada")
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
-            
-            // Mostrar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").show();
-
-            // Ocultar la tabla de inventario
             $("#tablaInventario").closest(".container").hide();
+            $("#formRegistroMantenimiento").show();
         }
 
         function cambiarVehiculo() {
-            // Ocultar el contenedor de la placa seleccionada
             $("#placaSeleccionada").hide();
-
-            // Ocultar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").hide();
-
-            // Mostrar la tabla de inventario
             $("#tablaInventario").closest(".container").show();
+            $("#formRegistroMantenimiento").hide();
         }
 
         //FUNCION REGISTRO DE MANTENIMIENTO

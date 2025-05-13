@@ -32,68 +32,68 @@ $color = $_POST["color"];
 $anio = $_POST["anio"];
 $noEmpleado = $_COOKIE['noEmpleado'];
 $id_usuario = $_COOKIE['id_usuario'];
-$foto = $_POST["rutaImagen"];
+$rutasImagenes = $_POST["rutasImagenes"];
+
+$id_formato = $_POST["id_formato"];
+$formato = $_POST["formato"];
 /*----------------------------------------------------------------------------*/
 
 //Registro de Siniestro
 if ($accion == "registroSiniestro") {
-
     $sqlregistro = "INSERT INTO siniestros 
-                    (id_vehiculo, fecha_registro, fecha, tipo_carro, id_dueno, hora, kilometraje, gasolina, origen, destino, lugar, 
-                    empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto, foto)
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$tipo_carro', '$id_dueno', '$hora', '$kilometraje', '$gasolina', '$origen', '$destino',
-                            '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto', '$foto')";
-                            
-    $resultregistro = $conn->query($sqlregistro);
-    // Verificar si la consulta fue exitosa
-    if ($resultregistro) {
-        echo json_encode(["success" => true, "message" => "Siniestro registrado exitosamente."]);
+                                (id_vehiculo, fecha_registro, fecha, hora, tipo_carro, id_dueno, kilometraje, gasolina, origen, destino, lugar, 
+                                empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto) 
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$hora', '$tipo_carro', '$id_dueno', '$kilometraje', '$gasolina', '$origen', 
+                            '$destino', '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto')";      
+    if ($conn->query($sqlregistro) === TRUE) {
+        $id_formato = $conn->insert_id;
+        echo json_encode(["success" => true, "id_formato" => $id_formato, "message" => "Siniestro registrado exitosamente."]);
     } else {
-        echo json_encode(["success" => false, "message" => "Error al registrar el siniestro: " . $conn->error]);
-    }
-}
-
-//Creacion de carpeta
-if ($accion == "manejarCarpetasYFoto") {
-    
-    $rutaBase = "img_control_vehicular";
-    $rutaPlaca = $rutaBase . "/" . $placa;
-    $rutaSiniestros = $rutaPlaca . "/Siniestros";
-
-    if (!file_exists($rutaPlaca)) {
-        mkdir($rutaPlaca, 0777, true);
-    }
-    if (!file_exists($rutaSiniestros)) {
-        mkdir($rutaSiniestros, 0777, true);
-    }
-
-    // Manejar la subida de la imagen
-    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $rutaImagen = $placa . "_Siniestro_" . date("Ymd_his") . "." . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-        $rutaTemporal = $_FILES['foto']['tmp_name'];
-        $rutaDestino = $rutaSiniestros . "/" . $rutaImagen;
-
-        if (move_uploaded_file($rutaTemporal, $rutaDestino)) {
-            echo json_encode([
-                "success" => true,
-                "rutaImagen" => $rutaImagen
-            ]);
-        } else {
-            echo json_encode([
-                "success" => false,
-                "message" => "Error al mover la imagen al destino."
-            ]);
-        }
-    } else {
-        echo json_encode([
-            "success" => false,
-            "message" => "No se recibió ninguna imagen o hubo un error al subirla."
-        ]);
+        echo json_encode(["success" => false, "message" => "Error al registrar el siniestro."]);
     }
     exit;
 }
 
-// Consulta para obtener los datos de la tabla "inventario"
+// Subir imágenes
+if ($accion == "subirImagenes") {
+    $rutaBase = "img_control_vehicular/$placa/Siniestro/";
+    if (!file_exists($rutaBase)) {
+        mkdir($rutaBase, 0777, true);
+        error_log("Carpeta creada: $rutaBase");
+    }
+
+    $contador = 1; 
+    foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+        $file_name = $_FILES['fotos']['name'][$key];
+        $file_tmp = $_FILES['fotos']['tmp_name'][$key];
+        $extension = pathinfo($file_name, PATHINFO_EXTENSION);
+        $nuevoNombre = "{$placa}_Siniestro_" . date("Ymd_His") . "_{$contador}.$extension";
+        $rutaDestino = $rutaBase ."/". $nuevoNombre; 
+
+        // Mover el archivo a la ruta destino
+        if (move_uploaded_file($file_tmp, $rutaDestino)) {
+            error_log("Archivo movido a: $rutaDestino");
+
+            // Insertar la ruta en la tabla "fotos"
+            $sql = "INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) 
+                    VALUES ('Siniestro', '$id_formato', '$id_vehiculo', '$rutaDestino')";
+            if ($conn->query($sql) === TRUE) {
+                error_log("Imagen registrada en la base de datos: $rutaDestino");
+            } else {
+                error_log("Error al registrar la imagen en la base de datos: " . $conn->error);
+            }
+        } else {
+            error_log("Error al mover el archivo: $nuevoNombre");
+        }
+
+        $contador++; // Incrementar el contador para la siguiente imagen
+    }
+
+    echo json_encode(["success" => true, "message" => "Imágenes subidas exitosamente."]);
+    exit;
+}
+
+// Consulta para obtener los vehiculos asignados al usuario 
 if ($accion == "consultarInventario") {
 
     $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
@@ -115,33 +115,10 @@ if ($accion == "consultarInventario") {
     echo json_encode($vehiculos);
 }
 
-// Consulta para obtener los datos de la tabla "inventario"
-if ($accion == "consultarInventarioAsignados") {
+// Consulta para obtener los vehiculos en general
+if ($accion == "consultarInventarioGeneral") {
 
-    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
-                            FROM inventario inv
-                            LEFT JOIN (
-                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
-                                FROM checklist
-                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
-                            WHERE id_usuario = $id_usuario AND inv.asignado = 'NO'
-                            ORDER BY inv.modelo ASC";
-    $result = $conn->query($sqlConsultaVehiculos);
-
-    $vehiculos = [];
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $vehiculos[] = $row;
-        }
-    }
-    echo json_encode($vehiculos);
-}
-
-
-// Consulta para obtener los datos de la tabla "inventario"
-if ($accion == "consultarInventarioCambio") {
-
-    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
                             FROM inventario inv
                             LEFT JOIN (
                                 SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
@@ -149,7 +126,7 @@ if ($accion == "consultarInventarioCambio") {
                                 GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
                             WHERE inv.asignado = 'NO'
                             ORDER BY inv.modelo ASC";
-    $result = $conn->query($sqlConsultaVehiculos); 
+    $result = $conn->query($sqlConsultaVehiculosG);
 
     $vehiculos = [];
     if ($result->num_rows > 0) {

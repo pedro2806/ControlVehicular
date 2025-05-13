@@ -210,7 +210,7 @@
                         confirmButtonText: 'Aceptar'
                     }).then(() => {
                         $("#formRegistroPrestamo")[0].reset();
-                        location.reload();
+                        window.location.replace("autorizar_prestamo");
                     });
                 },
                 error: function (xhr, status, error) {
@@ -226,8 +226,6 @@
                 }
             });
         }
-
-
     </script>
 </body>
 </html>

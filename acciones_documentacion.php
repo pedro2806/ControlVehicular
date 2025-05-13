@@ -18,9 +18,7 @@ $ruta_documento = $_POST["ruta_documento"];
 $placa = $_POST["placa"];
 
 /*---------------------------------------------*/
-
-
-//Registro de Mantenimiento
+//Registro de Documentos
 if ($accion == "RegistrarDocumentos") {
     $rutaBase = "img_control_vehicular";
     $rutaPlaca = $rutaBase . "/" . $placa;
@@ -43,11 +41,21 @@ if ($accion == "RegistrarDocumentos") {
     }
 
     $rutasArchivos = [
+        'archivoLicencia' => 'S/R',
         'archivoCirculacion' => 'S/R',
         'archivoRefrendo' => 'S/R',
         'archivoPoliza' => 'S/R',
         'archivoVerificacion' => 'S/R'
     ];
+
+    // Procesar Licencia de Conducir
+    if (isset($_FILES['archivoLicencia']) && $_FILES['archivoLicencia']['error'] === UPLOAD_ERR_OK) {
+        $nombreArchivo = "LicenciaConducir_" . date("Ymd_His") . "." . pathinfo($_FILES['archivoLicencia']['name'], PATHINFO_EXTENSION);
+        $rutaDestino = $rutaDocumentacion . "/" . $nombreArchivo;
+        if (move_uploaded_file($_FILES['archivoLicencia']['tmp_name'], $rutaDestino)) {
+            $rutasArchivos['archivoLicencia'] = $rutaDestino;
+        }
+    }
 
     // Procesar Tarjeta de Circulación
     if (isset($_FILES['archivoCirculacion']) && $_FILES['archivoCirculacion']['error'] === UPLOAD_ERR_OK) {
@@ -86,8 +94,8 @@ if ($accion == "RegistrarDocumentos") {
     }
 
     // Registrar en la base de datos
-    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, tarjeta_circulacion, refrendo_actual, seguro_auto, verificacion_vigente)
-            VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
+    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, licencia, tarjeta_circulacion, refrendo_actual, seguro_auto, verificacion_vigente)
+            VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoLicencia']}', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
     $result = $conn->query($sql);
 
     if ($result) {

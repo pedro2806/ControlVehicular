@@ -50,54 +50,75 @@
                     <li class="nav-item">
                         <a class="nav-link" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
                     </li>
+                    <!-- Nueva pestaña para Devolución -->
+                    <li class="nav-item">
+                        <a class="nav-link" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
+                    </li>
                     </ul>
                     <!-- Contenedor de las tablas -->
                     <div class="tab-content mt-3">
-                    <!-- Tabla de préstamos pendientes -->
-                    <div class="tab-pane fade show active" id="pendientes">
-                        <div class="table-responsive">
-                        <table id="tablaPrestamos" class="table table-striped table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Tipo de Uso</th>
-                                    <th>Detalle del Uso</th>
-                                    <th>Inicio Préstamo</th>
-                                    <th>Fin Préstamo</th>
-                                    <th>Estado</th>
-                                    <th>Motivo</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Las filas se cargarán dinámicamente -->
-                            </tbody>
-                        </table>
+                        <!-- Tabla de préstamos pendientes -->
+                        <div class="tab-pane fade show active" id="pendientes">
+                            <div class="table-responsive">
+                                <table id="tablaPrestamos" class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Inicio Préstamo</th>    
+                                            <th>Fin Préstamo</th>
+                                            <th>Tipo de Uso</th>
+                                            <th>Detalle del Uso</th>
+                                            <th>Motivo</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Las filas se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Tabla de préstamos autorizados -->
+                        <div class="tab-pane fade" id="autorizados">
+                            <div class="table-responsive">
+                                <table id="tablaAutorizados" class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha Entrega</th>
+                                            <th>Vehiculo</th>
+                                            <th>Notas del Jefe</th>
+                                            <th>Tipo de Uso</th>
+                                            <th>Detalle del Uso</th>
+                                            <th>Iniciar Prestamo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Las filas se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Nueva tabla para Devolución -->
+                        <div class="tab-pane fade" id="devolucion">
+                            <div class="table-responsive">
+                                <table id="tablaDevolucion" class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha Inicio</th>    
+                                            <th>Vehículo</th>
+                                            <th>Tipo de Uso</th>
+                                            <th>Detalle del Uso</th>
+                                            <th>Fecha Devolucion</th>
+                                            <th>Finalizar Prestamo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Las filas se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <!-- Tabla de préstamos autorizados -->
-                    <div class="tab-pane fade" id="autorizados">
-                        <div class="table-responsive">
-                            <table id="tablaAutorizados" class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Tipo de Uso</th>
-                                        <th>Detalle del Uso</th>
-                                        <th>Autorizado</th>
-                                        <th>Fin Préstamo</th>
-                                        <th>Estado</th>
-                                        <th>Notas del Jefe</th>
-                                        <th>Finalizar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Las filas se cargarán dinámicamente -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    </div>
-                    <br>
-                </div>
+                <br>
             </div>
             <footer class = "sticky-footer bg-white">
                 <div class = "container my-auto">
@@ -113,49 +134,50 @@
     </a>
     <!-- Modal para Autorizar Solicitud -->
     <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-labelledby="modalPrestamoLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalPrestamoLabel">Aprobar Préstamo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formModalPrestamo">
-                    <input type="hidden" class="form-control" id="fecha_registro_asignado" name="fecha_registro_asignado" readonly>
-                    <div class="mb-3">
-                        <label>Seleccionar Vehículo:</label>
-                        <select id="id_vehiculo" name="id_vehiculo" class="form-select" onchange="actualizarInfoVehiculo(this.value)" required>
-                            <option value="">Seleccione un vehículo</option>
-                            <!-- Las opciones se cargarán dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="mb-3 d-flex">
-                        <div class="me-3" style="flex: 1;">
-                            <label class="form-label" for="modelo">Modelo:</label>
-                            <input type="text" class="form-control" id="modelo" name="modelo" readonly>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPrestamoLabel">Aprobar Préstamo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formModalPrestamo">
+                        <input type="hidden" class="form-control" id="fecha_registro_asignado" name="fecha_registro_asignado" readonly>
+                        <input type="hidden" class="form-control" id="placa" name="placa" readonly>
+                        <div class="mb-3">
+                            <label>Seleccionar Vehículo:</label>
+                            <select id="id_vehiculo" name="id_vehiculo" class="form-select" onchange="actualizarInfoVehiculo(this.value)" required>
+                                <option value="">Seleccione un vehículo</option>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
                         </div>
-                        <div style="flex: 1;">
-                            <label class="form-label" for="color">Color:</label>
-                            <input type="text" class="form-control" id="color" name="color" readonly>
+                        <div class="mb-3 d-flex">
+                            <div class="me-3" style="flex: 1;">
+                                <label class="form-label" for="modelo">Modelo:</label>
+                                <input type="text" class="form-control" id="modelo" name="modelo" readonly>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="form-label" for="color">Color:</label>
+                                <input type="text" class="form-control" id="color" name="color" readonly>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Fecha de Entrega:</label>
-                        <input type="date" class="form-control" id="fecha_entrega" name="fecha_entrega" required>
-                    </div>
-                    <div class="mb-3">
-                        <label>Notas:</label>
-                        <textarea class="form-control" id="notas_jefe" name="notas_jefe" required></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-outline-success" id="btnGuardarModal" onclick="autorizarPrestamo()">Guardar</button>
+                        <div class="mb-3">
+                            <label>Fecha de Entrega:</label>
+                            <input type="datetime-local" class="form-control" id="fecha_entrega" name="fecha_entrega" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Notas:</label>
+                            <textarea class="form-control" id="notas_jefe" name="notas_jefe" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-success" id="btnGuardarModal" onclick="autorizarPrestamo()">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
     <!-- Modal para Denegar-->
     <div class="modal fade" id="modalDenegarPrestamo" tabindex="-1" aria-labelledby="modalDenegarPrestamoLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -171,6 +193,7 @@
                             <textarea class="form-control" id="notas_denegar" name="notas_denegar" required></textarea>
                         </div>
                         <input type="hidden" class="form-control" id="id_vehiculo_denegar" name="id_vehiculo_denegar" readonly>
+                        <input type="hidden" class="form-control" id="fecha_registro_denegar" name="fecha_registro_denegar" readonly>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -180,7 +203,60 @@
             </div>
         </div>
     </div>
-    <!-- Modal para finalizar préstamo -->
+    <!-- Modal para Inicio Préstamo -->
+    <div class="modal fade" id="modalInicioPrestamo" tabindex="-1" aria-labelledby="modalInicioPrestamoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalInicioPrestamoLabel">Inicio Préstamo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formInicioPrestamo" enctype="multipart/form-data">
+                        <input type="hidden" class="form-control" id="id_vehiculo" name="id_vehiculo">
+                        <input type="hidden" class="form-control" id="placa_ini" name="placa_ini">
+                        <input type="hidden" class="form-control" id="id_prestamo" name="id_prestamo"> 
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de Entrega:</label>
+                            <input type="datetime-local" class="form-control" id="fecha_entrega_inicio" name="fecha_entrega_inicio" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kilómetros Inicio:</label>
+                            <input type="number" class="form-control" id="km_inicio" name="km_inicio" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Gasolina:</label>
+                            <select class="form-select" id="gasolina_inicio" name="gasolina_inicio">
+                                <option value="">Seleccione...</option>
+                                <option value="SD">Sin Datos</option>
+                                <option value="1/8">1/8</option>
+                                <option value="2/8">2/8</option>
+                                <option value="3/8">3/8</option>
+                                <option value="4/8">4/8</option>
+                                <option value="5/8">5/8</option>
+                                <option value="6/8">6/8</option>
+                                <option value="7/8">7/8</option>
+                                <option value="8/8">8/8</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notas:</label>
+                            <textarea class="form-control" id="notas_entrega" name="notas_entrega" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Foto:</label>
+                            <input type="file" class="form-control" id="fotos_inicio" name="fotos_inicio[]" multiple accept="image/*">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-success" id="btnInicioPrestamo" onclick="iniciarPrestamo()">Iniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para Finalizar Préstamo -->
     <div class="modal fade" id="modalFinalizarPrestamo" tabindex="-1" aria-labelledby="modalFinalizarPrestamoLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -189,33 +265,46 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="formFinalizarPrestamo">
+                    <form id="formFinalizarPrestamo" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label class="form-label">Fecha de Entrega:</label>
-                            <input type="date" class="form-control" id="fecha_entrega_final" name="fecha_entrega_final" readonly>
+                            <input type="hidden" class="form-control" id="fecha_entrega_final" name="fecha_entrega_final">
+                            <input type="hidden" class="form-control" id="id_vehiculo" name="id_vehiculo">
+                            <input type="hidden" class="form-control" id="placa" name="placa">
+                            <input type="hidden" class="form-control" id="id_prestamo" name="id_prestamo"> 
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Kilómetros Finales:</label>
+                            <label class="form-label">Kilómetros Final:</label>
                             <input type="number" class="form-control" id="km_fin" name="km_fin" required>
                         </div>
                         <div class="mb-3">
-                                <label>Gasolina:</label>
-                                <select class = "form-select" id = "gasolina" name = "gasolina">
-                                    <option value = "">Seleccione...</option>
-                                    <option value = "SD">Sin Datos</option>
-                                    <option value = "1/8">1/8</option>
-                                    <option value = "2/8">2/8</option>
-                                    <option value = "3/8">3/8</option>    
-                                    <option value = "4/8">4/8</option>
-                                    <option value = "5/8">5/8</option>
-                                    <option value = "6/8">6/8</option>
-                                    <option value = "7/8">7/8</option>
-                                    <option value = "8/8">8/8</option>
-                                </select>  
-                            </div>
+                            <label>Gasolina:</label>
+                            <select class="form-select" id="gasolina_fin" name="gasolina_fin">
+                                <option value="">Seleccione...</option>
+                                <option value="SD">Sin Datos</option>
+                                <option value="1/8">1/8</option>
+                                <option value="2/8">2/8</option>
+                                <option value="3/8">3/8</option>
+                                <option value="4/8">4/8</option>
+                                <option value="5/8">5/8</option>
+                                <option value="6/8">6/8</option>
+                                <option value="7/8">7/8</option>
+                                <option value="8/8">8/8</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quién recibió el auto:</label>
+                            <select id="id_recibe" name="id_recibe" class="form-select" required>
+                                <option value="">Seleccione</option>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Notas:</label>
-                            <textarea class="form-control" id="notas_finales" name="notas_finales" required></textarea>
+                            <textarea class="form-control" id="notas_devolucion" name="notas_devolucion" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Foto:</label>
+                            <input type="file" class="form-control" id="fotos_final" name="fotos_final[]" multiple accept="image/*">
                         </div>
                     </form>
                 </div>
@@ -253,7 +342,68 @@
     $(document).ready(function() {
         cargarPrestamos();
         cargarPrestamosAutorizados();
+        cargarPrestamosDevolucion();
         $("#tablaPrestamos").DataTable({
+            destroy: true,
+            paging: true,
+            ordering: true,
+            searching: true,
+            info: true,
+            language: {
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                search: "Buscar:",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                lengthMenu: "Mostrar _MENU_ registros",
+                aria: {
+                    sortAscending: ": activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                }
+            }
+        });
+        $("#tablaAutorizados").DataTable({
+            destroy: true,
+            paging: true,
+            ordering: true,
+            searching: true,
+            info: true,
+            language: {
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                search: "Buscar:",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                lengthMenu: "Mostrar _MENU_ registros",
+                aria: {
+                    sortAscending: ": activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                }
+            }
+        });
+        $("#tablaDevolucion").DataTable({
             destroy: true,
             paging: true,
             ordering: true,
@@ -286,11 +436,22 @@
         $("#fecha").val(fecha); 
         $("#hora").val(hora);
     });
+    
+    // Función para obtener el valor de una cookie
+    function getCookie(name) {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                return cookie.substring(name.length + 1);
+            }
+        }
+        return null;
+    }
 
     // Función para cargar préstamos pendientes
     function cargarPrestamos() {
         const rol = getCookie('rol'); 
-
         $.ajax({
             type: "POST",
             url: "acciones_prestamos",
@@ -299,15 +460,10 @@
             success: function (respuesta) {
                 var tablaPendientes = $("#tablaPrestamos tbody");
                 tablaPendientes.empty();
-                if (rol != 3) {
-                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").hide(); // Ocultar columna "Acción"
-                } else {
-                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").show(); // Mostrar columna "Acción"
-                }
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTE") {
                         var botones = `
-                            <button class="btn btn-outline-success" onclick="infoSelect(${prestamo.id_prestamo})">
+                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo})">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                             </button>
                             <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
@@ -316,17 +472,21 @@
                         
                         var fila = `
                             <tr>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
                                 <td>${prestamo.fecha_inc_prestamo}</td>
                                 <td>${prestamo.fecha_fin_prestamo}</td>
-                                <td>${prestamo.estatus}</td>
+                                <td>${prestamo.tipo_uso}</td>
+                                <td>${prestamo.detalle_tipo_uso}</td>
                                 <td>${prestamo.motivo_us}</td>
                                 <td>${botones}</td>
                             </tr>`;
                         tablaPendientes.append(fila);
                     }
                 });
+                if (rol != 3) {
+                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").hide(); // Ocultar columna "Acción"
+                } else {
+                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").show(); // Mostrar columna "Acción"
+                }
             },
             error: function () {
                 Swal.fire({
@@ -349,60 +509,23 @@
             success: function (respuesta) {
                 var tablaAutorizados = $("#tablaAutorizados tbody");
                 tablaAutorizados.empty(); // Limpiar la tabla antes de agregar nuevas filas
-
                 respuesta.forEach(function (prestamo) {
-                    if (prestamo.estatus === "AUTORIZADO") {
+                    
                         var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalFinalizar(${prestamo.id_prestamo})">
+                            <button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}')">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                             </button>`;
                         var fila = `
                             <tr>
+                                <td>${prestamo.fecha_entrega}</td>
+                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.notas_jefe}</td>
                                 <td>${prestamo.tipo_uso}</td>
                                 <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.fecha_confirmacion}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
-                                <td>${prestamo.estatus}</td>
-                                <td>${prestamo.notas_jefe}</td>
                                 <td>${botones}</td>
                             </tr>`;
                         tablaAutorizados.append(fila);
-                    }
-                });
-
-                // Destruir cualquier instancia previa de DataTables y reinicializar
-                if ($.fn.DataTable.isDataTable("#tablaAutorizados")) {
-                    $("#tablaAutorizados").DataTable().destroy();
-                }
-                $("#tablaAutorizados").DataTable({
-                    destroy: true,
-                    paging: true,
-                    ordering: true,
-                    searching: true,
-                    info: true,
-                    language: {
-                        decimal: ",",
-                        thousands: ".",
-                        processing: "Procesando...",
-                        loadingRecords: "Cargando...",
-                        zeroRecords: "No se encontraron resultados",
-                        emptyTable: "No hay datos disponibles en la tabla",
-                        info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                        infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                        infoFiltered: "(filtrado de _MAX_ registros totales)",
-                        search: "Buscar:",
-                        paginate: {
-                            first: "Primero",
-                            last: "Último",
-                            next: "Siguiente",
-                            previous: "Anterior"
-                        },
-                        lengthMenu: "Mostrar _MENU_ registros",
-                        aria: {
-                            sortAscending: ": activar para ordenar la columna de manera ascendente",
-                            sortDescending: ": activar para ordenar la columna de manera descendente"
-                        }
-                    }
+                    
                 });
             },
             error: function () {
@@ -416,12 +539,52 @@
         });
     }
 
+    // Nueva función para cargar préstamos en devolución
+    function cargarPrestamosDevolucion() {
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: { accion: "consultarPrestamosEnCurso" }, // Cambia la acción según sea necesario
+            dataType: "json",
+            success: function (respuesta) {
+                var tablaDevolucion = $("#tablaDevolucion tbody");
+                tablaDevolucion.empty(); // Limpiar la tabla antes de agregar nuevas filas
+                respuesta.forEach(function (prestamo) {
+                    if (prestamo.estatus === "EN CURSO") {
+                        var botones = `
+                            <button class="btn btn-outline-success" onclick="abrirModalFinalizar(${prestamo.id_prestamo}, '${prestamo.placa}')">
+                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                            </button>`;
+                        var fila = `
+                            <tr>
+                                <td>${prestamo.fecha_inc_prestamo}</td>    
+                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.tipo_uso}</td>
+                                <td>${prestamo.detalle_tipo_uso}</td>
+                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${botones}</td>
+                            </tr>`;
+                        tablaDevolucion.append(fila);
+                    }
+                });
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al cargar los préstamos en devolución.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
     //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
     function infoVehiculos() {
         $.ajax({
             type: "POST",
             url: "acciones_siniestro",
-            data: { accion: "consultarInventarioCambio" },
+            data: { accion: "consultarInventarioGeneral" },
             dataType: "json",
             success: function (respuesta) {
                 var select = $("#id_vehiculo");
@@ -431,165 +594,18 @@
                     select.append(option);
                 });
             },
-            error: function () {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al cargar los datos del inventario.",
-                    confirmButtonText: "Aceptar"
-                });
-            }
-        });
-    }
-
-    // Función para autorizar un prestamo
-    function infoSelect(id_prestamo) {
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: { accion: "consultarPrestamos", id_prestamo },
-            dataType: "json",
-            success: function (respuesta) {
-                const prestamo = respuesta.find(p => p.id_prestamo == id_prestamo);
-                if (prestamo) {
-                    infoVehiculos(prestamo.id_vehiculo);
-                    $("#placa").val(prestamo.placa);
-                    $("#modelo").val(prestamo.modelo);
-                    $("#color").val(prestamo.color);
-                    const fechaIncPrestamo = prestamo.fecha_inc_prestamo.split(" ")[0];
-                    $("#fecha_entrega").val(fechaIncPrestamo);
-                    $("#btnGuardarModal").attr("data-id-prestamo", id_prestamo);
-                    var modal = new bootstrap.Modal(document.getElementById("modalPrestamo"));
-                    modal.show();
-                } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se encontró información del préstamo.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            },
             error: function (xhr, status, error) {
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Hubo un problema al cargar la información del préstamo.',
-                    confirmButtonText: 'Aceptar'
-                });
-            }
-        });
-    }
-    // Función para enviar el formulario de autorización de préstamo
-    function autorizarPrestamo() {
-        var id_prestamo = $("#btnGuardarModal").attr("data-id-prestamo");
-        var id_vehiculo = $("#id_vehiculo").val();
-        var fecha_registro_asignado = $("#fecha_registro_asignado").val(); // Obtener la fecha de registro asignado
-        var fecha_entrega = $("#fecha_entrega").val();
-        var notas_jefe = $("#notas_jefe").val();
-        var accion = "autorizarPrestamo"; 
-        
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: {
-                accion,
-                id_prestamo,
-                id_vehiculo,
-                fecha_registro_asignado,
-                fecha_entrega,
-                notas_jefe
-            },
-            dataType: "json",
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Éxito",
-                        text: respuesta.message || "Préstamo autorizado exitosametimer: 3000.",
-                        timer: 3000,
-                        confirmButtonText: "Aceptar"
-                    });
-                    cargarPrestamos(); // Recargar la tabla
-                    $("#modalPrestamo").modal("hide");
-                } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: respuesta.message || "No se pudo autorizar el préstamo.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            },
-            error: function () {
-                Swal.fire({
                     icon: "error",
                     title: "Error",
-                    text: "Hubo un problema al autorizar el préstamo.",
-                    confirmButtonText: "Aceptar"
-                });
-            }
-        });
-    }
-    // Función para abrir el modal de denegar préstamo
-    function abrirModalDenegar(id_prestamo) {
-        // Establecer el ID del préstamo en el botón del modal
-        $("#btnDenegarModal").attr("data-id-prestamo", id_prestamo);
-        // Mostrar el modal
-        var modal = new bootstrap.Modal(document.getElementById("modalDenegarPrestamo"));
-        modal.show();
-    }
-
-    // Función para denegar el préstamo 
-    function denegarPrestamo() {
-        var id_prestamo = $("#btnDenegarModal").attr("data-id-prestamo");
-        var notas_denegar = $("#notas_denegar").val();
-        var fecha_registro_asignado = $("#fecha_registro_asignado").val(); // Obtener la fecha de registro asignado
-
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: {
-                accion: "denegarPrestamo",
-                id_prestamo,
-                notas_denegar,
-                fecha_registro_asignado
-            },
-            dataType: "json",
-            success: function (respuesta) {
-                if (respuesta.success) {
-                    Swal.fire({
-                        icon: "success",
-                        title: "Éxito",
-                        text: "Préstamo denegado exitosamente.",
-                        timer: 3000,
-                        confirmButtonText: "Aceptar"
-                    }).then(() => {
-                        cargarPrestamos();
-                        $("#modalDenegarPrestamo").modal("hide");
-                        $("#notas_denegar").val("");
-                    });
-                } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: respuesta.message || "No se pudo denegar el préstamo.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            },
-            error: function () {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al denegar el préstamo.",
+                    text: "Hubo un problema al cargar los datos.",
                     confirmButtonText: "Aceptar"
                 });
             }
         });
     }
 
-    // Función para actualizar la información del vehículo
+    // Función para actualizar la información del vehículo MODAL
     function actualizarInfoVehiculo(id_vehiculo) {
         $.ajax({
             type: "POST",
@@ -619,34 +635,94 @@
             }
         });
     }
-
-    // Función para abrir el modal de finalizar préstamo
-    function abrirModalFinalizar(id_prestamo) {
-        $("#fecha_entrega_final").val(fecha);
-        $("#btnFinalizarPrestamo").attr("data-id-prestamo", id_prestamo);
+    
+    // Función para abrir el modal de denegar préstamo
+    function abrirModalDenegar(id_prestamo) {
+        // Establecer el ID del préstamo en el botón del modal
+        $("#btnDenegarModal").attr("data-id-prestamo", id_prestamo);
         // Mostrar el modal
-        var modal = new bootstrap.Modal(document.getElementById("modalFinalizarPrestamo"));
-        modal.show();
+        abrirModal("modalDenegarPrestamo");
     }
 
-    // Función para finalizar el préstamo
-    function finalizarPrestamo() {
-        var id_prestamo = $("#btnFinalizarPrestamo").attr("data-id-prestamo");
-        var km_fin = $("#km_fin").val();
-        var gasolina = $("#gasolina").val();
-        var notas_finales = $("#notas_finales").val();
-        var fecha_entrega_final = $("#fecha_entrega_final").val();
+    // Función para autorizar un prestamo
+    function abrirModalAutoriza(id_prestamo) {
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: { accion: "consultarPrestamos", id_prestamo },
+            dataType: "json",
+            success: function (respuesta) {
+                const prestamo = respuesta.find(p => p.id_prestamo == id_prestamo);
+                if (prestamo) {
+                    $("#placa").val(prestamo.placa);
+                    $("#modelo").val(prestamo.modelo);
+                    $("#color").val(prestamo.color);
 
+                    const fechaHora = prestamo.fecha_inc_prestamo.replace(" ", "T");
+                    $("#fecha_entrega").val(fechaHora);
+
+                    $("#btnGuardarModal").attr("data-id-prestamo", id_prestamo);
+                    infoVehiculos()
+                    abrirModal("modalPrestamo");
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: "No se encontró información del préstamo.",
+                        confirmButtonText: "Aceptar"
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al cargar la información del préstamo.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
+    // Función para abrir el modal de iniciar préstamo
+    function abrirModalInicio(id_prestamo, placa, fechaIncPrestamo) {
+        $("#id_prestamo").val(id_prestamo);
+        $("#placa_ini").val(placa); 
+
+        if (fechaIncPrestamo) {
+            const fechaInicio = fechaIncPrestamo.replace(" ", "T"); 
+            $("#fecha_entrega_inicio").val(fechaInicio);
+        } else {
+            $("#fecha_entrega_inicio").val(""); 
+        }
+        abrirModal("modalInicioPrestamo"); 
+    }
+
+    // Función para abrir el modal de finalizar préstamo
+    function abrirModalFinalizar(id_prestamo, placa) {
+        $("#id_prestamo").val(id_prestamo);
+        $("#placa").val(placa);
+        cargarUsuarios();
+        abrirModal("modalFinalizarPrestamo");
+    }
+
+    // Función para enviar el formulario de autorización el préstamo
+    function autorizarPrestamo(id_prestamo) {
+        var id_prestamo = $("#btnGuardarModal").attr("data-id-prestamo");
+        var id_vehiculo = $("#id_vehiculo").val();
+        var fecha_entrega = $("#fecha_entrega").val();
+        var notas_jefe = $("#notas_jefe").val();
+        var accion = "autorizarPrestamo"; 
+        
         $.ajax({
             type: "POST",
             url: "acciones_prestamos",
             data: {
-                accion: "finalizarPrestamo",
+                accion,
                 id_prestamo,
-                km_fin,
-                gasolina,
-                notas_finales,
-                fecha_entrega_final
+                id_vehiculo,
+                fecha_entrega,
+                notas_jefe
             },
             dataType: "json",
             success: function (respuesta) {
@@ -654,22 +730,174 @@
                     Swal.fire({
                         icon: "success",
                         title: "Éxito",
-                        text: "Préstamo finalizado exitosamente.",
+                        timer: 3000,
+                        confirmButtonText: "Aceptar"
+                    });
+                    cargarPrestamos();
+                    cargarPrestamosAutorizados();
+                    cargarPrestamosDevolucion();
+                    cerrarModal("modalPrestamo");
+                    document.getElementById("formModalPrestamo").reset();
+                } 
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al autorizar el préstamo.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
+    // Función para enviar el formulario de denegar el préstamo 
+    function denegarPrestamo(id_prestamo) {
+        var id_prestamo = $("#btnDenegarModal").attr("data-id-prestamo");
+        var notas_denegar = $("#notas_denegar").val();
+
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: {
+                accion: "denegarPrestamo",
+                id_prestamo,
+                notas_denegar
+            },
+            dataType: "json",
+            success: function (respuesta) {
+                if (respuesta.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: "Préstamo denegado exitosamente.",
+                        timer: 3000,
                         confirmButtonText: "Aceptar"
                     }).then(() => {
-                        cargarPrestamosAutorizados(); 
-                        $("#modalFinalizarPrestamo").modal("hide"); 
+                        cargarPrestamos();
+                        cerrarModal("modalDenegarPrestamo");
+                        $("#notas_denegar").val("");
+                        document.getElementById("formModalDenegarPrestamo").reset();
+                    });
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al denegar el préstamo.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
+    // Función para enviar el formulario de iniciar el préstamo
+    function iniciarPrestamo(id_prestamo) {
+        var formData = new FormData();
+        formData.append("accion", "iniciarPrestamo");
+        formData.append("id_prestamo", $("#id_prestamo").val());
+        formData.append("km_inicio", $("#km_inicio").val());
+        formData.append("gasolina_inicio", $("#gasolina_inicio").val());
+        formData.append("notas_entrega", $("#notas_entrega").val());
+        formData.append("placa", $("#placa_ini").val());
+        var fotos = document.getElementById("fotos_inicio").files;
+
+        for (var i = 0; i < fotos.length; i++) {
+            formData.append("fotos_inicio[]", fotos[i]);
+        }
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: formData,
+            processData: false, 
+            contentType: false,
+            dataType: "json",
+            success: function (respuesta) {
+                if (respuesta.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: respuesta.message,
+                        timer: 3000,
+                        confirmButtonText: "Aceptar"
+                    }).then(() => {
+                        cargarPrestamos();
+                        cargarPrestamosAutorizados();
+                        cargarPrestamosDevolucion();
+                        cerrarModal("modalInicioPrestamo");
+                        document.getElementById("formInicioPrestamo").reset();
                     });
                 } else {
                     Swal.fire({
                         icon: "error",
                         title: "Error",
-                        text: respuesta.message || "No se pudo finalizar el préstamo.",
+                        text: respuesta.message,
                         confirmButtonText: "Aceptar"
                     });
                 }
             },
-            error: function () {
+            error: function (xhr, status, error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al iniciar el préstamo.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
+    // Función para enviar el formulario de finalizar el préstamo
+    function finalizarPrestamo() {
+        var id_prestamo = $("#id_prestamo").val(); 
+        var id_recibe = $("#id_recibe").val();
+        var fotos = document.getElementById("fotos_final").files;
+        var formData = new FormData();
+        formData.append("accion", "finalizarPrestamo");
+        formData.append("id_prestamo", id_prestamo);
+        formData.append("km_fin", $("#km_fin").val());
+        formData.append("gasolina_fin", $("#gasolina_fin").val());
+        formData.append("notas_devolucion", $("#notas_devolucion").val());
+        formData.append("id_recibe", id_recibe);
+        formData.append("placa", $("#placa").val());
+
+        // Agregar las imágenes seleccionadas al FormData
+        for (var i = 0; i < fotos.length; i++) {
+            formData.append("fotos_final[]", fotos[i]);
+        }
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: "json",
+            success: function (respuesta) {
+                if (respuesta.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Éxito",
+                        text: respuesta.message,
+                        timer: 3000,
+                        confirmButtonText: "Aceptar"
+                    }).then(() => {
+                        cargarPrestamos();
+                        cargarPrestamosAutorizados();
+                        cargarPrestamosDevolucion();
+                        cerrarModal("modalFinalizarPrestamo");
+                        document.getElementById("formFinalizarPrestamo").reset();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: respuesta.message,
+                        confirmButtonText: "Aceptar"
+                    });
+                }
+            },
+            error: function (xhr, status, error) {
                 Swal.fire({
                     icon: "error",
                     title: "Error",
@@ -680,16 +908,45 @@
         });
     }
 
-    // Función para obtener el valor de una cookie
-    function getCookie(name) {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.startsWith(name + '=')) {
-                return cookie.substring(name.length + 1);
+    // Función para cargar los usuarios con rol 3
+    function cargarUsuarios() {
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: { accion: "consultarUsuariosRecibe" },
+            dataType: "json",
+            success: function (usuarios) {
+                var select = $("#id_recibe");
+                select.empty();
+                select.append('<option value="">Seleccione</option>');
+                usuarios.forEach(function (usuario) {
+                    select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
+                });
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al cargar los usuarios.",
+                    confirmButtonText: "Aceptar"
+                });
             }
+        });
+    }
+
+    // Función para abrir un modal
+    function abrirModal(idModal) {
+        const modal = new bootstrap.Modal(document.getElementById(idModal));
+        modal.show();
+    }
+
+    // Función para cerrar un modal
+    function cerrarModal(idModal) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById(idModal));
+        modal.hide();
+        if (idModal === "modalFinalizarPrestamo") {
+            document.getElementById("formFinalizarPrestamo").reset(); // Limpia el formulario
         }
-        return null;
     }
     </script>
 </body>

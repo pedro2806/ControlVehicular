@@ -64,7 +64,7 @@
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
 
                     <!-- FORMULARIO DEL SINIESTRO -->
-                    <form id="formRegistroSiniestro">
+                    <form id="formRegistroSiniestro" style="display: none;">
                         <!-- Content Row -->
                         <div class = "row">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
@@ -179,19 +179,21 @@
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
-                            <div class="col-lg-8 col-md-12 col-sm-12 col-12">
-                                <label>Foto del Siniestro:</label>
-                                <input 
-                                    type="file" 
-                                    class="form-control" 
-                                    id="foto" 
-                                    name="foto" 
-                                    accept="image/*" 
-                                    capture="environment" 
-                                    required>
+                            <div id="contenedorFotos">
+                                <label>Fotos del Siniestro:</label>
+                                <div class="input-group mb-3">
+                                    <input 
+                                        type="file" 
+                                        class="form-control foto-siniestro" 
+                                        name="foto[]" 
+                                        accept="image/*" 
+                                        capture="environment" 
+                                        required>
+                                </div>
                             </div>
                         </div>
                         <br>
+                        <button type="button" class="btn btn-outline-primary" id="btnAgregarFoto" onclick="agregarCampoFoto()">Agregar Foto</button>
                         <input type="hidden" id = "coordenadas" name = "coordenadas">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
@@ -244,9 +246,7 @@
                         $("#coordenadas").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo
                     }
                 );
-            } else {
-                console.error("Geolocalización no soportada por el navegador.");
-            }
+            } 
         });
         
          // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
@@ -314,28 +314,21 @@
 
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
         function seleccionarVehiculo(id_vehiculo, placa) {
-            // Actualizar el contenido del contenedor con la placa seleccionada
             $("#placaSeleccionada")
                 .text(`Vehículo seleccionado: ${placa}`)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
-            
-            // Mostrar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").show();
-
-            // Ocultar la tabla de inventario
             $("#tablaInventario").closest(".container").hide();
+            $("#formRegistroSiniestro").show();
         }
 
+        // FUNCION PARA CAMBIAR DE VEHICULO
         function cambiarVehiculo() {
-            // Ocultar el contenedor de la placa seleccionada
             $("#placaSeleccionada").hide();
-
-            // Ocultar el botón para cambiar de vehículo
             $("#btnCambiarVehiculo").hide();
-
-            // Mostrar la tabla de inventario
             $("#tablaInventario").closest(".container").show();
+            $("#formRegistroSiniestro").hide();
         }
 
         // Cargar la lista de usuarios 
@@ -382,9 +375,9 @@
             var descripcion = $("#descripcion").val();
             var tipo_carro = $("#tipo_carro").val();
             var id_dueno = $("#id_dueno").val();
-            var rutaImagen = $("#foto")[0].files[0];
             var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
             var id_vehiculo = $("#id_vehiculo").val();
+            var accion = "registroSiniestro";
 
             // Validar que la placa esté seleccionada
             if (!placa) {
@@ -399,7 +392,7 @@
 
             // Validar que los campos requeridos no estén vacíos
             if (!fecha || !hora || !origen || !destino || !ubicacion || !daños || 
-                !contacto || !descripcion || (tipo_carro === "Prestado" && !id_dueno) || !foto) {
+                !contacto || !descripcion || (tipo_carro === "Prestado" && !id_dueno)) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
@@ -408,81 +401,26 @@
                 });
                 return;
             }
-
-            // Subir la imagen y registrar el siniestro
-            enviaImg(function (rutaImagen) {
-                var accion = "registroSiniestro";
-                //console.log("Ruta de la imagen:", rutaImagen); // Verificar la ruta de la imagen
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_siniestro",
-                    data:{  id_vehiculo, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
-                            kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro,
-                            id_dueno, placa, rutaImagen, accion 
-                        },
-                    dataType: 'json',
-                    success: function (respuesta) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: 'Siniestro registrado exitosamente.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                        $("#formRegistroSiniestro")[0].reset();
-                        $("#btnCambiarVehiculo").hide();
-                        $("#tablaInventario").closest(".container").show();
-                        location.reload();
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Hubo un problema al registrar el siniestro.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                });
-            });
-        }
-
-        //FUNCION PARA MANEJAR CARPETAS Y FOTO
-        //callback: hace que la función "RegistrarSiniestro" se ejecute después de enviar la imagen
-        function enviaImg(callback) {
-            var formData = new FormData();
-            var foto = $("#foto")[0].files[0];
-            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim(); // Obtener la placa seleccionada
-        
-            if (!placa) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Placa no seleccionada',
-                    text: 'Por favor, selecciona un vehículo antes de continuar.',
-                    confirmButtonText: 'Aceptar'
-                });
-                callback(null);
-                return;
-            }
-        
-            if (!foto) {
-                console.log("No se seleccionó ninguna foto.");
-                callback(null);
-                return;
-            }
-        
-            formData.append("foto", foto);
-            formData.append("placa", placa);
-            formData.append("accion", "manejarCarpetasYFoto");
-        
             $.ajax({
                 type: "POST",
                 url: "acciones_siniestro",
-                data: formData,
-                processData: false, 
-                contentType: false, 
+                data: { 
+                    id_vehiculo, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
+                    kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro,
+                    id_dueno, placa, accion
+                },
                 dataType: 'json',
                 success: function (respuesta) {
                     if (respuesta.success) {
-                        callback(respuesta.rutaImagen);
+                        // Subir imágenes con el id_formato devuelto
+                        subirImagenes(id_vehiculo, placa, respuesta.id_formato);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Siniestro registrado exitosamente.',
+                            text: 'Esperemos se encuentre fuera de peligro.',
+                            confirmButtonText: 'Aceptar'
+                        });
+                        location.reload();
                     } else {
                         Swal.fire({
                             icon: 'error',
@@ -490,17 +428,66 @@
                             text: respuesta.message,
                             confirmButtonText: 'Aceptar'
                         });
-                        callback(null);
                     }
                 },
                 error: function () {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Hubo un problema al manejar la foto y las carpetas.',
+                        text: 'Hubo un problema al registrar el siniestro.',
                         confirmButtonText: 'Aceptar'
                     });
-                    callback(null);
+                }
+            });
+            
+        }
+
+        //FUNCION PARA SUBIR IMAGENES
+        function subirImagenes(id_vehiculo, placa, id_formato) {
+            var formData = new FormData();
+            var fotos = document.querySelectorAll('.foto-siniestro');
+            formData.append("id_vehiculo", id_vehiculo);
+            formData.append("placa", placa);
+            formData.append("id_formato", id_formato);
+            formData.append("accion", "subirImagenes");
+            
+            fotos.forEach(function(fotoInput) {
+                var foto = fotoInput.files[0];
+                if (foto) {
+                    formData.append("fotos[]", foto);
+                }
+            });
+            $.ajax({
+                type: "POST",
+                url: "acciones_siniestro",
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function (respuesta) {
+                    if (respuesta.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: 'Imágenes subidas exitosamente.',
+                            confirmButtonText: 'Aceptar'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: respuesta.message,
+                            confirmButtonText: 'Aceptar'
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Hubo un problema al subir las imágenes.',
+                        confirmButtonText: 'Aceptar'
+                    });
                 }
             });
         }
@@ -518,6 +505,72 @@
                 $("#id_dueno").removeAttr("required"); // Quitar la obligatoriedad
             }
         }
+        
+        //Validar el número máximo de imágenes (4)
+        $("#foto").on("change", function () {
+            if (this.files.length > 4) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Solo puedes subir un máximo de 4 imágenes.",
+                    confirmButtonText: "Aceptar"
+                });
+                this.value = ""; // Limpia el campo de archivos
+            }
+        });
+
+        //FUNCION PARA AGREGAR CAMPO DE FOTO
+        function agregarCampoFoto() {
+            // Contar cuántos campos de fotos existen actualmente
+            var totalFotos = document.querySelectorAll(".foto-siniestro").length;
+
+            // Validar que no se agreguen más de 4 campos en total
+            if (totalFotos >= 4) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Límite alcanzado",
+                    text: "Solo puedes agregar un máximo de 4 imágenes.",
+                    confirmButtonText: "Aceptar"
+                });
+                return;
+            }
+
+            // Crear un nuevo grupo de input y botón eliminar
+            var nuevoCampo = `
+                <div class="input-group mb-3">
+                    <input 
+                        type="file" 
+                        class="form-control foto-siniestro" 
+                        name="foto[]" 
+                        accept="image/*" 
+                        capture="environment" 
+                        required>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarCampo(this)">Eliminar</button>
+                </div>`;
+            
+            // Agregar el nuevo campo al contenedor 
+            $("#contenedorFotos").append(nuevoCampo);
+        }
+
+        //FUNCION PARA ELIMINAR CAMPO DE FOTO
+        function eliminarCampo(boton) {
+            $(boton).closest(".input-group").remove();
+        }
+
+        // Validar el número máximo de imágenes dinámicas (4)
+        $("#foto").on("change", ".foto-siniestro", function () {
+            var totalFotos = document.querySelectorAll(".foto-siniestro").length;
+
+            if (totalFotos > 4) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Asegurate que cada campo tenga una imagen.",
+                    confirmButtonText: "Aceptar"
+                });
+                this.value = ""; // Limpia el campo de archivos
+            }
+        });
     </script>
 </body>
 </html>

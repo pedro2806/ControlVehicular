@@ -42,11 +42,319 @@ if ($opcion == "llenaTVehiculosAsignados") {
     }
 }
 
+if ($opcion == 'verChecks') {
+    $id_coche = $_POST['idCoche'] ?? null;
+    $sql = "SELECT * FROM checklist WHERE id_vehiculo = '$id_coche' ORDER BY fecha DESC";
+    $res2 = mysqli_query($conn, $sql);
+
+    if (!$res2) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row2 = mysqli_fetch_assoc($res2)) {
+        $registros[] = array(
+            'id' => $row2["id_checklist"],
+            'fecha' => $row2["fecha"],
+            'id_usuario' => $row2["id_usuario"],
+            'id_revisor' => $row2["id_revisor"],
+            'motivo' => $row2["motivo"]
+        );
+    }
+
+    if (empty($registros)) {
+        echo json_encode(array("message" => "Sin registros."));
+    } else {
+        echo json_encode($registros);
+    }
+}
+
+$id_checklist = $_POST['idCheck'] ?? null;
+
+if ($opcion == 'checklist_asientos') {
+    
+    $sql = "SELECT * FROM checklist_asientos WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Asientos',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_espejos_ventanas') {
+    
+    $sql = "SELECT * FROM checklist_espejos_ventanas WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Espejos y Ventanas',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_estereos_aire') {
+    
+    $sql = "SELECT * FROM checklist_estereos_aire WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Estereo y Aire Acondicionado',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_faros') {
+    
+    $sql = "SELECT * FROM checklist_faros WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Faros',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_golpes_exterior') {
+    
+    $sql = "SELECT * FROM checklist_golpes_exterior WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Golpes Exterior',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_graficas') {
+    
+    $sql = "SELECT * FROM checklist_graficas WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Graficas',
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_limpiaparabrisas') {
+    
+    $sql = "SELECT * FROM checklist_limpiaparabrisas WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Limpiaparabrisas',
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_limpieza') {
+    
+    $sql = "SELECT * FROM checklist_limpieza WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Limpieza',
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_llantas') {
+    
+    $sql = "SELECT * FROM checklist_llantas WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Llantas',            
+            'Medidas' => $row["medidas"],
+            'No_Rin' => $row["no_rin"],
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_placas') {
+    
+    $sql = "SELECT * FROM checklist_placas WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Placas',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_puertas_llaves') {
+    
+    $sql = "SELECT * FROM checklist_puertas_llave WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => 'Puertas y Llaves',            
+            'Si_No' => $row["si_no"],                        
+            'Observaciones' => $row["obervaciones"],
+            'Buen_estado' => $row["buen_estado"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+if ($opcion == 'checklist_documentacion') {
+    
+    $sql = "SELECT * FROM `checklist_documentacion` WHERE id_checklist = '$id_checklist'";
+    $res = mysqli_query($conn, $sql);
+
+    if (!$res) {
+        die(json_encode(array("error" => mysqli_error($conn))));
+    }
+
+    $registros = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $registros[] = array(
+            'nombre_seccion' => $row["t_documento"],            
+            'Si_No' => $row["si_no"],            
+            'Observaciones' => $row["obervaciones"],
+            'No_tarjeta' => $row["no_tarjeta"],
+            'imagen' => $row["foto"]
+        );
+    }
+
+    echo json_encode($registros);
+}
+
+//////// FUNCIONES Y  VARIABLES PARA GUARDAR CHECKLIST ////////////
+
     $placa = $_POST['placa'] ?? null;
     $id_coche = $_POST['id_coche'] ?? null; 
     $motivo = $_POST['motivo'] ?? null;
 
-    $si_no_Asientos = $_POST['si_no_Asientos'] ?? null;
+    $si_no_asientos = $_POST['si_no_Asientos'] ?? null;
     $buenEstado_Asientos = $_POST['buenEstado_Asientos'] ?? null;
     $observaciones_Asientos = $_POST['observaciones_Asientos'] ?? null;
 
@@ -74,16 +382,19 @@ if ($opcion == "llenaTVehiculosAsignados") {
     $buenEstado_Limpiaparabrisas = $_POST['buenEstado_Limpiaparabrisas'] ?? null;
     $observaciones_Limpiaparabrisas = $_POST['observaciones_Limpiaparabrisas'] ?? null;
 
-    $si_no_Espejos = $_POST['si_no_Espejos'] ?? null;
+    $si_no_espejos = $_POST['si_no_Espejos'] ?? null;
     $buenEstado_Espejos = $_POST['buenEstado_Espejos'] ?? null;
     $observaciones_Espejos = $_POST['observaciones_Espejos'] ?? null;
 
     $si_no_AireAcondicionado = $_POST['si_no_AireAcondicionado'] ?? null;
     $buenEstado_AireAcondicionado = $_POST['buenEstado_AireAcondicionado'] ?? null;
     $observaciones_AireAcondicionado = $_POST['observaciones_AireAcondicionado'] ?? null;
+    $CEAireAcondicionado = $_POST['CEAireAcondicionado'] ?? null;
 
     $buenEstado_Llantas = $_POST['buenEstado_Llantas'] ?? null;
     $observaciones_Llantas = $_POST['observaciones_Llantas'] ?? null;
+    $no_rin = $_POST['CE_Llantas'] ?? null;
+    $medidas = $_POST['medidas_Llantas'] ?? null;
 
     $buenEstado_PuertasLlave = $_POST['buenEstado_PuertasLlave'] ?? null;
     $duplicado_PuertasLlave = $_POST['duplicado_PuertasLlave'] ?? null;
@@ -153,63 +464,68 @@ if ($opcion == 'guardarCheckIn') {
     $id_checklist = mysqli_insert_id($conn);
 
     // Insert into checklist_asientos
-    $resultadoAsientos = insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_asientos, $buenEstado_Asientos, $placa);
+    $resultadoAsientos = insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_Asientos, $buenEstado_Asientos, $placa);
     if (!$resultadoAsientos) {
         die(json_encode(array("error" => "Failed to insert checklist asientos: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_espejos_ventanas
-    $resultadoEspejos = insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $observaciones_espejos, $foto_espejos, $placa);
+    $resultadoEspejos = insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $observaciones_Espejos, $placa, $buenEstado_Espejos);
     if (!$resultadoEspejos) {
         die(json_encode(array("error" => "Failed to insert checklist espejos: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_estereos_aire
-    $resultadoEstereos = insertChecklistEstereosAire($conn, $id_checklist, $cd_estereo, $si_no_estereos, $observaciones_estereos, $foto_estereos, $placa);
+    $resultadoEstereos = insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_AireAcondicionado, $placa);
     if (!$resultadoEstereos) {
         die(json_encode(array("error" => "Failed to insert checklist estereos: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_faros
-    $resultadoFaros = insertChecklistFaros($conn, $id_checklist, $si_no_faros, $observaciones_faros, $foto_faros, $placa);
+    $resultadoFaros = insertChecklistFaros($conn, $id_checklist, $si_no_Faros, $observaciones_Faros, $foto_Faros, $placa, $buenEstado_Faros);
     if (!$resultadoFaros) {
         die(json_encode(array("error" => "Failed to insert checklist faros: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_golpes_exterior
-    $resultadoGolpes = insertChecklistGolpesExterior($conn, $id_checklist, $si_no_golpes, $observaciones_golpes, $foto_golpes, $placa);
+    $resultadoGolpes = insertChecklistGolpesExterior($conn, $id_checklist, $si_no_Exterior, $observaciones_Exterior, $foto_Exterior, $placa, $buenEstado_Exterior);
     if (!$resultadoGolpes) {
         die(json_encode(array("error" => "Failed to insert checklist golpes: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_limpiaParabrisas
-    $resultadoLimpiaParabrisas = insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_limpiaParabrisas, $observaciones_limpiaParabrisas, $foto_limpiaParabrisas, $placa);
+    $resultadoLimpiaParabrisas = insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_LimpiaParabrisas, $observaciones_LimpiaParabrisas, $foto_limpiaParabrisas, $placa, $buenEstado_Limpiaparabrisas);
     if (!$resultadoLimpiaParabrisas) {
         die(json_encode(array("error" => "Failed to insert checklist limpiaParabrisas: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_limpieza
-    $resultadoLimpieza = insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observaciones_limpieza, $foto_limpieza, $placa);
+    $resultadoLimpieza = insertChecklistLimpieza($conn, $id_checklist, $si_no_Limpieza, $observaciones_Limpieza, $foto_Limpieza, $placa, $buenEstado_Limpieza);
     if (!$resultadoLimpieza) {
         die(json_encode(array("error" => "Failed to insert checklist limpieza: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_llantas
-    $resultadoLlantas = insertChecklistLlantas($conn, $id_checklist, $si_no_llantas, $no_rin, $medidas, $observaciones_llantas, $foto_llantas, $placa);
+    $resultadoLlantas = insertChecklistLlantas($conn, $id_checklist, $no_rin, $medidas, $observaciones_Llantas, $foto_llantas, $placa, $buenEstado_Llantas);
     if (!$resultadoLlantas) {
         die(json_encode(array("error" => "Failed to insert checklist llantas: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_placas
-    $resultadoPlacas = insertChecklistPlacas($conn, $id_checklist, $si_no_placas, $observaciones_placas, $foto_placas, $buenEstado_Placas, $placa);
+    $resultadoPlacas = insertChecklistPlacas($conn, $id_checklist, $si_no_Placas, $observaciones_Placas, $foto_placas, $buenEstado_Placas, $placa);
     if (!$resultadoPlacas) {
         die(json_encode(array("error" => "Failed to insert checklist placas: " . mysqli_error($conn))));
     }
 
     // Insert into checklist_puertas_llave
-    $resultadoPuertas = insertChecklistPuertasLlave($conn, $id_checklist, $si_no_puertas, $duplicado_llaves, $observaciones_puertas, $foto_puertas, $placa);
+    $resultadoPuertas = insertChecklistPuertasLlave($conn, $id_checklist, $buenEstado_PuertasLlave, $duplicado_PuertasLlave, $observaciones_PuertasLlave, $foto_PuertasLlave, $placa);
     if (!$resultadoPuertas) {
         die(json_encode(array("error" => "Failed to insert checklist puertas: " . mysqli_error($conn))));
+    }
+
+    $resultadoGraficas = insertChecklistGraficas($conn, $id_checklist, $si_no_Graficas, $observaciones_Graficas, $foto_Graficas, $placa, $buenEstado_Graficas);
+    if (!$resultadoGraficas) {
+        die(json_encode(array("error" => "Failed to insert checklist graficas: " . mysqli_error($conn))));
     }
 
 
@@ -277,13 +593,30 @@ function subirImagenAsientos($rutaChecklist, $rutaImagen, $tempFilePath) {
 
 
 //FUNCIONES PARA INSERT DE LOS APARTADOS DEL CHECKLIST
-function insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_asientos, $buenEstado_Asientos, $placa) {
+function insertChecklistGraficas($conn, $id_checklist, $si_no_Graficas, $observaciones_Graficas, $foto_graficas, $placa, $buenEstado_Graficas) {
+    $rutaImagen = obtenerRutaImagen($placa, "checklist_Graficas", $_FILES['foto_Graficas'] ?? null);
+    $rutaChecklist = "img_control_vehicular/$placa/checklist/graficas/" . $rutaImagen;
+
+    $sql = "INSERT INTO checklist_graficas (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_Graficas', '$observaciones_Graficas', '$rutaChecklist', '$buenEstado_Graficas')";
+    
+    if (mysqli_query($conn, $sql)) {
+        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Graficas'])) {
+            $rutaChecklist = "img_control_vehicular/$placa/checklist/graficas";
+            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Graficas']['tmp_name']);
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_Asientos, $buenEstado_Asientos, $placa) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Asientos", $_FILES['foto_Asientos'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/asientos/" . $rutaImagen;
     
     $sql = "INSERT INTO checklist_asientos (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_asientos', '$observaciones_asientos', '$rutaChecklist', '$buenEstado_Asientos')";
-
+        VALUES ('$id_checklist', '$si_no_asientos', '$observaciones_Asientos', '$rutaChecklist', '$buenEstado_Asientos')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Asientos'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/asientos";
@@ -295,17 +628,17 @@ function insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observa
     }
 }
 
-function insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $observaciones_espejos, $foto_espejos, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Espejos", $_FILES['foto_espejos'] ?? null);
+function insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $observaciones_Espejos, $placa, $buenEstado_Espejos) {
+    $rutaImagen = obtenerRutaImagen($placa, "checklist_Espejos", $_FILES['foto_Espejos'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/espejos/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_espejos_ventanas (id_checklist, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_espejos', '$observaciones_espejos', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_espejos_ventanas (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_espejos', '$observaciones_Espejos', '$rutaChecklist', '$buenEstado_Espejos')";
     
     if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_espejos'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/asientos";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_espejos']['tmp_name']);
+        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Espejos'])) {
+            $rutaChecklist = "img_control_vehicular/$placa/checklist/espejos";
+            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Espejos']['tmp_name']);
         }
         return true;
     } else {
@@ -313,17 +646,17 @@ function insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $o
     }
 }
 
-function insertChecklistEstereosAire($conn, $id_checklist, $cd_estereo, $si_no_estereos, $observaciones_estereos, $foto_estereos, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Estereos", $_FILES['foto_estereos'] ?? null);
+function insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_estereos, $placa) {
+    $rutaImagen = obtenerRutaImagen($placa, "checklist_Estereos", $_FILES['foto_AireAcondicionado'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/estereos/" . $rutaImagen;
 
     $sql = "INSERT INTO checklist_estereos_aire (id_checklist, cd_estereo, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$cd_estereo', '$si_no_estereos', '$observaciones_estereos', '$rutaChecklist')";
+        VALUES ('$id_checklist', '$CEAireAcondicionado', '$si_no_AireAcondicionado', '$observaciones_AireAcondicionado', '$rutaChecklist')";
     
     if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_estereos'])) {
+        if ($rutaImagen !== "S/R" && isset($_FILES['foto_AireAcondicionado'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/estereos";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_estereos']['tmp_name']);
+            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_AireAcondicionado']['tmp_name']);
         }
         return true;
     } else {
@@ -331,12 +664,12 @@ function insertChecklistEstereosAire($conn, $id_checklist, $cd_estereo, $si_no_e
     }
 }
 
-function insertChecklistFaros($conn, $id_checklist, $si_no_faros, $observaciones_faros, $foto_faros, $placa) {
+function insertChecklistFaros($conn, $id_checklist, $si_no_faros, $observaciones_faros, $foto_faros, $placa, $buenEstado_Faros) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Faros", $_FILES['foto_Faros'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/faros/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_faros (id_checklist, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_faros', '$observaciones_faros', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_faros (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_faros', '$observaciones_faros', '$rutaChecklist', '$buenEstado_Faros')";
     
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Faros'])) {
@@ -349,16 +682,16 @@ function insertChecklistFaros($conn, $id_checklist, $si_no_faros, $observaciones
     }
 }
 
-function insertChecklistGolpesExterior($conn, $id_checklist, $si_no_golpes, $observaciones_golpes, $foto_golpes, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_GolpesExterior", $_FILES['foto_golpes'] ?? null);
+function insertChecklistGolpesExterior($conn, $id_checklist, $si_no_golpes, $observaciones_golpes, $foto_golpes, $placa, $buenEstado_Exterior) {
+    $rutaImagen = obtenerRutaImagen($placa, "checklist_GolpesExterior", $_FILES['foto_Exterior'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/golpes_exterior/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_golpes_exterior (id_checklist, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_golpes', '$observaciones_golpes', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_golpes_exterior (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_golpes', '$observaciones_golpes', '$rutaChecklist', '$buenEstado_Exterior')";
     if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_golpes'])) {
+        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Exterior'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/golpes_exterior";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_golpes']['tmp_name']);
+            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Exterior']['tmp_name']);
         }
         return true;
     } else {
@@ -366,12 +699,12 @@ function insertChecklistGolpesExterior($conn, $id_checklist, $si_no_golpes, $obs
     }
 }
 
-function insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_limpiaParabrisas, $observaciones_limpiaParabrisas, $foto_limpiaParabrisas, $placa) {
+function insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_LimpiaParabrisas, $observaciones_LimpiaParabrisas, $foto_limpiaParabrisas, $placa, $buenEstado_Limpiaparabrisas) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_LimpiaParabrisas", $_FILES['foto_Limpiaparabrisas'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/limpiaParabrisas/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_limpiaParabrisas (id_checklist, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_limpiaParabrisas', '$observaciones_limpiaParabrisas', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_limpiaParabrisas (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_LimpiaParabrisas', '$observaciones_LimpiaParabrisas', '$rutaChecklist', '$buenEstado_Limpiaparabrisas')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Limpiaparabrisas'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/limpiaParabrisas";
@@ -383,12 +716,12 @@ function insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_limpiaPara
     }
 }
 
-function insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observaciones_limpieza, $foto_limpieza, $placa) {
+function insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observaciones_limpieza, $foto_limpieza, $placa, $buenEstado_Limpieza) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Limpieza", $_FILES['foto_Limpieza'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/limpieza/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_limpieza (id_checklist, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_limpieza', '$observaciones_limpieza', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_limpieza (id_checklist, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$si_no_limpieza', '$observaciones_limpieza', '$rutaChecklist', '$buenEstado_Limpieza')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Limpieza'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/limpieza";
@@ -400,12 +733,12 @@ function insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observa
     }
 }
 
-function insertChecklistLlantas($conn, $id_checklist, $buenEstado_Llantas, $no_rin, $medidas, $observaciones_llantas, $foto_llantas, $placa) {
+function insertChecklistLlantas($conn, $id_checklist, $no_rin, $medidas, $observaciones_Llantas, $foto_llantas, $placa, $buenEstado_Llantas) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Llantas", $_FILES['foto_Llantas'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/llantas/" . $rutaImagen;
 
     $sql = "INSERT INTO checklist_llantas (id_checklist, buen_estado, no_rin, medidas, observaciones, foto) 
-        VALUES ('$id_checklist', '$buenEstado_Llantas', '$no_rin', '$medidas', '$observaciones_llantas', '$rutaChecklist')";
+        VALUES ('$id_checklist', '$buenEstado_Llantas', '$no_rin', '$medidas', '$observaciones_Llantas', '$rutaChecklist')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Llantas'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/llantas";
@@ -417,12 +750,12 @@ function insertChecklistLlantas($conn, $id_checklist, $buenEstado_Llantas, $no_r
     }
 }
 
-function insertChecklistPlacas($conn, $id_checklist, $si_no_placas, $observaciones_placas, $foto_placas, $buenEstado_Placas, $placa) {
+function insertChecklistPlacas($conn, $id_checklist, $si_no_Placas, $observaciones_Placas, $foto_placas, $buenEstado_Placas, $placa) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Placas", $_FILES['foto_Placas'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/placas/" . $rutaImagen;
 
     $sql = "INSERT INTO checklist_placas (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_placas', '$observaciones_placas', '$rutaChecklist', '$buenEstado_Placas')";
+        VALUES ('$id_checklist', '$si_no_Placas', '$observaciones_Placas', '$rutaChecklist', '$buenEstado_Placas')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Placas'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/placas";
@@ -434,12 +767,12 @@ function insertChecklistPlacas($conn, $id_checklist, $si_no_placas, $observacion
     }
 }
 
-function insertChecklistPuertasLlave($conn, $id_checklist, $buenEstado_PuertasLlave, $duplicado_llaves, $observaciones_puertas, $foto_puertas, $placa) {
+function insertChecklistPuertasLlave($conn, $id_checklist, $buenEstado_PuertasLlave, $duplicado_PuertasLlave, $observaciones_PuertasLlave, $foto_PuertasLlave, $placa) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_PuertasLlave", $_FILES['foto_PuertasLlave'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/puertas_llave/" . $rutaImagen;
 
     $sql = "INSERT INTO checklist_puertas_llave (id_checklist, buen_estado, duplicado_llaves, observaciones, foto) 
-        VALUES ('$id_checklist', '$buenEstado_PuertasLlave', '$duplicado_llaves', '$observaciones_puertas', '$rutaChecklist')";
+        VALUES ('$id_checklist', '$buenEstado_PuertasLlave', '$duplicado_PuertasLlave', '$observaciones_PuertasLlave', '$rutaChecklist')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_PuertasLlave'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/puertas_llave";

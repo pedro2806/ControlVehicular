@@ -116,18 +116,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <label for="motivo"><b>Motivo:</b></label>
                                 <textarea id="motivo" name="motivo" class="form-control" placeholder="Motivo" rows="2"></textarea>                            
                             </div>
-                            <!--<div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="expediente"><b>Expediente:</b></label>
-                                <label id="expediente" name="expediente"></label>
-                            </div>                        
-                            <div class="col-lg-3 col-md-6 col-sm-8 col-8">
-                                <label class="form-check-label" for="carta_resguardo" style="margin-left: 0px;"><b>¿Carta de resguardo?</b></label>
-                                <input value="1" style="transform: scale(1.5); margin-left: 10px;" type="checkbox" role="switch" id="carta_resguardo" name="carta_resguardo" value="1" text="Carta de resguardo" style="transform: scale(1); margin-left: 5px;">
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-4 col-4">
-                                <label for="empresa"><b>Empresa:</b></label>
-                                <label type="text" id="empresa" name="empresa">MESS RL</label>
-                            </div>-->
                         </div><br>
 
                 <!-- ASPECTOS FISICOS -->
@@ -169,27 +157,35 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                             echo '<input type="text" id="medidas_' . $item["id"] . '" name="medidas_' . $item["id"] . '" class="form-control">';
                                                         echo '</div>';
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="buenEstado_' . $item["id"] . '">Buen estado:</label>';
-                                                            echo '<input type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
                                                 } else {
                                                     if($item["id"] == "PuertasLlave") {
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="buenEstado_' . $item["id"] . '">Buen estado:</label>';
-                                                            echo '<input type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';                                                                
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label><br>';
+                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';                                                            
                                                             echo '<input type="text" id="duplicado_' . $item["id"] . '" name="duplicado_' . $item["id"] . '" class="form-control">';
+                                                            echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label><br>';
                                                         echo '</div>';
                                                     } else {
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="si_no_' . $item["id"] . '">Si/No:</label>';
-                                                            echo '<input type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';                                                                
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="buenEstado_' . $item["id"] . '">Buen estado:</label>';
-                                                            echo '<input type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
                                                     }
                                                 }
@@ -236,7 +232,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 ?>
                             </div>
                         </div>  
-                        <br> 
+                        <br> <br> 
                 <!-- DOCUMENTACIÓN -->
                         <div class="row">
                             <div class="col-lg-6 col-md-6 col-sm-6 col-6">
@@ -248,11 +244,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <?php
                                 $accordionItems2 = [
                                     ["title" => "Tarjeta de circulación", "id" => "tarjetaC", "color" => "secondary"],
-                                    ["title" => "Refrendo actual", "id" => "Refrendo", "color" => "dark"],
+                                    ["title" => "Refrendo actual", "id" => "Refrendo", "color" => "warning"],
                                     ["title" => "Seguro de auto (Póliza vigente)", "id" => "Seguro", "color" => "secondary"],
-                                    ["title" => "Verificación vigente", "id" => "Verificacion", "color" => "dark"],
+                                    ["title" => "Verificación vigente", "id" => "Verificacion", "color" => "warning"],
                                     ["title" => "Licencia de manejo", "id" => "Licencia", "color" => "secondary"],
-                                    ["title" => "Tarjeta Efecticard", "id" => "TarjetaEfe", "color" => "dark"],
+                                    ["title" => "Tarjeta Efecticard", "id" => "TarjetaEfe", "color" => "warning"],
                                     ["title" => "Tarjeta IAVE", "id" => "TarjetaIAVE", "color" => "secondary"]
                                 ];
 
@@ -268,8 +264,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                 echo '<div class="row">';
                                                     if ($item["id"] == "tarjetaC" || $item["id"] == "Refrendo") {
                                                         echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
-                                                            echo '<label for="si_no_' . $item["id"] . '">Si/No:</label>';
-                                                            echo '<input type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';                                                                
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
                                                     } else {	
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
@@ -277,8 +275,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                             echo '<input type="date" id="vencimiento_' . $item["id"] . '" name="vencimiento_' . $item["id"] . '" class="form-control">';
                                                         echo '</div>';
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="si_no_' . $item["id"] . '">Si/No:</label>';
-                                                            echo '<input type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5); margin-left: 10px;">';
+                                                            echo '<div class="form-check form-switch me-3">';                                                                
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                            echo '</div>';
                                                         echo '</div>';
                                                     }
                                                 echo '</div>';                                
@@ -429,8 +429,33 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#foto_inspeccion').val('');
         OcultaDivVehiculosAsignados(); // Ocultar el div de vehículos asignados
     }
-        
+
+    function validarFormulario() {
+        let esValido = true;
+        let mensajeError = "";
+
+        // Validar campos con la propiedad required, excepto confirmapass y nuevapass
+        $('[required]').each(function () {
+            if ($(this).attr('name') !== 'confirmapass' && $(this).attr('name') !== 'nuevapass') {
+                if ($(this).val().trim() === "") {
+                    esValido = false;
+                    mensajeError += `El campo ${$(this).attr('name')} es obligatorio.\n`;
+                }
+            }
+        });
+
+        if (!esValido) {
+            Swal.fire("Error", mensajeError, "error");
+        }
+
+        return esValido;
+    }
+
         function guardarCheckIn() {
+            // Validar el formulario antes de enviar
+            if (!validarFormulario()) {
+                return; // Detener la ejecución si hay errores de validación
+            }
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros
@@ -481,6 +506,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 success: function(response) {
                     if (response.success) {
                         Swal.fire("Éxito", "El check-in se guardó correctamente.", "success");
+                        window.location.assign("verifica_checkinVehiculo");
                     } else {
                         Swal.fire("Error", "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
                     }
@@ -493,7 +519,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         }
         
         // Función para capturar la foto de inspección
-        $('#foto_inspeccion').on('click', function () {
+        $('#foto_TarjetaIAVE').on('click', function () {
             
             // Verificar si el dispositivo es móvil
             if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {

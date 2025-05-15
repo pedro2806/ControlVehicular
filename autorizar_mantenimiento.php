@@ -11,7 +11,7 @@
     <meta name = "description" content = "">
     <meta name = "author" content = "">
 
-    <title>CONTROL VEHICULAR</title>
+    <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
@@ -47,7 +47,8 @@
                         <table id="tablaMantenimientos" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
-                                    <th>Placa</th>
+                                    <th>Vehiculo</th>
+                                    <th>Detalles Vehiculo</th>
                                     <th>Fecha Registro</th>
                                     <th>Kilometraje</th>
                                     <th>Tipo de Mantenimiento</th>
@@ -190,12 +191,13 @@
                     }
                     var fila = `
                         <tr>
-                            <td>${mantenimiento.placa}</td>
-                            <td>${mantenimiento.fecha_registro}</td>
-                            <td>${mantenimiento.kilometraje}</td>
-                            <td>${mantenimiento.tipo_mantenimiento}</td>
-                            <td>${mantenimiento.descripcion}</td>
-                            <td>${mantenimiento.VoBo_jefe}</td>
+                            <td><i class="fas fa-car"></i> <strong>${mantenimiento.placa} - ${mantenimiento.modelo}</strong></td>
+                            <td><strong>${mantenimiento.marca} - ${mantenimiento.color}</strong></td>
+                            <td><strong>${mantenimiento.fecha_registro}</strong></td>
+                            <td><strong>${mantenimiento.kilometraje}</strong></td>
+                            <td><strong>${mantenimiento.tipo_mantenimiento}</strong></td>
+                            <td><strong>${mantenimiento.descripcion}</strong></td>
+                            <td><strong>${mantenimiento.VoBo_jefe}</strong></td>
                             <td>${botones}</td>
                         </tr>`;
                     tabla.append(fila);

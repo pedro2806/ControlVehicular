@@ -96,7 +96,7 @@ if ($accion == "subirImagenes") {
 // Consulta para obtener los vehiculos asignados al usuario 
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist, inv.color
                             FROM inventario inv
                             LEFT JOIN (
                                 SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
@@ -118,7 +118,7 @@ if ($accion == "consultarInventario") {
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
 
-    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist
+    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist, inv.color
                             FROM inventario inv
                             LEFT JOIN (
                                 SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist

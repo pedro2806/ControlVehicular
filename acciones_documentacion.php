@@ -12,7 +12,7 @@ $contacto = $_POST["contacto"];
 $fecha_prox = $_POST["fecha_prox"];
 $tarjeta_circulacion = $_POST["tarjeta_circulacion"];
 $refrendo_actual = $_POST['refrendo_actual'];
-$seguro_auto = $_POST["seguro_auto"];
+$seguro_vehiculo = $_POST["seguro_vehiculo"];
 $verificacion_vigente = $_POST["verificacion_vigente"];
 $ruta_documento = $_POST["ruta_documento"];
 $placa = $_POST["placa"];
@@ -94,7 +94,7 @@ if ($accion == "RegistrarDocumentos") {
     }
 
     // Registrar en la base de datos
-    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, licencia, tarjeta_circulacion, refrendo_actual, seguro_auto, verificacion_vigente)
+    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, licencia, tarjeta_circulacion, refrendo_actual, seguro_vehiculo, verificacion_vigente)
             VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoLicencia']}', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
     $result = $conn->query($sql);
 

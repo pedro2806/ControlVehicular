@@ -11,7 +11,7 @@
     <meta name = "description" content = "">
     <meta name = "author" content = "">
 
-    <title>CONTROL VEHICULAR</title>
+    <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
@@ -43,12 +43,13 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3>Selección de Vehículo</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
                                     <th>Modelo</th>
+                                    <th>Marca</th>
+                                    <th>Color</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -65,11 +66,7 @@
                     <form id="formRegistroDocumentacion" style="display: none;">
                         <!-- Content Row -->
                         <div class = "row">
-                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Registro:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" readonly>
-                            </div>
-                            <br>
+                                <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
                             <div class="col-lg-4 col-md-6 col-sm-6 col-6">
                                 <label>Contacto:</label>  
                                 <input class="form-control" id="contacto" name="contacto" type="tel" required>
@@ -441,11 +438,13 @@
                     respuesta.forEach(function (vehiculo) {
                         var fila = `
                             <tr>
-                                <td>${vehiculo.placa}</td>
-                                <td>${vehiculo.modelo}</td>
+                                <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
+                                <td><strong>${vehiculo.modelo}</strong></td>
+                                <td><strong>${vehiculo.marca}</strong></td>
+                                <td><strong>${vehiculo.color}</strong></td>
                                 <td>
                                     <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
+                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
                                             <i class="fas fa-check"></i>
                                         </button>
                                     </center>
@@ -499,9 +498,16 @@
         }
 
         //FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_vehiculo, placa) {
+        function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
             $("#placaSeleccionada")
-                .text(`Vehículo seleccionado: ${placa}`)
+                .html(`
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span><strong>Placa:</strong> <span style="font-weight: normal;">${placa}</span></span>
+                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
+                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
+                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
+                    </div>
+                `)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#placa").val(placa);

@@ -40,7 +40,8 @@ if ($_POST['accion'] == 'ver_inventario') {
 
 // Consulta para obtener los documentos del vehículo
 if ($_POST['accion'] == 'documentosVehiculo') {
-    $sql = "SELECT inv.placa, inv.modelo, inv.marca, inv.anio, inv.usuario, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente
+    $sql = "SELECT inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, 
+                doc.verificacion_vigente, doc.fecha_registro,doc.fecha_prox, doc.contacto
             FROM inventario inv
             LEFT JOIN documentacion doc ON inv.id_vehiculo = doc.id_vehiculo
             WHERE inv.id_vehiculo = $id_vehiculo
@@ -59,8 +60,7 @@ if ($_POST['accion'] == 'documentosVehiculo') {
 
 // Consulta para obtener los mantenimiento del vehículo 
 if ($_POST['accion'] == 'mantenimientoVehiculo') {
-    $sql = "SELECT m.fecha_registro, m.tipo_mantenimiento, m.descripcion, m.foto, 
-                   inv.placa, inv.modelo, inv.marca, inv.anio, inv.usuario
+    $sql = "SELECT m.fecha_registro, m.tipo_mantenimiento, m.descripcion, m.foto, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario
             FROM mantenimientos m
             JOIN inventario inv ON m.id_vehiculo = inv.id_vehiculo
             WHERE m.id_vehiculo = $id_vehiculo
@@ -80,7 +80,7 @@ if ($_POST['accion'] == 'mantenimientoVehiculo') {
 // Consulta para obtener los siniestros del vehículo 
 if ($_POST['accion'] == 'siniestrosVehiculo') {
     $sql="SELECT s.fecha_registro, s.fecha, FORMAT(s.hora, 'HH:mm:ss') AS hora, s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, f.imagen, 
-                inv.placa, inv.modelo, inv.marca, inv.anio, inv.usuario
+                inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario
             FROM siniestros s
             LEFT JOIN fotos f ON s.id_siniestro = f.id_formato
             LEFT JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo

@@ -429,7 +429,7 @@
                             text: 'Esperemos se encuentre fuera de peligro.',
                             confirmButtonText: 'Aceptar'
                         });
-                        //location.reload();
+                        location.reload();
                     } else {
                         Swal.fire({
                             icon: 'error',

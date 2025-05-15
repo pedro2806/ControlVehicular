@@ -17,7 +17,7 @@ $placa = $_POST["placa"];
 /*---------------------------------------------*/
 // Consulta para obtener los vehículos del inventario
 if ($_POST['accion'] == 'ver_inventario') {
-    $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuario 
+    $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuario, color
             FROM inventario";
     $result = $conn->query($sql);
 
@@ -29,6 +29,7 @@ if ($_POST['accion'] == 'ver_inventario') {
                 'placa' => $row['placa'],
                 'modelo' => $row['modelo'],
                 'marca' => $row['marca'],
+                'color' => $row['color'],
                 'anio' => $row['anio'],
                 'usuario' => $row['usuario'] ?? 'Sin asignar',
             ];
@@ -98,6 +99,73 @@ if ($_POST['accion'] == 'siniestrosVehiculo') {
     } else {
         echo json_encode(["error" => "No se encontró información de siniestros."]);
     }
+    exit;
+}
+
+//Llena la tabla ver siniestros x vehiculo
+if ($_POST['accion'] == 'verSiniestrosXVehiculo') {
+    $sql = "SELECT 
+                s.*, 
+                GROUP_CONCAT(f.imagen) AS imagenes
+            FROM siniestros s
+            LEFT JOIN fotos f ON s.id_siniestro = f.id_formato
+            WHERE s.id_vehiculo = $id_vehiculo
+            GROUP BY s.id_siniestro
+            ORDER BY s.fecha_registro DESC";
+    $result = $conn->query($sql);
+
+    if ($result->num_rows > 0) {
+        $siniestros = [];
+        while ($row = $result->fetch_assoc()) {
+            // Convertir las imágenes concatenadas en un array
+            $row['imagenes'] = isset($row['imagenes']) ? explode(',', $row['imagenes']) : [];
+            $siniestros[] = $row;
+        }
+        echo json_encode($siniestros);
+    } else {
+        echo json_encode(["error" => "No se encontró información de siniestros."]);
+    }
+    exit;
+}
+
+// Consulta para obtener los registros de documetnación
+if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
+    $id_vehiculo = intval($_POST['id_vehiculo']);
+    $sql = "SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.contacto, doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, 
+                    doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente, inv.usuario, inv.id_us_asignado
+            FROM documentacion doc
+            LEFT JOIN inventario inv ON doc.id_vehiculo = inv.id_vehiculo
+            WHERE doc.id_vehiculo = $id_vehiculo
+            ORDER BY fecha_registro DESC";
+    $result = $conn->query($sql);
+
+    $documentos = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $documentos[] = $row;
+        }
+    }
+    echo json_encode($documentos);
+    exit;
+}
+
+// Consulta para obtener los registros de mantenimiento
+if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
+    $id_vehiculo = intval($_POST['id_vehiculo']);
+    $sql = "SELECT mant.*,  inv.usuario, inv.id_us_asignado
+            FROM mantenimientos mant
+            LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+            WHERE mant.id_vehiculo = $id_vehiculo
+            ORDER BY mant.fecha_registro DESC";
+    $result = $conn->query($sql);
+
+    $mantenimientos = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $mantenimientos[] = $row;
+        }
+    }
+    echo json_encode($mantenimientos);
     exit;
 }
 ?>

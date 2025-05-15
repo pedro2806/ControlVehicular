@@ -6,7 +6,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -14,7 +14,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Control Vehicular</title>
+    <title>Control Vehicular - Documentación</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -24,32 +24,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
     <div id="wrapper">
-        <?php
-        include 'menu.php';
-        ?>
+        <?php include 'menu.php'; ?>
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
-                <?php
-                include 'encabezado.php';
-                ?>
+                <?php include 'encabezado.php'; ?>
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
                     <!-- Content Row -->
                     <div class="row">
                         <div class="col-xl-12 col-lg-12">
-                            <h1 class="h3 mb-0 text-black-800">Historial de Siniestros</h1>
+                            <h1 class="h3 mb-0 text-black-800">Historial de Documentación</h1>
                             <br>
                             <!-- CONTENEDOR INFO AUTO -->                            
                             <div class="card shadow mb-4">
                                 <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
+                                <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                                 <!-- Tabla de Vehículos -->
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto;">
@@ -62,13 +57,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <!-- Tabla de Registros -->
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto; display: none;">
-                                        <table class="table table-bordered" id="TablaRegistrosSiniestros" width="100%" cellspacing="0">
+                                        <table class="table table-bordered" id="TablaRegistrosDocumentacion" width="100%" cellspacing="0">
                                             <thead></thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
                                 </div>
-                            <div id="detalleSiniestroContainer"></div>
+                                <div id="detalleDocumentacionContainer"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -86,7 +82,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         <i class="fas fa-angle-up"></i>
     </a>
     <!-- Bootstrap core JavaScript-->
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
@@ -101,7 +97,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $(document).ready(function() {
             // Inicializar DataTables
             var TablaInventario = $('#TablaInventario').DataTable({
-                data: [], // Inicialmente vacío
+                data: [],
                 columns: [
                     { title: "Placa" },
                     { title: "Modelo" },
@@ -139,15 +135,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     }
                 }
             });
-            // Inicializar DataTables para la tabla de registros
-            var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable({
-                data: [], // Inicialmente vacío
+            var TablaRegistrosDocumentacion = $('#TablaRegistrosDocumentacion').DataTable({
+                data: [],
                 columns: [
-                    { title: "Fecha de Siniestro" },
-                    { title: "Origen" },
-                    { title: "Destino" },
-                    { title: "Empresa" },
-                    { title: "Servicio" },
+                    { title: "Fecha de Registro" },
+                    { title: "Usuario" },
+                    { title: "Contacto" },
                     { title: "Acciones" }
                 ],
                 paging: true,
@@ -191,14 +184,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 dataType: "json",
                 success: function(respuesta) {
                     TablaInventario.clear(); 
-
                     respuesta.forEach(function (vehiculo) {
-                        var botones = `
-                            <button class="btn btn-outline-warning" onclick="inventario('${vehiculo.id_vehiculo}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            `;
-                        
                         var fila = [
                             `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
                             `<strong>${vehiculo.modelo} - ${vehiculo.marca}</strong>`,
@@ -206,15 +192,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             `<strong>${vehiculo.anio}</strong>`,
                             `<strong>${vehiculo.usuario}</strong>`,
                             `<center>
-                                <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
+                                <button class="btn btn-outline-info btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </center>`
                         ];
                         TablaInventario.row.add(fila);
                     });
-
-                    TablaInventario.draw(); // Redibujar tabla con los nuevos datos
+                    TablaInventario.draw();
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({
@@ -227,7 +212,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
         }
 
-        //FUNCION PARA MANEJAR EL BOTÓN "CHECK"
+        // Seleccionar Vehículo
         function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
             $("#placaSeleccionada")
                 .html(`
@@ -238,167 +223,109 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
                     </div>
                 `).show();
-            // Guardar el ID del vehículo seleccionado en un campo oculto
             $("#id_vehiculo").val(id_vehiculo);
             $("#btnCambiarVehiculo").show();
             $("#TablaInventario").closest(".table-responsive").hide();
-            $("#TablaRegistrosSiniestros").closest(".table-responsive").show();
-            siniestrosXvehiculo(id_vehiculo);
+            $("#TablaRegistrosDocumentacion").closest(".table-responsive").show();
+            documentacionXvehiculo(id_vehiculo);
         }
-        //FUNCION PARA CAMBIAR DE VEHÍCULO
+        // Cambiar de Vehículo
         function cambiarVehiculo() {
             $("#placaSeleccionada").hide();
             $("#btnCambiarVehiculo").hide();
             $("#TablaInventario").closest(".table-responsive").show();
-            $("#TablaRegistrosSiniestros").closest(".table-responsive").hide();
+            $("#TablaRegistrosDocumentacion").closest(".table-responsive").hide();
         }
-        
-        //FUNCION PARA VER LOS VEHICULOS
-        function inventario(id_vehiculo) {
+
+        // Cargar registros de documentación
+        function documentacionXvehiculo(id_vehiculo) {
             $.ajax({
                 type: "POST",
                 url: 'acciones_ver_registros',
-                data: {accion: 'siniestrosVehiculo', id_vehiculo: id_vehiculo},
+                data: { accion: 'verDocumentacionXVehiculo', id_vehiculo: id_vehiculo },
                 dataType: "json",
                 success: function(respuesta) {
-                    if (respuesta.error) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Detalles del Siniestro",
-                            text: inventario(respuesta.id_vehiculo),
-                            confirmButtonText: "Aceptar"
-                        });
-                    } else {
-                        swal.fire({
-                            title: "Error",
-                            text: "No se pudo cargar la información del siniestro.",
-                            icon: "error",
-                            confirmButtonText: "Aceptar"
-                        });
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo cargar la información del siniestro.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            });
-        }
+                    var TablaRegistrosDocumentacion = $('#TablaRegistrosDocumentacion').DataTable();
+                    TablaRegistrosDocumentacion.clear();
 
-        //FUNCION PARA VER LOS DETALLES DEL SINIESTRO
-        function siniestrosXvehiculo(id_vehiculo) {
-            $.ajax({
-                type: "POST",
-                url: 'acciones_ver_registros', 
-                data: { accion: 'verSiniestrosXVehiculo', id_vehiculo}, 
-                dataType: "json",
-                success: function(respuesta) {
-                    var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable();
-                    TablaRegistrosSiniestros.clear();
-
-                    respuesta.forEach(function(siniestro) {
+                    respuesta.forEach(function(documento) {
                         var fila = [
-                            `<strong>${siniestro.fecha_registro}</strong>`,
-                            `<strong>${siniestro.origen}</strong>`,
-                            `<strong>${siniestro.destino}</strong>`,
-                            `<strong>${siniestro.empresa}</strong>`,
-                            `<strong>${siniestro.servicio}</strong>`,
+                            `<strong>${documento.fecha_registro || ''}</strong>`,
+                            `<strong>${documento.usuario || ''}</strong>`,
+                            `<strong>${documento.contacto || ''}</strong>`,
                             `<center>
-                                <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleSiniestro(${JSON.stringify(siniestro)})'>
+                                <button class="btn btn-outline-info btn-sm" onclick='mostrarDetalleDocumentacion(${JSON.stringify(documento)})'>
                                     <i class="fas fa-eye"></i> 
                                 </button>
                             </center>`
                         ];
-                        TablaRegistrosSiniestros.row.add(fila);
+                        TablaRegistrosDocumentacion.row.add(fila);
                     });
-                    TablaRegistrosSiniestros.draw();
+                    TablaRegistrosDocumentacion.draw();
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({
                         icon: "error",
                         title: "Error",
-                        text: "No se pudo cargar la información de los siniestros.",
+                        text: "No se pudo cargar la información de la documentación.",
                         confirmButtonText: "Aceptar"
                     });
                 }
             });
         }
 
-        //FUNCION PARA MOSTRAR EL DETALLE DEL SINIESTRO
-        function mostrarDetalleSiniestro(siniestro) {
-            // Crear la tarjeta con los detalles del siniestro
+        // Mostrar detalle de la documentación
+        function mostrarDetalleDocumentacion(documento) {
+            // Puedes personalizar los nombres y el orden según tus columnas reales
+            const docs = [
+                { nombre: "Licencia", archivo: documento.licencia },
+                { nombre: "Tarjeta de Circulación", archivo: documento.tarjeta_circulacion },
+                { nombre: "Refrendo Actual", archivo: documento.refrendo_actual },
+                { nombre: "Seguro Vehículo", archivo: documento.seguro_vehiculo },
+                { nombre: "Verificación Vigente", archivo: documento.verificacion_vigente }
+            ];
+
+            let docsHtml = docs.map(doc =>
+                doc.archivo && doc.archivo !== ''
+                    ? `<tr>
+                        <td><strong>${doc.nombre}:</strong></td>
+                        <td>
+                            <a href="${doc.archivo}" target="_blank">
+                                <img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;" class="img-thumbnail"/>
+                            </a>
+                        </td>
+                    </tr>`
+                    : ''
+            ).join('');
+
+            if (!docsHtml) {
+                docsHtml = `<tr><td colspan="2" class="text-center">No hay documentos disponibles.</td></tr>`;
+            }
+
             var tarjeta = `
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-black">Detalle del Siniestro</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Detalle de Documentación</h6>
                     </div>
                     <div class="card-body">
-                        <div class="row">
+                        <div class="row mb-3">
                             <div class="col-md-6">
-                                <p><strong>Fecha:</strong> ${siniestro.fecha || 'N/A'}</p>
-                                <p><strong>Hora:</strong> ${siniestro.hora || 'N/A'}</p>
-                                <p><strong>Kilometraje:</strong> ${siniestro.kilometraje || 'N/A'}</p>
-                                <p><strong>Gasolina:</strong> ${siniestro.gasolina || 'N/A'}</p>
-                                <p><strong>Coordenadas:</strong> ${siniestro.coordenadas || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Descripción:</strong> ${siniestro.descripcion || 'N/A'}</p>
-                                <p><strong>Partes Dañadas:</strong> ${siniestro.partes_dañadas || 'N/A'}</p>
-                                <p><strong>Ubicación del Vehículo:</strong> ${siniestro.ubicacion_vehiculo || 'N/A'}</p>
-                                <p><strong>Contacto:</strong> ${siniestro.contacto || 'N/A'}</p>
+                                <p><strong>Fecha de Registro:</strong> ${documento.fecha_registro || 'N/A'}</p>
+                                <p><strong>Contacto:</strong> ${documento.contacto || 'N/A'}</p>
                             </div>
                         </div>
-                        <div id="imagenesCarruselSiniestro" class="carousel slide mt-3" data-bs-ride="carousel">
-                            <div class="carousel-inner">
-                                <!-- Las imágenes se agregarán dinámicamente aquí -->
-                            </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Anterior</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Siguiente</span>
-                            </button>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tbody>
+                                    ${docsHtml}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             `;
 
-            // Mostrar la tarjeta en un contenedor específico
-            $('#detalleSiniestroContainer').html(tarjeta);
-
-            // Llamar a la función para agregar las imágenes al carrusel
-            mostrarImagenSiniestro(siniestro.imagenes);
-        }
-
-        //Mostrar img del Siniestro
-        function mostrarImagenSiniestro(imagenes) {
-            const imagenesCarrusel = $("#imagenesCarruselSiniestro .carousel-inner");
-            imagenesCarrusel.empty();
-
-            if (Array.isArray(imagenes) && imagenes.length > 0) {
-                let primeraImagen = true;
-
-                imagenes.forEach(imagen => {
-                    if (imagen) {
-                        const activeClass = primeraImagen ? 'active' : '';
-                        const imagenHTML = `
-                            <div class="carousel-item ${activeClass}">
-                                <img src="${imagen}" class="d-block w-100 img-fluid border" alt="Imagen del siniestro" style="max-height: 300px; object-fit: contain;">
-                            </div>
-                        `;
-                        imagenesCarrusel.append(imagenHTML);
-                        primeraImagen = false;
-                    }
-                });
-            } else {
-                // Si no hay imágenes, muestra un mensaje
-                imagenesCarrusel.html('<p class="text-center">No hay imágenes disponibles para este siniestro.</p>');
-            }
+            $('#detalleDocumentacionContainer').html(tarjeta);
         }
     </script>
 </body>

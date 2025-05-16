@@ -41,10 +41,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div class="col-xl-12 col-lg-12">
                             <h1 class="h3 mb-0 text-black-800">Historial de Documentación</h1>
                             <br>
-                            <!-- CONTENEDOR INFO AUTO -->                            
+                            <!-- CONTENEDOR INFO AUTO --> 
+                            <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
+                            <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                             <div class="card shadow mb-4">
-                                <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                                <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                                 <!-- Tabla de Vehículos -->
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto;">
@@ -186,13 +186,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     TablaInventario.clear(); 
                     respuesta.forEach(function (vehiculo) {
                         var fila = [
-                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
-                            `<strong>${vehiculo.modelo} - ${vehiculo.marca}</strong>`,
-                            `<strong>${vehiculo.color}</strong>`,
-                            `<strong>${vehiculo.anio}</strong>`,
-                            `<strong>${vehiculo.usuario}</strong>`,
+                            `<i class="fas fa-car"></i> ${vehiculo.placa}`,
+                            `${vehiculo.modelo} - ${vehiculo.marca}`,
+                            `${vehiculo.color}`,
+                            `${vehiculo.anio}`,
+                            `${vehiculo.usuario}`,
                             `<center>
-                                <button class="btn btn-outline-info btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
+                                <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </center>`
@@ -217,10 +217,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $("#placaSeleccionada")
                 .html(`
                     <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
-                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
-                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
-                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
+                        <span>Placa:<span id="placaVehiculo" style="font-weight: normal;">${placa}</span>
+                        <span>Modelo:<span style="font-weight: normal;">${modelo}</span>
+                        <span>Marca:<span style="font-weight: normal;">${marca}</span>
+                        <span>Color:<span style="font-weight: normal;">${color}</span>
                     </div>
                 `).show();
             $("#id_vehiculo").val(id_vehiculo);
@@ -250,11 +250,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
                     respuesta.forEach(function(documento) {
                         var fila = [
-                            `<strong>${documento.fecha_registro || ''}</strong>`,
-                            `<strong>${documento.usuario || ''}</strong>`,
-                            `<strong>${documento.contacto || ''}</strong>`,
+                            `${documento.fecha_registro || ''}`,
+                            `${documento.usuario || ''}`,
+                            `${documento.contacto || ''}`,
                             `<center>
-                                <button class="btn btn-outline-info btn-sm" onclick='mostrarDetalleDocumentacion(${JSON.stringify(documento)})'>
+                                <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleDocumentacion(${JSON.stringify(documento)})'>
                                     <i class="fas fa-eye"></i> 
                                 </button>
                             </center>`
@@ -286,7 +286,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             ];
 
             let docsHtml = docs.map(doc =>
-                doc.archivo && doc.archivo !== ''
+                doc.archivo && doc.archivo !== 'S/R'
                     ? `<tr>
                         <td><strong>${doc.nombre}:</strong></td>
                         <td>
@@ -295,7 +295,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </a>
                         </td>
                     </tr>`
-                    : ''
+                    : `<tr>
+                        <td><strong>${doc.nombre}:</strong></td>
+                        <td>S/R</td>
+                    </tr>`
             ).join('');
 
             if (!docsHtml) {
@@ -305,12 +308,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             var tarjeta = `
                 <div class="card shadow mb-4">
                     <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Detalle de Documentación</h6>
+                        <h6 class="m-0 font-weight-bold text-black">Detalle de Documentación</h6>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <p><strong>Fecha de Registro:</strong> ${documento.fecha_registro || 'N/A'}</p>
+                                <p><strong>Usuario:</strong> ${documento.usuario || 'N/A'}</p>
                                 <p><strong>Contacto:</strong> ${documento.contacto || 'N/A'}</p>
                             </div>
                         </div>

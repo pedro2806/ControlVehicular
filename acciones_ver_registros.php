@@ -131,12 +131,14 @@ if ($_POST['accion'] == 'verSiniestrosXVehiculo') {
 // Consulta para obtener los registros de documetnación
 if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
     $id_vehiculo = intval($_POST['id_vehiculo']);
-    $sql = "SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.contacto, doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, 
-                    doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente, inv.usuario, inv.id_us_asignado
+    $sql = " SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.id_usuario_registro, doc.contacto, 
+                    doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente, 
+                    inv.usuario, inv.id_usuario
             FROM documentacion doc
             LEFT JOIN inventario inv ON doc.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios u ON doc.id_usuario_registro = u.id_usuario 
             WHERE doc.id_vehiculo = $id_vehiculo
-            ORDER BY fecha_registro DESC";
+            ORDER BY doc.fecha_registro DESC";
     $result = $conn->query($sql);
 
     $documentos = [];

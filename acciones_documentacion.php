@@ -6,6 +6,7 @@ date_default_timezone_set('America/Mexico_City');
 
 $accion = $_POST["accion"];
 
+$id_usuario = $_COOKIE['id_usuario'];
 $id_vehiculo = $_POST["id_vehiculo"];
 $fecha_registro = date("Y-m-d H:i:s");
 $contacto = $_POST["contacto"];
@@ -94,10 +95,9 @@ if ($accion == "RegistrarDocumentos") {
     }
 
     // Registrar en la base de datos
-    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, contacto, fecha_prox, licencia, tarjeta_circulacion, refrendo_actual, seguro_vehiculo, verificacion_vigente)
-            VALUES ('$id_vehiculo', '$fecha_registro', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoLicencia']}', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
+    $sql = "INSERT INTO documentacion (id_vehiculo, fecha_registro, id_usuario_registro, contacto, fecha_prox, licencia, tarjeta_circulacion, refrendo_actual, seguro_vehiculo, verificacion_vigente)
+            VALUES ('$id_vehiculo', '$fecha_registro', '$id_usuario', '$contacto', '$fecha_prox', '{$rutasArchivos['archivoLicencia']}', '{$rutasArchivos['archivoCirculacion']}', '{$rutasArchivos['archivoRefrendo']}', '{$rutasArchivos['archivoPoliza']}', '{$rutasArchivos['archivoVerificacion']}')";
     $result = $conn->query($sql);
-
     if ($result) {
         echo json_encode(["success" => true, "message" => "Documentación registrada exitosamente."]);
     } else {

@@ -39,8 +39,7 @@ if ($accion == "RegistrarMantenimiento") {
                     (id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe, 
                     fecha_proxi, km_proxi, tipo_carro, id_dueno, foto)
                     VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE' ,
-                    '$fecha_proxi', '$km_proxi', '$tipo_carro', '$id_dueno', '$foto')"; 
-                    echo $sqlregistro;                  
+                    '$fecha_proxi', '$km_proxi', '$tipo_carro', '$id_dueno', '$foto')";                   
     $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Mantenimiento registrado exitosamente."]);

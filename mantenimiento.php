@@ -161,7 +161,7 @@
                             </div>
                         </div>
                         <br>
-                        <input type="text" id = "id_vehiculo" name = "id_vehiculo">
+                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarMantenimiento()">Guardar</button>
                         </center>
@@ -395,7 +395,6 @@
             // Subir la imagen y registrar el mantenimiento
             enviaImg(function (rutaImagen) {
                 //var accion = "manejarCarpetasYFoto";
-                console.log("Ruta de la imagen:", id_vehiculo); // Verificar la ruta de la imagen
                 $.ajax({
                     type: "POST",
                     url: "acciones_mantenimiento",

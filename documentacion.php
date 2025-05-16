@@ -182,6 +182,38 @@
             var hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             $("#fecha").val(fecha); 
             $("#hora").val(hora);
+            // Inicializar DataTables para la tabla de inventario.
+            $("#tablaInventario").DataTable({
+                destroy: true, 
+                paging: true, 
+                pageLength: 10, 
+                ordering: true, 
+                searching: true, 
+                info: true, 
+                language: {
+                    decimal: ",",
+                    thousands: ".",
+                    processing: "Procesando...",
+                    loadingRecords: "Cargando...",
+                    zeroRecords: "No se encontraron resultados",
+                    emptyTable: "No hay datos disponibles en la tabla",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
+                    },
+                    lengthMenu: "Mostrar _MENU_ registros",
+                    aria: {
+                        sortAscending: ": activar para ordenar la columna de manera ascendente",
+                        sortDescending: ": activar para ordenar la columna de manera descendente"
+                    }
+                }
+            });
         });
         
         //FUNCION REGISTRO DE LA DOCUMENTACION
@@ -189,6 +221,7 @@
             var formData = new FormData();
             var id_vehiculo = $("#id_vehiculo").val();
             var fecha_registro = $("#fecha").val();
+            let id_usuario = getCookie("id_usuario");
             var contacto = $("#contacto").val();
             var fecha_prox = $("#prox_fecha").val();
             var placa = $("#placa").val();
@@ -278,6 +311,7 @@
             // Agregar otros datos al FormData
             formData.append("id_vehiculo", id_vehiculo);
             formData.append("fecha_registro", fecha_registro);
+            formData.append("id_usuario", id_usuario);
             formData.append("contacto", contacto);
             formData.append("fecha_prox", fecha_prox);
             formData.append("placa", placa);
@@ -307,7 +341,7 @@
                             $("#archivoVerificacion").hide();
                             cambiarVehiculo();
                             infoVehiculos();
-                            //location.reload();
+                            window.location.href = "autorizar_mantenimiento";
                         });
                     } else {
                         Swal.fire({
@@ -425,66 +459,28 @@
         function infoVehiculos() {
             $.ajax({
                 type: "POST",
-                url: "acciones_siniestro",
-                data: { accion: "consultarInventario" },
+                url: "acciones_siniestro", 
+                data: { accion: "consultarInventario" }, 
                 dataType: "json",
                 success: function (respuesta) {
-                    var tabla = $("#tablaInventario");
-                    tabla.DataTable().destroy(); // Destruir instancia previa de DataTables
-                    var tbody = tabla.find("tbody");
-                    tbody.empty(); // Limpiar el cuerpo de la tabla
-
-                    // Agregar filas dinámicamente
+                    var tabla = $("#tablaInventario").DataTable(); 
+                    tabla.clear(); 
                     respuesta.forEach(function (vehiculo) {
-                        var fila = `
-                            <tr>
-                                <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
-                                <td><strong>${vehiculo.modelo}</strong></td>
-                                <td><strong>${vehiculo.marca}</strong></td>
-                                <td><strong>${vehiculo.color}</strong></td>
-                                <td>
-                                    <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </center>
-                                </td>
-                            </tr>`;
-                        tbody.append(fila);
+                        var fila = [
+                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
+                            `<strong>${vehiculo.modelo}</strong>`,
+                            `<strong>${vehiculo.marca}</strong>`,
+                            `<strong>${vehiculo.color}</strong>`,
+                            `<center>
+                                <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </center>`
+                        ];
+                        tabla.row.add(fila); 
                     });
 
-                    // Inicializar DataTables después de cargar los datos
-                    tabla.DataTable({
-                        destroy: true, 
-                        paging: true, 
-                        pageLength: 5, 
-                        ordering: true, 
-                        searching: true,
-                        info: true, 
-                        language: {
-                            decimal: ",",
-                            thousands: ".",
-                            processing: "Procesando...",
-                            loadingRecords: "Cargando...",
-                            zeroRecords: "No se encontraron resultados",
-                            emptyTable: "No hay datos disponibles en la tabla",
-                            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                            infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                            infoFiltered: "(filtrado de _MAX_ registros totales)",
-                            search: "Buscar:",
-                            paginate: {
-                                first: "Primero",
-                                last: "Último",
-                                next: "Siguiente",
-                                previous: "Anterior"
-                            },
-                            lengthMenu: "Mostrar _MENU_ registros",
-                            aria: {
-                                sortAscending: ": activar para ordenar la columna de manera ascendente",
-                                sortDescending: ": activar para ordenar la columna de manera descendente"
-                            }
-                        }
-                    });
+                    tabla.draw(); 
                 },
                 error: function () {
                     Swal.fire({
@@ -522,6 +518,18 @@
             $("#btnCambiarVehiculo").hide();
             $("#tablaInventario").closest(".container").show();
             $("#formRegistroDocumentacion").hide();
+        }
+
+        //FUNCION PARA OBTENER LA COOKIE
+        function getCookie(name) {
+            let cookieArr = document.cookie.split(";"); 
+            for (let i = 0; i < cookieArr.length; i++) {
+                let cookie = cookieArr[i].trim(); 
+                if (cookie.indexOf(name + "=") === 0) {
+                    return cookie.substring(name.length + 1); 
+                }
+            }
+            return null;
         }
     </script>
 </body>

@@ -24,6 +24,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
 </head>
 <body id="page-top">
@@ -47,9 +48,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <h1 class="h3 mb-0 text-black-800">Historial de Siniestros</h1>
                             <br>
                             <!-- CONTENEDOR INFO AUTO -->                            
+                            <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
+                            <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>    
                             <div class="card shadow mb-4">
-                                <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                                 <!-- Tabla de Vehículos -->
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto;">
@@ -96,6 +97,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <script src="js/sb-admin-2.min.js"></script>
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- API GPS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script type="text/javascript">
         $(document).ready(function() {
@@ -200,11 +203,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             `;
                         
                         var fila = [
-                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
-                            `<strong>${vehiculo.modelo} - ${vehiculo.marca}</strong>`,
-                            `<strong>${vehiculo.color}</strong>`,
-                            `<strong>${vehiculo.anio}</strong>`,
-                            `<strong>${vehiculo.usuario}</strong>`,
+                            `<i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
+                            `${vehiculo.modelo} - ${vehiculo.marca}`,
+                            `${vehiculo.color}`,
+                            `${vehiculo.anio}`,
+                            `${vehiculo.usuario}`,
                             `<center>
                                 <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
                                     <i class="fas fa-eye"></i>
@@ -232,10 +235,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $("#placaSeleccionada")
                 .html(`
                     <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
-                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
-                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
-                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
+                        <span>Placa:<span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
+                        <span>Modelo:<span style="font-weight: normal;">${modelo}</span></span>
+                        <span>Marca:<span style="font-weight: normal;">${marca}</span></span>
+                        <span>Color:<span style="font-weight: normal;">${color}</span></span>
                     </div>
                 `).show();
             // Guardar el ID del vehículo seleccionado en un campo oculto
@@ -301,11 +304,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
                     respuesta.forEach(function(siniestro) {
                         var fila = [
-                            `<strong>${siniestro.fecha_registro}</strong>`,
-                            `<strong>${siniestro.origen}</strong>`,
-                            `<strong>${siniestro.destino}</strong>`,
-                            `<strong>${siniestro.empresa}</strong>`,
-                            `<strong>${siniestro.servicio}</strong>`,
+                            `${siniestro.fecha_registro}`,
+                            `${siniestro.origen}`,
+                            `${siniestro.destino}`,
+                            `${siniestro.empresa}`,
+                            `${siniestro.servicio}`,
                             `<center>
                                 <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleSiniestro(${JSON.stringify(siniestro)})'>
                                     <i class="fas fa-eye"></i> 
@@ -337,32 +340,54 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <p><strong>Fecha:</strong> ${siniestro.fecha || 'N/A'}</p>
-                                <p><strong>Hora:</strong> ${siniestro.hora || 'N/A'}</p>
-                                <p><strong>Kilometraje:</strong> ${siniestro.kilometraje || 'N/A'}</p>
-                                <p><strong>Gasolina:</strong> ${siniestro.gasolina || 'N/A'}</p>
-                                <p><strong>Coordenadas:</strong> ${siniestro.coordenadas || 'N/A'}</p>
                             </div>
-                            <div class="col-md-6">
-                                <p><strong>Descripción:</strong> ${siniestro.descripcion || 'N/A'}</p>
-                                <p><strong>Partes Dañadas:</strong> ${siniestro.partes_dañadas || 'N/A'}</p>
-                                <p><strong>Ubicación del Vehículo:</strong> ${siniestro.ubicacion_vehiculo || 'N/A'}</p>
-                                <p><strong>Contacto:</strong> ${siniestro.contacto || 'N/A'}</p>
+                            <div class="col-md-3">
+                                <p><strong>Hora:</strong> ${siniestro.hora || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p><strong>Kilometraje:</strong> ${siniestro.kilometraje || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p><strong>Gasolina:</strong> ${siniestro.gasolina || 'N/A'}</p>
                             </div>
                         </div>
-                        <div id="imagenesCarruselSiniestro" class="carousel slide mt-3" data-bs-ride="carousel">
-                            <div class="carousel-inner">
-                                <!-- Las imágenes se agregarán dinámicamente aquí -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                <p><strong>Contacto:</strong> ${siniestro.contacto || 'N/A'}</p>
                             </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Anterior</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Siguiente</span>
-                            </button>
+                            <div class="col-md-3">
+                                <p><strong>Descripción:</strong> ${siniestro.descripcion || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p><strong>Partes Dañadas:</strong> ${siniestro.partes_dañadas || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <p><strong>Ubicación del Vehículo:</strong> ${siniestro.ubicacion_vehiculo || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <!-- Mapa y Carrusel en la misma fila -->
+                            <div class="col-md-6">
+                                <p><strong>Coordenadas:</strong></p>
+                                <div id="map" style="height: 200px; width: 100%;"></div> <!-- Div para el mapa -->
+                            </div>
+                            <div class="col-md-6">
+                                <div id="imagenesCarruselSiniestro" class="carousel slide mt-3" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        <!-- Las imágenes se agregarán dinámicamente aquí -->
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Anterior</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Siguiente</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -373,6 +398,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
             // Llamar a la función para agregar las imágenes al carrusel
             mostrarImagenSiniestro(siniestro.imagenes);
+
+            // Llamar a la función para mostrar el mapa
+            mostrarMapa(siniestro.coordenadas);
         }
 
         //Mostrar img del Siniestro
@@ -399,6 +427,31 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 // Si no hay imágenes, muestra un mensaje
                 imagenesCarrusel.html('<p class="text-center">No hay imágenes disponibles para este siniestro.</p>');
             }
+        }
+
+        // Inicializar el mapa
+        function mostrarMapa(coordenadas) {
+            // Verifica si las coordenadas están disponibles
+            if (!coordenadas || coordenadas === 'N/A') {
+                $('#map').html('<p class="text-center">No hay coordenadas disponibles para este siniestro.</p>');
+                return;
+            }
+
+            // Divide las coordenadas en latitud y longitud
+            const [lat, lng] = coordenadas.split(',').map(coord => parseFloat(coord.trim()));
+
+            // Inicializa el mapa
+            const mapa = L.map('map').setView([lat, lng], 13); // Zoom inicial en las coordenadas
+
+            // Agrega el mapa base (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(mapa);
+
+            // Agrega un marcador en las coordenadas
+            L.marker([lat, lng]).addTo(mapa)
+                .bindPopup('Ubicación del siniestro')
+                .openPopup();
         }
     </script>
 </body>

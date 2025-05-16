@@ -110,7 +110,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
                                 </div>
                             </div>
                         </div>  
@@ -259,30 +259,29 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     
     <script type="text/javascript">
         $(document).ready(function() {
-            // Inicializar DataTable
             $('#tablaVerDoc').DataTable({
                 destroy: true,
                 paging: true,
-                pageLength: 5,
+                pageLength: 10,
                 ordering: true,
                 searching: true,
                 info: true,
-                "language": {
-                    "lengthMenu": "Mostrar _MENU_ registros por página",
-                    "zeroRecords": "No se encontraron resultados",
-                    "info": "Mostrando página _PAGE_ de _PAGES_",
-                    "infoEmpty": "No hay registros disponibles",
-                    "infoFiltered": "(filtrado de _MAX_ registros totales)",
-                    "search": "Buscar:",
-                    "paginate": {
-                        "first":      "Primero",
-                        "last":       "Último",
-                        "next":       "Siguiente",
-                        "previous":   "Anterior"
+                language: {
+                    lengthMenu: "Mostrar _MENU_ registros por página",
+                    zeroRecords: "No se encontraron resultados",
+                    info: "Mostrando página _PAGE_ de _PAGES_",
+                    infoEmpty: "No hay registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
                     }
                 }
             });
-            cargarVehiculos();
+            cargarVehiculos(); 
         });
 
         // Cargar Vehículos
@@ -290,14 +289,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $.ajax({
                 type: "POST",
                 url: 'acciones_ver_registros',
-                type: 'POST',
-                data: {accion: 'ver_inventario'},
+                data: { accion: 'ver_inventario' },
                 dataType: "json",
                 success: function(respuesta) {
-                    var tablaVehiculos = $("#tablaVerDoc tbody");
-                    tablaVehiculos.empty(); 
+                    var tabla = $('#tablaVerDoc').DataTable();
+                    tabla.clear(); 
 
-                    respuesta.forEach(function (vehiculo) {
+                    respuesta.forEach(function(vehiculo) {
                         var botones = `
                             <button class="btn btn-outline-success" onclick="documentacionVehiculo('${vehiculo.id_vehiculo}')">
                                 <i class="fas fa-file-alt"></i>
@@ -308,19 +306,20 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <button class="btn btn-outline-danger" onclick="siniestroVehiculo('${vehiculo.id_vehiculo}')">
                                 <i class="fas fa-car-crash"></i>
                             </button>
-                            `;
-                        
-                        var fila = `
-                            <tr>
-                             <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
-                                <td><strong>${vehiculo.modelo}</strong></td>
-                                <td><strong>${vehiculo.marca}</strong></td>
-                                <td><strong>${vehiculo.anio}</strong></td>
-                                <td><strong>${vehiculo.usuario}</strong></td>
-                                <td>${botones}</td>
-                            </tr>`;
-                        tablaVehiculos.append(fila);
+                        `;
+
+                        var fila = [
+                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
+                            `<strong>${vehiculo.modelo}</strong>`,
+                            `<strong>${vehiculo.marca}</strong>`,
+                            `<strong>${vehiculo.anio}</strong>`,
+                            `<strong>${vehiculo.usuario}</strong>`,
+                            botones
+                        ];
+                        tabla.row.add(fila); // Agrega la fila a la tabla
                     });
+
+                    tabla.draw(); // Redibuja la tabla con los nuevos datos
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({

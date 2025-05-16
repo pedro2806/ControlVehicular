@@ -44,7 +44,7 @@
                     </div>
                     <!-- FORMULARIO DE REGISTRO DE MANTENIMIENTO -->
                     <div class="table-responsive">
-                        <table id="tablaMantenimientos" class="table table-striped table-bordered">
+                        <table id="tablaMantenimientos" name= "tablaMantenimientos" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
                                     <th>Vehiculo</th>
@@ -170,14 +170,12 @@
             success: function (respuesta) {
                 var tabla = $("#tablaMantenimientos tbody");
                 tabla.empty(); // Limpiar la tabla antes de llenarla
-
                 // Mostrar u ocultar la columna "Acción" según el rol
                 if (rol != 3) {
                     $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").hide(); // Ocultar columna "Acción"
                 } else {
                     $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").show(); // Mostrar columna "Acción"
                 }
-
                 respuesta.forEach(function (mantenimiento) {
                     var botones = "";
                     if (rol == 3) { 
@@ -191,13 +189,13 @@
                     }
                     var fila = `
                         <tr>
-                            <td><i class="fas fa-car"></i> <strong>${mantenimiento.placa} - ${mantenimiento.modelo}</strong></td>
-                            <td><strong>${mantenimiento.marca} - ${mantenimiento.color}</strong></td>
-                            <td><strong>${mantenimiento.fecha_registro}</strong></td>
-                            <td><strong>${mantenimiento.kilometraje}</strong></td>
-                            <td><strong>${mantenimiento.tipo_mantenimiento}</strong></td>
-                            <td><strong>${mantenimiento.descripcion}</strong></td>
-                            <td><strong>${mantenimiento.VoBo_jefe}</strong></td>
+                            <td><i class="fas fa-car"></i>${mantenimiento.placa} - ${mantenimiento.modelo}</td>
+                            <td>${mantenimiento.marca} - ${mantenimiento.color}</td>
+                            <td>${mantenimiento.fecha_registro}</td>
+                            <td>${mantenimiento.kilometraje}</td>
+                            <td>${mantenimiento.tipo_mantenimiento}</td>
+                            <td>${mantenimiento.descripcion}</td>
+                            <td>${mantenimiento.VoBo_jefe}</td>
                             <td>${botones}</td>
                         </tr>`;
                     tabla.append(fila);
@@ -253,11 +251,11 @@
 
         // Deshabilitar el campo de fecha y asignar la fecha actual
         const now = new Date();
-        const fechaActual = now.toISOString().split("T")[0]; // Formato YYYY-MM-DD
-        $("#fecha_programada").val(fechaActual).prop("disabled", true); // Asignar fecha y deshabilitar el campo
+        const fechaActual = now.toISOString().split("T")[0]; 
+        $("#fecha_programada").val(fechaActual).prop("disabled", true); 
 
         // Ocultar el contenedor del campo de fecha
-        $("#fecha_programada").closest(".mb-3").hide(); // Asegúrate de que el contenedor tenga la clase correcta
+        $("#fecha_programada").closest(".mb-3").hide();
 
         $("#modalMantenimiento").modal("show");
     }

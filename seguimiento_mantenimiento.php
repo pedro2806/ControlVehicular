@@ -26,9 +26,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div class="col-xl-12 col-lg-12">
                             <h1 class="h3 mb-0 text-black-800">Historial de Mantenimiento</h1>
                             <br>
+                            <div id="placaSeleccionadaMantenimiento" class="alert alert-info" style="display: none;"></div>
+                            <button id="btnCambiarVehiculoMantenimiento" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculoMantenimiento()">Cambiar Vehículo</button>
                             <div class="card shadow mb-4">
-                                <div id="placaSeleccionadaMantenimiento" class="alert alert-info" style="display: none;"></div>
-                                <button id="btnCambiarVehiculoMantenimiento" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculoMantenimiento()">Cambiar Vehículo</button>
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto;">
                                         <table class="table table-bordered" id="TablaInventarioMantenimiento" width="100%" cellspacing="0">
@@ -140,13 +140,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     TablaInventarioMantenimiento.clear();
                     respuesta.forEach(function (vehiculo) {
                         var fila = [
-                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
-                            `<strong>${vehiculo.modelo} - ${vehiculo.marca}</strong>`,
-                            `<strong>${vehiculo.color}</strong>`,
-                            `<strong>${vehiculo.anio}</strong>`,
-                            `<strong>${vehiculo.usuario}</strong>`,
+                            `<i class="fas fa-car"></i> ${vehiculo.placa}`,
+                            `${vehiculo.modelo} - ${vehiculo.marca}`,
+                            `${vehiculo.color}`,
+                            `${vehiculo.anio}`,
+                            `${vehiculo.usuario}`,
                             `<center>
-                                <button class="btn btn-outline-info btn-sm" onclick="seleccionarVehiculoMantenimiento('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
+                                <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculoMantenimiento('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </center>`
@@ -193,11 +193,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     TablaRegistrosMantenimiento.clear();
                     respuesta.forEach(function(mantenimiento) {
                         var fila = [
-                            `<strong>${mantenimiento.fecha_registro || ''}</strong>`,
-                            `<strong>${mantenimiento.tipo_mantenimiento || ''}</strong>`,
-                            `<strong>${mantenimiento.descripcion || ''}</strong>`,
+                            `${mantenimiento.fecha_registro || ''}`,
+                            `${mantenimiento.tipo_mantenimiento || ''}`,
+                            `${mantenimiento.descripcion || ''}`,
                             `<center>
-                                <button class="btn btn-outline-info btn-sm" onclick='mostrarDetalleMantenimiento(${JSON.stringify(mantenimiento)}, "${placa}")'>
+                                <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleMantenimiento(${JSON.stringify(mantenimiento)}, "${placa}")'>
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </center>`
@@ -211,14 +211,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         // Función para mostrar el detalle del mantenimiento
         function mostrarDetalleMantenimiento(mantenimiento, placa) {
-            // Ajusta la ruta base según tu estructura
-            var rutaBase = '/ControlVehicular/img_control_vehicular/' + placa + '/Mantenimientos/';
-            console.log('Ruta generada:', rutaBase + mantenimiento.foto); // Depuración: verifica la ruta generada en la consola
             var imgHtml = '';
             if (mantenimiento.foto && mantenimiento.foto !== '') {
                 imgHtml = `
-                    <a href="${rutaBase + mantenimiento.foto}" target="_blank">
-                        <img src="${rutaBase + mantenimiento.foto}" alt="Foto Mantenimiento" style="max-height:100px;max-width:150px;" class="img-thumbnail"/>
+                    <a href="${mantenimiento.foto}" target="_blank">
+                        <img src="${mantenimiento.foto}" alt="Foto Mantenimiento" style="max-height:300px;max-width:100%;" class="img-thumbnail"/>
                     </a>
                 `;
             } else {
@@ -232,15 +229,22 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     </div>
                     <div class="card-body">
                         <div class="row">
+                            <!-- Primera columna con información -->
                             <div class="col-md-6">
                                 <p><strong>Fecha de Registro:</strong> ${mantenimiento.fecha_registro || 'N/A'}</p>
                                 <p><strong>Tipo:</strong> ${mantenimiento.tipo_mantenimiento || 'N/A'}</p>
                                 <p><strong>Kilometraje:</strong> ${mantenimiento.kilometraje || 'N/A'}</p>
-                                <p><strong>Descripción:</strong> ${mantenimiento.descripcion || 'N/A'}</p>
-                                <p><strong>Fecha Proximo Mantenimiento:</strong> ${mantenimiento.fecha_proxi || 'N/A'}</p>
                             </div>
-                            <div class="col-md-6 d-flex align-items-center justify-content-center">
-                                ${imgHtml}
+                            <!-- Segunda columna con la imagen -->
+                            <div class="col-md-6">
+                                <p><strong>Fecha Próximo Mantenimiento:</strong> ${mantenimiento.fecha_proxi || 'N/A'}</p>
+                                <p><strong>Descripción:</strong> ${mantenimiento.descripcion || 'N/A'}</p>
+                            </div>
+                            <!-- Imagen centrada -->
+                            <div class="row mt-4">
+                                <div class="col-12 d-flex align-items-center justify-content-center">
+                                    ${imgHtml}
+                                </div>
                             </div>
                         </div>
                     </div>

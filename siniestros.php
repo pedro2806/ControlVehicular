@@ -11,7 +11,7 @@
     <meta name = "description" content = "">
     <meta name = "author" content = "">
 
-    <title>CONTROL VEHICULAR</title>
+    <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
@@ -44,12 +44,13 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3>Selección de Vehículo</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
                                     <th>Modelo</th>
+                                    <th>Marca</th>
+                                    <th>Color</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -62,7 +63,6 @@
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-
                     <!-- FORMULARIO DEL SINIESTRO -->
                     <form id="formRegistroSiniestro" style="display: none;">
                         <!-- Content Row -->
@@ -262,11 +262,13 @@
                     respuesta.forEach(function (vehiculo) {
                         var fila = 
                             `<tr>
-                                <td>${vehiculo.placa}</td>
-                                <td>${vehiculo.modelo}</td>
+                                <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
+                                <td><strong>${vehiculo.modelo}</strong></td>
+                                <td><strong>${vehiculo.marca}</strong></td>
+                                <td><strong>${vehiculo.color}</strong></td>
                                 <td>
                                     <center>
-                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
+                                        <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
                                             <i class="fas fa-check"></i>
                                         </button>
                                     </center>
@@ -313,10 +315,17 @@
         }
 
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_vehiculo, placa) {
+        function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
             $("#placaSeleccionada")
-                .text(`Vehículo seleccionado: ${placa}`)
-                .show();
+                    .html(`
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
+                            <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
+                            <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
+                            <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
+                        </div>
+                    `)
+                    .show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#btnCambiarVehiculo").show();
             $("#tablaInventario").closest(".container").hide();
@@ -375,7 +384,7 @@
             var descripcion = $("#descripcion").val();
             var tipo_carro = $("#tipo_carro").val();
             var id_dueno = $("#id_dueno").val();
-            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
+            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
             var id_vehiculo = $("#id_vehiculo").val();
             var accion = "registroSiniestro";
 

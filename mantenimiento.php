@@ -11,7 +11,7 @@
     <meta name = "description" content = "">
     <meta name = "author" content = "">
 
-    <title>CONTROL VEHICULAR</title>
+    <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
@@ -44,13 +44,13 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <h3 class="h5 mb-0 text-black" style="font-weight: bold;">Selección de Vehículos</h3>
                         <table id="tablaInventario" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
                                     <th>Modelo</th>
                                     <th>Marca</th>
+                                    <th>Color</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -63,41 +63,12 @@
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-
                     <!-- FORMULARIO DEL MANTENIMIENTO -->
                     <form id="formRegistroMantenimiento" style="display: none;">
                         <!-- Content Row -->
                         <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Servicio:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" readonly>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Hora:</label> 
-                                <input type = "time" class = "form-control" id = "hora" name = "hora" readonly>       
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Tipo de Vehiculo:</label> 
-                                <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()" required>
-                                    <option value="">Seleccione...</option>
-                                    <option value="Asignado">Asignado</option>
-                                    <option value="Propio">Propio</option>
-                                    <option value="Prestado">Prestado</option>
-                                </select>       
-                            </div>
-                            <br>
-                            <br>
-
-                            <!-- Campo adicional para el nombre del dueño -->
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
-                                <label>Nombre del Propietario:</label>
-                                <select class="form-select" id="id_dueno" name="id_dueno" required>
-                                    <option value="">Seleccione...</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
-                                </select>
-                            </div>
+                                <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
+                                <input type = "hidden" class = "form-control" id = "hora" name = "hora" readonly>
                         </div>
                         <br>
                         <!-- Content Row -->
@@ -111,12 +82,30 @@
                                     <option value = "Correctivo">Correctivo</option>
                                 </select>
                             </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                                <label>Tipo de Vehiculo:</label>
+                                <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="Asignado">Asignado</option>
+                                    <option value="Propio">Propio</option>
+                                    <option value="Prestado">Prestado</option>
+                                </select>  
+                            </div>
+                            <!-- Campo adicional para el nombre del dueño -->
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
+                                <label>Propietario del Vehiculo:</label>
+                                <select class="form-select" id="id_dueno" name="id_dueno" required>
+                                    <option value="">Seleccione...</option>
+                                    <!-- Las opciones se cargarán dinámicamente -->
+                                </select>
+                            </div>
                             <div class="col-lg-10 col-md-12 col-sm-12 col-12">
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
-                            <br>
+                            
                         </div>
+                        <br>
                         <!-- Content Row -->
                         <div class = "row">
                             <h1 class="h5 mb-0 text-black" style="font-weight: bold;">Detalles del Automovil</h1> 
@@ -260,13 +249,14 @@
                     var tabla = $("#tablaInventario").DataTable(); // Obtener instancia de DataTable
                     tabla.clear(); // Limpiar datos existentes en la tabla
 
-                    respuesta.forEach(function (vehiculo) {
+                    respuesta.forEach(function (mantenimiento) {
                         tabla.row.add([
-                            vehiculo.placa,
-                            vehiculo.modelo,
-                            vehiculo.marca,
+                            `<strong><i class="fas fa-car"></i> ${mantenimiento.placa}</strong>`,
+                            `<strong>${mantenimiento.modelo}</strong>`,
+                            `<strong>${mantenimiento.marca}</strong>`,
+                            `<strong>${mantenimiento.color}</strong>`,
                             `<center>
-                                <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}')">
+                                <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${mantenimiento.id_vehiculo}', '${mantenimiento.placa}', '${mantenimiento.modelo}', '${mantenimiento.marca}', '${mantenimiento.color}')">
                                     <i class="fas fa-check"></i>
                                 </button>
                             </center>`
@@ -313,9 +303,16 @@
         }
         
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_vehiculo, placa) {
+        function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
             $("#placaSeleccionada")
-                .text(`Vehículo seleccionado: ${placa}`)
+                .html(`
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
+                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
+                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
+                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
+                    </div>
+                `)
                 .show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#btnCambiarVehiculo").show();
@@ -344,7 +341,7 @@
             var km_proxi = $("#prox_kilometraje").val();
             var tipo_carro = $("#tipo_carro").val();
             var id_dueno = $("#id_dueno").val();
-            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim();
+            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
             var accion = "RegistrarMantenimiento";
             var rutaImagen = $("#foto")[0].files[0];
 
@@ -362,7 +359,6 @@
             if (!contacto) camposFaltantes.push("Contacto");
 
             //VALIDACIONES DE CAMPOS
-            // Si hay campos faltantes, mostrar alerta
             if (camposFaltantes.length > 0) {
                 Swal.fire({
                     icon: 'warning',
@@ -399,7 +395,6 @@
             // Subir la imagen y registrar el mantenimiento
             enviaImg(function (rutaImagen) {
                 //var accion = "manejarCarpetasYFoto";
-                //console.log("Ruta de la imagen:", rutaImagen); // Verificar la ruta de la imagen
                 $.ajax({
                     type: "POST",
                     url: "acciones_mantenimiento",
@@ -413,11 +408,11 @@
                             text: 'Mantenimiento registrado exitosamente.',
                             confirmButtonText: 'Aceptar'
                         });
-                        $("#formRegistroMantenimiento")[0].reset();
+                        //$("#formRegistroMantenimiento")[0].reset();
                         $("#placaSeleccionada").hide();
                         $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
-                        location.reload();
+                        //location.reload();
                     },
                     error: function () {
                         Swal.fire({
@@ -436,7 +431,7 @@
         function enviaImg(callback) {
             var formData = new FormData();
             var foto = $("#foto")[0].files[0];
-            var placa = $("#placaSeleccionada").text().replace("Vehículo seleccionado: ", "").trim(); // Obtener la placa seleccionada
+            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim(); // Obtener la placa seleccionada
             
             if (!placa) {
                 Swal.fire({
@@ -520,7 +515,6 @@
 
             // Ocultar el campo de fecha de registro
             $("#fecha_programada").closest(".form-group").hide();
-
             $("#modalMantenimiento").modal("show");
         }
     </script>

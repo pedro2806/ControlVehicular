@@ -55,7 +55,7 @@ if ($accion == "manejarCarpetasYFoto") {
     $rutaBase = "img_control_vehicular";
     $rutaPlaca = $rutaBase . "/" . $placa;
     $rutaMantenimiento = $rutaPlaca . "/Mantenimiento";
-
+    
     if (!file_exists($rutaPlaca)) {
         mkdir($rutaPlaca, 0777, true);
     }
@@ -68,7 +68,7 @@ if ($accion == "manejarCarpetasYFoto") {
         $rutaImagen = $rutaMantenimiento . "/" . $placa . "_Mantenimiento_" . date("Ymd_his") . "." . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
         $rutaTemporal = $_FILES['foto']['tmp_name'];
         $rutaDestino = $rutaImagen;
-
+        
         if (move_uploaded_file($rutaTemporal, $rutaDestino)) {
             echo json_encode([
                 "success" => true,
@@ -106,7 +106,7 @@ if ($accion == "consultarUsuarios") {
 //Consulta de Mantenimientos
 if ($accion == "consultarMantenimientos") {
     $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
-                           mant.descripcion, mant.VoBo_jefe, inv.placa
+                           mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
                     FROM mantenimientos mant
                     INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                     WHERE mant.VoBo_jefe = 'PENDIENTE'";

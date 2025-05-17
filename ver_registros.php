@@ -77,6 +77,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
+                                    <!-- Información del Vehículo -->
+                                    <p id="infoVehiculoDoc" class="mt-3"></p>
+                                    <p id="infoDoc" class="mt-3"></p>
+                                    <hr>
                                     <div class="row">
                                         <!-- Lista de Documentos -->
                                         <div class="col-md-4">
@@ -104,12 +108,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                             <img id="imagenDocumento" src="img/MESS_07_CuboMess_1.png" class="img-fluid border" alt="Previsualización del documento" style="max-height: 300px;">
                                         </div>
                                     </div>
-                                    <hr>
-                                    <!-- Información del Vehículo -->
-                                    <p id="textoVehiculo" class="mt-3"></p>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
                                 </div>
                             </div>
                         </div>  
@@ -124,26 +125,43 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <div class="row">
-                                        <!-- Columna Izquierda: Imagen -->
-                                        <div class="col-md-6 text-center">
-                                            <img id="imagenMantenimiento" src="img/MESS_07_CuboMess_1.png" class="img-fluid border" alt="Imagen del mantenimiento" style="max-height: 300px; cursor: pointer;" onclick="ampliarImagen()">
-                                        </div>
-
-                                        <!-- Columna Derecha: Detalles -->
-                                        <div class="col-md-6">
-                                            <h5><strong>Detalles del Servicio:</strong></h5>
+                                    <!-- Información del Vehículo -->
+                                    <p id="infoVehiculoMant" class="mt-3"></p>
+                                    <hr>
+                                    <!-- Pestañas -->
+                                    <ul class="nav nav-tabs" id="mantenimientoTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#infoMantenimiento" type="button" role="tab" aria-controls="infoMantenimiento" aria-selected="true">Información</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="imagenes-tab" data-bs-toggle="tab" data-bs-target="#imagenesMantenimiento" type="button" role="tab" aria-controls="imagenesMantenimiento" aria-selected="false">Imágenes</button>
+                                        </li>
+                                    </ul>
+                                    <!-- Contenido de las Pestañas -->
+                                    <div class="tab-content mt-3" id="mantenimientoTabsContent">
+                                        <!-- Pestaña Información -->
+                                        <div class="tab-pane fade show active" id="infoMantenimiento" role="tabpanel" aria-labelledby="info-tab">
                                             <p><strong>Fecha:</strong> <span id="fechaMantenimiento"></span></p>
                                             <p><strong>Tipo:</strong> <span id="tipoMantenimiento"></span></p>
-                                            <p><strong>Descripción:</strong> <span id="descripcionMantenimiento"></span></p>
+                                            <p><strong>Descripción:</strong></p>
+                                            <p id="descripcionMantenimiento"></p>
                                             <p><strong>Costo:</strong> <span id="costoMantenimiento"></span></p>
-                                            <hr>
-                                            <h5><strong>Vehículo:</strong></h5>
-                                            <p><strong>Placa:</strong> <span id="placaVehiculo"></span></p>
-                                            <p><strong>Modelo:</strong> <span id="modeloVehiculo"></span></p>
-                                            <p><strong>Marca:</strong> <span id="marcaVehiculo"></span></p>
-                                            <p><strong>Año:</strong> <span id="anioVehiculo"></span></p>
-                                            <p><strong>Usuario:</strong> <span id="usuarioVehiculo"></span></p>
+                                        </div>
+                                        <!-- Pestaña Imágenes -->
+                                        <div class="tab-pane fade" id="imagenesMantenimiento" role="tabpanel" aria-labelledby="imagenes-tab">
+                                            <div id="carouselMantenimiento" class="carousel slide" data-bs-ride="carousel">
+                                                <div class="carousel-inner" id="imagenesCarruselMantenimiento">
+                                                    <!-- Las imágenes se cargarán dinámicamente -->
+                                                </div>
+                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselMantenimiento" data-bs-slide="prev">
+                                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Anterior</span>
+                                                </button>
+                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselMantenimiento" data-bs-slide="next">
+                                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                    <span class="visually-hidden">Siguiente</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -163,15 +181,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <!-- Encabezado del Vehículo -->
-                                    <div class="mb-3">
-                                        <h6>Vehículo: <span id="vehiculoSiniestro"></span></h6>
-                                        <p><strong>Placa:</strong> <span id="placaVehiculo"></span></p>
-                                        <p><strong>Modelo:</strong> <span id="modeloVehiculo"></span></p>
-                                        <p><strong>Marca:</strong> <span id="marcaVehiculo"></span></p>
-                                        <p><strong>Año:</strong> <span id="anioVehiculo"></span></p>
-                                        <p><strong>Usuario:</strong> <span id="usuarioVehiculo"></span></p>
-                                    </div>
+                                    <!-- Información del Vehículo -->
+                                    <p id="infoVehiculoSiniestro" class="mt-3"></p>
+                                    <hr>
                                     <!-- Pestañas -->
                                     <ul class="nav nav-tabs" id="siniestroTabs" role="tablist">
                                         <li class="nav-item" role="presentation">
@@ -195,14 +207,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                         <!-- Pestaña Imágenes -->
                                         <div class="tab-pane fade" id="imagenes" role="tabpanel" aria-labelledby="imagenes-tab">
                                             <div id="carouselSiniestro" class="carousel slide" data-bs-ride="carousel">
-                                                <div class="carousel-inner" id="imagenesCarrusel">
+                                                <div class="carousel-inner" id="imagenesCarruselSiniestro">
                                                     <!-- Las imágenes se cargarán dinámicamente -->
                                                 </div>
-                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="prev">
+                                                <button class="carousel-control-prev" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="prev" style="background-color: gray;">
                                                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                                     <span class="visually-hidden">Anterior</span>
                                                 </button>
-                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="next">
+                                                <button class="carousel-control-next" type="button" data-bs-target="#carouselSiniestro" data-bs-slide="next" style="background-color: gray;">
                                                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                                     <span class="visually-hidden">Siguiente</span>
                                                 </button>
@@ -241,71 +253,73 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <script src="js/sb-admin-2.min.js"></script>
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- Popper.js -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     
     <script type="text/javascript">
         $(document).ready(function() {
-            // Inicializar DataTable
             $('#tablaVerDoc').DataTable({
                 destroy: true,
                 paging: true,
-                pageLength: 5,
+                pageLength: 10,
                 ordering: true,
                 searching: true,
                 info: true,
-                "language": {
-                    "lengthMenu": "Mostrar _MENU_ registros por página",
-                    "zeroRecords": "No se encontraron resultados",
-                    "info": "Mostrando página _PAGE_ de _PAGES_",
-                    "infoEmpty": "No hay registros disponibles",
-                    "infoFiltered": "(filtrado de _MAX_ registros totales)",
-                    "search": "Buscar:",
-                    "paginate": {
-                        "first":      "Primero",
-                        "last":       "Último",
-                        "next":       "Siguiente",
-                        "previous":   "Anterior"
+                language: {
+                    lengthMenu: "Mostrar _MENU_ registros por página",
+                    zeroRecords: "No se encontraron resultados",
+                    info: "Mostrando página _PAGE_ de _PAGES_",
+                    infoEmpty: "No hay registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
                     }
                 }
             });
-            cargarVehiculos();
+            cargarVehiculos(); 
         });
 
         // Cargar Vehículos
         function cargarVehiculos() {
             $.ajax({
                 type: "POST",
-                url: 'acciones_ver_doc',
-                type: 'POST',
-                data: {accion: 'ver_inventario'},
+                url: 'acciones_ver_registros',
+                data: { accion: 'ver_inventario' },
                 dataType: "json",
                 success: function(respuesta) {
-                    var tablaVehiculos = $("#tablaVerDoc tbody");
-                    tablaVehiculos.empty(); 
+                    var tabla = $('#tablaVerDoc').DataTable();
+                    tabla.clear(); 
 
-                    respuesta.forEach(function (vehiculo) {
+                    respuesta.forEach(function(vehiculo) {
                         var botones = `
                             <button class="btn btn-outline-success" onclick="documentacionVehiculo('${vehiculo.id_vehiculo}')">
                                 <i class="fas fa-file-alt"></i>
                             </button>
                             <button class="btn btn-outline-primary" onclick="mantenimientoVehiculo('${vehiculo.id_vehiculo}')">
-                                <i class="fas fa-wrench"></i>
+                                <i class="fas fa-tools"></i>
                             </button>
-                            <button class="btn btn-outline-warning" onclick="siniestroVehiculo('${vehiculo.id_vehiculo}')">
-                                <i class="fas fa-exclamation-triangle"></i>
+                            <button class="btn btn-outline-danger" onclick="siniestroVehiculo('${vehiculo.id_vehiculo}')">
+                                <i class="fas fa-car-crash"></i>
                             </button>
-                            `;
-                        
-                        var fila = `
-                            <tr>
-                                <td>${vehiculo.placa}</td>
-                                <td>${vehiculo.modelo}</td>
-                                <td>${vehiculo.marca}</td>
-                                <td>${vehiculo.anio}</td>
-                                <td>${vehiculo.usuario}</td>
-                                <td>${botones}</td>
-                            </tr>`;
-                        tablaVehiculos.append(fila);
+                        `;
+
+                        var fila = [
+                            `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
+                            `<strong>${vehiculo.modelo}</strong>`,
+                            `<strong>${vehiculo.marca}</strong>`,
+                            `<strong>${vehiculo.anio}</strong>`,
+                            `<strong>${vehiculo.usuario}</strong>`,
+                            botones
+                        ];
+                        tabla.row.add(fila); // Agrega la fila a la tabla
                     });
+
+                    tabla.draw(); // Redibuja la tabla con los nuevos datos
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({
@@ -322,7 +336,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         function documentacionVehiculo(id_vehiculo) {
             $.ajax({
                 type: "POST",
-                url: 'acciones_ver_doc',
+                url: 'acciones_ver_registros',
                 data: {accion: 'documentosVehiculo', id_vehiculo: id_vehiculo},
                 dataType: "json",
                 success: function(respuesta) {
@@ -337,12 +351,24 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     }
 
                     // Actualiza la información del vehículo with style
-                    $("#textoVehiculo").html(`
-                        <p><strong class="text-primary">Placa:</strong> ${respuesta.placa}</p>
-                        <p><strong class="text-primary">Modelo:</strong> ${respuesta.modelo}</p>
-                        <p><strong class="text-primary">Marca:</strong> ${respuesta.marca}</p>
-                        <p><strong class="text-primary">Año:</strong> ${respuesta.anio}</p>
-                        <p><strong class="text-primary">Usuario:</strong> ${respuesta.usuario}</p>
+                    $("#infoVehiculoDoc")
+                    .html(`
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span><strong>Placa:</strong> <span style="font-weight: normal;">${respuesta.placa}</span></span>
+                            <span><strong>Modelo:</strong> <span style="font-weight: normal;">${respuesta.modelo}</span></span>
+                            <span><strong>Marca:</strong> <span style="font-weight: normal;">${respuesta.marca}</span></span>
+                            <span><strong>Color:</strong> <span style="font-weight: normal;">${respuesta.color}</span></span>
+                        </div>
+                    `)
+                    
+                    //Información de los documentos
+                    $("#infoDoc")
+                    .html(`
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span><strong>Fecha de Registro:</strong> <span style="font-weight: normal;">${respuesta.fecha_registro || 'No disponible'}</span></span>
+                            <span><strong>Contacto:</strong> <span style="font-weight: normal;">${respuesta.contacto || 'No disponible'}</span></span>
+                            <span><strong>Próximo Refrendo:</strong> <span style="font-weight: normal;">${respuesta.fecha_prox || 'No disponible'}</span></span>
+                        </div>
                     `);
 
                     // Actualiza los eventos de la lista de documentos
@@ -387,7 +413,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         function mantenimientoVehiculo(id_vehiculo) {
             $.ajax({
                 type: "POST",
-                url: 'acciones_ver_doc',
+                url: 'acciones_ver_registros',
                 data: {accion: 'mantenimientoVehiculo', id_vehiculo: id_vehiculo},
                 dataType: "json",
                 success: function(respuesta) {
@@ -400,25 +426,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         });
                         return;
                     }
-                    // Construye la ruta completa de la imagen
-                    const rutaImagen = respuesta.foto || "img/MESS_07_CuboMess_1.png";
+
+                    // Actualiza la información del vehículo with style
+                    $("#infoVehiculoMant")
+                    .html(`
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span><strong>Placa:</strong> <span style="font-weight: normal;">${respuesta.placa}</span></span>
+                            <span><strong>Modelo:</strong> <span style="font-weight: normal;">${respuesta.modelo}</span></span>
+                            <span><strong>Marca:</strong> <span style="font-weight: normal;">${respuesta.marca}</span></span>
+                            <span><strong>Color:</strong> <span style="font-weight: normal;">${respuesta.color}</span></span>
+                        </div>
+                    `)
 
                     // Actualiza los datos del mantenimiento
-                    $("#imagenMantenimiento").attr("src", rutaImagen);
                     $("#fechaMantenimiento").text(respuesta.fecha_registro || "N/A");
                     $("#tipoMantenimiento").text(respuesta.tipo_mantenimiento || "N/A");
                     $("#descripcionMantenimiento").text(respuesta.descripcion || "N/A");
                     $("#costoMantenimiento").text(respuesta.costo || "$0.00");
 
-                    // Actualiza los datos del vehículo
-                    $("#placaVehiculo").text(respuesta.placa || "N/A");
-                    $("#modeloVehiculo").text(respuesta.modelo || "N/A");
-                    $("#marcaVehiculo").text(respuesta.marca || "N/A");
-                    $("#anioVehiculo").text(respuesta.anio || "N/A");
-                    $("#usuarioVehiculo").text(respuesta.usuario || "N/A");
-
                     // Muestra el modal
                     const modal = new bootstrap.Modal(document.getElementById("modalMantenimiento"));
+                    mostrarImagenMant(respuesta.foto);
                     modal.show();
                 },
                 error: function(xhr, status, error) {
@@ -433,33 +461,31 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         }
 
         // Función para mostrar la imagen del Mantenimiento seleccionado
-        function mostrarImagenMant(tipoDocumento, datosVehiculo) {
-            // Obtén la ruta de la imagen correspondiente al tipo de documento
-            const rutasDocumentos = {
-                foto: datosVehiculo.foto
-            };
+        function mostrarImagenMant(foto) {
+            const imagenesCarrusel = $("#imagenesCarruselMantenimiento");
+            imagenesCarrusel.empty(); // Limpia cualquier imagen previa
 
-            // Cambia la imagen en el área de previsualización
-            const rutaImagen = rutasDocumentos[tipoDocumento] || "img/MESS_07_CuboMess_1.png";
-            $("#imagenDocumento").attr("src", rutaImagen);
-        }
+            if (foto) {
+                const imagenHTML = `
+                    <div class="carousel-item active">
+                        <img src="${foto}" class="d-block w-100 img-fluid border" alt="Imagen de Mantenimiento" style="max-height: 300px; object-fit: contain;">
+                    </div>
+                `;
+                imagenesCarrusel.append(imagenHTML);
 
-        // Función para ampliar la imagen del mantenimiento
-        function ampliarImagen() {
-            const rutaImagen = $("#imagenMantenimiento").attr("src");
-            Swal.fire({
-                imageUrl: rutaImagen,
-                imageAlt: "Imagen del mantenimiento",
-                showCloseButton: true,
-                showConfirmButton: false
-            });
+                // Inicializa el carrusel si no lo está
+                const carouselMantenimiento = new bootstrap.Carousel(document.getElementById('carouselMantenimiento'));
+            } else {
+                // Si no hay foto, muestra un mensaje o una imagen por defecto
+                imagenesCarrusel.html('<p class="text-center">No hay imágenes disponibles para este mantenimiento.</p>');
+            }
         }
 
         // Función para mostrar la documentación de siniestros del vehículo
         function siniestroVehiculo(id_vehiculo) {
             $.ajax({
                 type: "POST",
-                url: 'acciones_ver_doc',
+                url: 'acciones_ver_registros',
                 data: {accion: 'siniestrosVehiculo', id_vehiculo: id_vehiculo},
                 dataType: "json",
                 success: function(respuesta) {
@@ -472,55 +498,28 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         });
                         return;
                     }
+                    // Actualiza la información del vehículo with style
+                    $("#infoVehiculoSiniestro")
+                    .html(`
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span><strong>Placa:</strong> <span style="font-weight: normal;">${respuesta[0].placa}</span></span>
+                            <span><strong>Modelo:</strong> <span style="font-weight: normal;">${respuesta[0].modelo}</span></span>
+                            <span><strong>Marca:</strong> <span style="font-weight: normal;">${respuesta[0].marca}</span></span>
+                            <span><strong>Color:</strong> <span style="font-weight: normal;">${respuesta[0].color}</span></span>
+                        </div>
+                    `)
 
-                    // Verifica si la respuesta contiene datos
-                    if (respuesta.length > 0) {
-                        const siniestro = respuesta[0]; // Obtén el primer registro
+                    // Actualiza la información del modal
+                    $("#fechaHoraSiniestro").text(`${respuesta[0].fecha || "N/A"} ${respuesta[0].hora || ""}`);
+                    $("#ubicacionSiniestro").text(respuesta[0].lugar || "N/A");
+                    $("#partesSiniestro").text(respuesta[0].partes_dañadas || "N/A");
+                    $("#montoSiniestro").text(respuesta[0].monto || "$0.00");
+                    $("#descripcionSiniestro").text(respuesta[0].descripcion || "Sin descripción.");
 
-                        // Actualiza la información del modal
-                        $("#fechaHoraSiniestro").text(`${siniestro.fecha || "N/A"} ${siniestro.hora || ""}`);
-
-                        $("#ubicacionSiniestro").text(siniestro.lugar || "N/A");
-                        $("#partesSiniestro").text(siniestro.partes_dañadas || "N/A");
-                        $("#montoSiniestro").text(siniestro.monto || "$0.00");
-                        $("#descripcionSiniestro").text(siniestro.descripcion || "Sin descripción.");
-
-                        // Actualiza los datos del vehículo
-                        $("#placaVehiculo").text(respuesta.placa || "N/A");
-                        $("#modeloVehiculo").text(respuesta.modelo || "N/A");
-                        $("#marcaVehiculo").text(respuesta.marca || "N/A");
-                        $("#anioVehiculo").text(respuesta.anio || "N/A");
-                        $("#usuarioVehiculo").text(respuesta.usuario || "N/A");
-
-                        // Cargar imágenes en el carrusel
-                        const imagenesCarrusel = $("#imagenesCarrusel");
-                        imagenesCarrusel.empty();
-                        respuesta.forEach(function (siniestro) {    
-                            if (siniestro.imagen) {
-                                imagenesCarrusel.append(`
-                                    <div class="carousel-item active">
-                                        <img src="${siniestro.imagen}" class="d-block w-100" alt="Imagen del siniestro" style="max-height: 400px; object-fit: contain;">
-                                    </div>
-                                `);
-                            } else {
-                                imagenesCarrusel.append(`
-                                    <div class="carousel-item">
-                                        <img src="img/MESS_07_CuboMess_1.png" class="d-block w-100" alt="Sin imágenes disponibles" style="max-height: 400px; object-fit: contain;">
-                                    </div>
-                                `);
-                            }
-                        });
-                        // Mostrar el modal
-                        const modal = new bootstrap.Modal(document.getElementById("modalSiniestro"));
-                        modal.show();
-                    } else {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "No se encontró información del siniestro.",
-                            confirmButtonText: "Aceptar"
-                        });
-                    }
+                    // Mostrar el modal
+                    const modal = new bootstrap.Modal(document.getElementById("modalSiniestro"));
+                    mostrarImagenSiniestro(respuesta[0].imagen, respuesta[1].imagen, respuesta[2].imagen, respuesta[3].imagen);
+                    modal.show();
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({
@@ -531,6 +530,40 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     });
                 }
             });
+        }
+
+        // Función para mostrar la imagen del Siniestro seleccionado
+        function mostrarImagenSiniestro(imagen0, imagen1, imagen2, imagen3) {
+            console.log("Ruta foto0:", imagen0);
+            console.log("Ruta foto1:", imagen1);
+            console.log("Ruta foto2:", imagen2);
+            console.log("Ruta foto3:", imagen3);
+            const imagenesCarrusel = $("#imagenesCarruselSiniestro");
+            imagenesCarrusel.empty();
+
+            const fotos = [imagen0, imagen1, imagen2, imagen3];
+            let primeraImagen = true;
+
+            fotos.forEach(imagen => {
+                if (imagen) {
+                    const activeClass = primeraImagen ? 'active' : '';
+                    const imagenHTML = `
+                        <div class="carousel-item ${activeClass}">
+                            <img src="${imagen}" class="d-block w-100 img-fluid border" alt="Imagen del Siniestro" style="max-height: 300px; object-fit: contain;">
+                        </div>
+                    `;
+                    imagenesCarrusel.append(imagenHTML);
+                    primeraImagen = false;
+                }
+            });
+
+            if (imagenesCarrusel.children().length > 0) {
+                // Inicializa el carrusel si hay al menos una imagen
+                const carouselSiniestro = new bootstrap.Carousel(document.getElementById('carouselSiniestro'));
+            } else {
+                // Si no hay fotos, muestra un mensaje
+                imagenesCarrusel.html('<p class="text-center">No hay imágenes disponibles para este siniestro.</p>');
+            }
         }
     </script>
 </body>

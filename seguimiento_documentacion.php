@@ -289,10 +289,28 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 doc.archivo && doc.archivo !== 'S/R'
                     ? `<tr>
                         <td><strong>${doc.nombre}:</strong></td>
-                        <td>
-                            <a href="${doc.archivo}" target="_blank">
-                                <img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;" class="img-thumbnail"/>
-                            </a>
+                        <td>                            
+                            <img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;cursor:zoom-in;" class="img-thumbnail"
+                                onclick="
+                                    if (!this.classList.contains('zoomed')) {
+                                        this.style.maxWidth='60%';
+                                        this.style.maxHeight='60%';
+                                        this.style.zIndex=9999;
+                                        this.style.position='fixed';
+                                        this.style.top='50%';
+                                        this.style.left='50%';
+                                        this.style.transform='translate(-50%,-50%)';
+                                        this.style.background='#fff';
+                                        this.style.boxShadow='0 0 20px rgba(0,0,0,0.5)';
+                                        this.style.cursor='zoom-out';
+                                        this.classList.add('zoomed');
+                                    } else {
+                                        this.removeAttribute('style');
+                                        this.className='img-thumbnail';
+                                        this.classList.remove('zoomed');
+                                    }
+                                "
+                            />
                         </td>
                     </tr>`
                     : `<tr>
@@ -311,19 +329,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <h6 class="m-0 font-weight-bold text-black">Detalle de Documentación</h6>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
+                        <div class="row mb-1">
                             <div class="col-md-6">
                                 <p><strong>Fecha de Registro:</strong> ${documento.fecha_registro || 'N/A'}</p>
                                 <p><strong>Usuario:</strong> ${documento.usuario || 'N/A'}</p>
                                 <p><strong>Contacto:</strong> ${documento.contacto || 'N/A'}</p>
+                            </div>                        
+                            <div class="col-md-6">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            ${docsHtml}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <tbody>
-                                    ${docsHtml}
-                                </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>

@@ -2,11 +2,12 @@
 include 'conn.php';
 
 $opcion = $_POST['opcion'];
-
+$id_usuario = $_COOKIE['id_usuario'];
 if ($opcion == "llenaTVehiculosAsignados") {
-    $sql = "SELECT id_vehiculo, id_usuario, usuario, area, placa, modelo, color, anio, foto_general, estatus, fecha_registro, km_mantenimiento, marca 
-            FROM inventario 
-            WHERE id_usuario = 58";
+    $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado
+            FROM inventario i
+            INNER JOIN usuarios u ON i.id_usuario = u.id_usuario             
+            WHERE i.id_usuario = $id_usuario";
 
     $res2 = mysqli_query($conn, $sql);
 
@@ -31,7 +32,8 @@ if ($opcion == "llenaTVehiculosAsignados") {
             'fechaRegistro' => $row2["fecha_registro"],
             'kmMantenimiento' => $row2["km_mantenimiento"],
             'referencia' => $row2["referencia"],
-            'marca' => $row2["marca"]
+            'marca' => $row2["marca"],
+            'asignado' => $row2["asignado"]
         );
     }
 
@@ -453,7 +455,7 @@ if ($opcion == 'checklist_documentacion') {
 if ($opcion == 'guardarCheckIn') {
     // Insert into checklist table
     $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo) 
-        VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo')";
+        VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo')";        
     $resultadoChecklist = mysqli_query($conn, $sql);
     
     if (!$resultadoChecklist) {

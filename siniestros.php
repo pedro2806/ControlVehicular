@@ -44,14 +44,13 @@
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
-                        <table id="tablaInventario" class="table table-striped table-bordered">
+                        <table id="tablaInventario" class="table table-striped table-bordered table-responsive">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
-                                    <th>Modelo</th>
-                                    <th>Marca</th>
+                                    <th>Mod/Marca</th>
                                     <th>Color</th>
-                                    <th>Acción</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -62,7 +61,7 @@
 
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
+                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                     <!-- FORMULARIO DEL SINIESTRO -->
                     <form id="formRegistroSiniestro" style="display: none;">
                         <!-- Content Row -->
@@ -74,13 +73,11 @@
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Hora:</label> 
                                 <input type = "time" class = "form-control" id = "hora" name = "hora" required>       
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            </div>                            
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" style="display: none;">
                                 <label>Tipo de Vehiculo:</label> 
                                 <select class="form-select" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
-                                    <option value="">Seleccione...</option>
+                                    <option value="S/R">Seleccione...</option>
                                     <option value="Asignado">Asignado</option>
                                     <option value="Propio">Propio</option>
                                     <option value="Prestado">Prestado</option>
@@ -177,7 +174,7 @@
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Descripción:</label>
-                                <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
+                                <input type="text" class="form-control" id="descripcion" name="descripcion" required>
                             </div>
                             <div id="contenedorFotos">
                                 <label>Fotos del Siniestro:</label>
@@ -191,9 +188,10 @@
                                         required>
                                 </div>
                             </div>
-                        </div>
-                        <br>
-                        <button type="button" class="btn btn-outline-primary" id="btnAgregarFoto" onclick="agregarCampoFoto()">Agregar Foto</button>
+                        </div>                        
+                        <button type="button" class="btn btn-outline-info btn-sm" id="btnAgregarFoto" onclick="agregarCampoFoto()">
+                            <i class="fas fa-plus"></i> Agregar Foto
+                        </button>
                         <input type="hidden" id = "coordenadas" name = "coordenadas">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
@@ -263,8 +261,7 @@
                         var fila = 
                             `<tr>
                                 <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
-                                <td><strong>${vehiculo.modelo}</strong></td>
-                                <td><strong>${vehiculo.marca}</strong></td>
+                                <td><strong>${vehiculo.modelo} ${vehiculo.marca}</strong></td>
                                 <td><strong>${vehiculo.color}</strong></td>
                                 <td>
                                     <center>

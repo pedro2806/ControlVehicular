@@ -48,8 +48,7 @@
                             <thead>
                                 <tr>
                                     <th>Placa</th>
-                                    <th>Modelo</th>
-                                    <th>Marca</th>
+                                    <th>Mod/Marca</th>
                                     <th>Color</th>
                                     <th>Acción</th>
                                 </tr>
@@ -62,7 +61,7 @@
 
                     <!-- CONTENEDOR INFO AUTO -->
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
+                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                     <!-- FORMULARIO DEL MANTENIMIENTO -->
                     <form id="formRegistroMantenimiento" style="display: none;">
                         <!-- Content Row -->
@@ -74,7 +73,7 @@
                         <!-- Content Row -->
                         <h1 class="h5 mb-0 text-black" style="font-weight: bold;">Detalles del Servicio</h1>
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-3 col-md-3 col-sm-6 col-6">
                                 <label>Tipo de Servicio:</label>
                                 <select class = "form-select" id = "servicio" name = "servicio" required>
                                     <option value = "">Seleccione...</option>
@@ -82,9 +81,9 @@
                                     <option value = "Correctivo">Correctivo</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="div_tipo_carro" style="display: none;">
                                 <label>Tipo de Vehiculo:</label>
-                                <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()" required>
+                                <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()">
                                     <option value="">Seleccione...</option>
                                     <option value="Asignado">Asignado</option>
                                     <option value="Propio">Propio</option>
@@ -99,7 +98,7 @@
                                     <!-- Las opciones se cargarán dinámicamente -->
                                 </select>
                             </div>
-                            <div class="col-lg-10 col-md-12 col-sm-12 col-12">
+                            <div class="col-lg-9 col-md-9 col-sm-6 col-6">
                                 <label>Descripción:</label>
                                 <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
                             </div>
@@ -226,6 +225,9 @@
                         sortAscending: ": activar para ordenar la columna de manera ascendente",
                         sortDescending: ": activar para ordenar la columna de manera descendente"
                     }
+                },                
+                createdRow: function(row, data, dataIndex) {
+                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
                 },
                 //Justifica el buscador y la paginación
                 dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
@@ -252,8 +254,7 @@
                     respuesta.forEach(function (mantenimiento) {
                         tabla.row.add([
                             `<strong><i class="fas fa-car"></i> ${mantenimiento.placa}</strong>`,
-                            `<strong>${mantenimiento.modelo}</strong>`,
-                            `<strong>${mantenimiento.marca}</strong>`,
+                            `<strong>${mantenimiento.modelo} ${mantenimiento.marca}</strong>`,
                             `<strong>${mantenimiento.color}</strong>`,
                             `<center>
                                 <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${mantenimiento.id_vehiculo}', '${mantenimiento.placa}', '${mantenimiento.modelo}', '${mantenimiento.marca}', '${mantenimiento.color}')">
@@ -349,8 +350,8 @@
             var camposFaltantes = [];
             // Validar cada campo y agregar al array si está vacío
             if (!placa) camposFaltantes.push("Vehículo seleccionado");
-            if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
-            if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
+            //if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
+            //if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
             if (!descripcion) camposFaltantes.push("Descripción");
             if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
             if (!km_proxi) camposFaltantes.push("Kilometraje del próximo servicio");
@@ -412,7 +413,7 @@
                         $("#placaSeleccionada").hide();
                         $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
-                        //location.reload();
+                        window.location.replace("seguimiento_mantenimiento");
                     },
                     error: function () {
                         Swal.fire({

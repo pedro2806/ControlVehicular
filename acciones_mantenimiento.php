@@ -29,6 +29,8 @@ $foto = $_POST["rutaImagen"];
 $id_mantenimiento = $_POST["id_mantenimiento"];
 $notas = $_POST['comentario'];
 $fecha_programada = $_POST['fecha_programada'];
+
+$estatus = $_POST['estatus'];
 /*---------------------------------------------*/
 
 
@@ -106,10 +108,11 @@ if ($accion == "consultarUsuarios") {
 //Consulta de Mantenimientos
 if ($accion == "consultarMantenimientos") {
     $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
-                           mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
+                    mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
                     FROM mantenimientos mant
                     INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                    WHERE mant.VoBo_jefe = 'PENDIENTE'";
+                    WHERE mant.VoBo_jefe = '$estatus' AND mant.solicitante = '$id_usuario'
+                    ORDER BY mant.fecha_registro DESC";
     $result = $conn->query($sqlConsulta);
 
     $mantenimientos = [];

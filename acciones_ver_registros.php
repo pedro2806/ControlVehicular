@@ -13,12 +13,13 @@ $noEmpleado = $_COOKIE['noEmpleado'];
 $id_usuario = $_COOKIE['id_usuario'];
 $foto = $_POST["rutaImagen"];
 $placa = $_POST["placa"];
+$estatus = $_POST["estatus"];
 
 /*---------------------------------------------*/
 // Consulta para obtener los vehículos del inventario
 if ($_POST['accion'] == 'ver_inventario') {
     $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuario, color
-            FROM inventario";
+            FROM inventario WHERE id_usuario = $id_usuario";
     $result = $conn->query($sql);
 
     $data = [];
@@ -154,10 +155,10 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
 // Consulta para obtener los registros de mantenimiento
 if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
     $id_vehiculo = intval($_POST['id_vehiculo']);
-    $sql = "SELECT mant.*,  inv.usuario, inv.id_us_asignado
+    $sql = "SELECT mant.*,  inv.usuario, inv.id_us_asignado, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
             FROM mantenimientos mant
             LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-            WHERE mant.id_vehiculo = $id_vehiculo
+            WHERE mant.solicitante = $id_usuario AND mant.VoBo_jefe = '$estatus'
             ORDER BY mant.fecha_registro DESC";
     $result = $conn->query($sql);
 
@@ -168,6 +169,17 @@ if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
         }
     }
     echo json_encode($mantenimientos);
+    exit;
+}
+
+if($_POST['accion'] == 'mantenimientoRealizado'){
+    $id_mantenimiento = $_POST['id_mantenimiento'];
+    $sql = "UPDATE mantenimientos SET VoBo_jefe = 'REALIZADO' WHERE id_mantenimiento = $id_mantenimiento";
+    if ($conn->query($sql) === TRUE) {
+        echo json_encode(["success" => true]);
+    } else {
+        echo json_encode(["error" => "Error al actualizar el mantenimiento: " . $conn->error]);
+    }
     exit;
 }
 ?>

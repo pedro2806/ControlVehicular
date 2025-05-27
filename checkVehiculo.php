@@ -152,39 +152,39 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                             echo '<div class="accordion-body">';
                                                 echo '<div class="row">';
                                                 if($item["id"] == "Llantas") {
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
+                                                        echo '<div class="col-lg-5 col-md-5 col-sm-5 col-5">';
                                                             echo '<label for="medidas_' . $item["id"] . '">Medidas:</label><br>';
                                                             echo '<input type="text" id="medidas_' . $item["id"] . '" name="medidas_' . $item["id"] . '" class="form-control">';
                                                         echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
+                                                        echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
                                                             echo '<div class="form-check form-switch me-3">';
                                                                 echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
                                                 } else {
                                                     if($item["id"] == "PuertasLlave") {
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
+                                                        echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
                                                                 echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';                                                            
+                                                        echo '<div class="col-lg-5 col-md-5 col-sm-5 col-5">';
                                                             echo '<input type="text" id="duplicado_' . $item["id"] . '" name="duplicado_' . $item["id"] . '" class="form-control">';
                                                             echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label><br>';
                                                         echo '</div>';
                                                     } else {
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
+                                                        echo '<div class="col-lg-4 col-md-4 col-sm-4 col-4">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
                                                                 echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
+                                                        echo '<div class="col-lg-8 col-md-8 col-sm-8 col-8">';
                                                             echo '<div class="form-check form-switch me-3">';
                                                                 echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado</label>';
+                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
                                                     }
@@ -234,6 +234,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>  
                         <br> <br> 
                 <!-- DOCUMENTACIÓN -->
+                
                         <div class="row">
                             <div class="col-lg-6 col-md-6 col-sm-6 col-6">
                                 <h1 class = "h5 mb-0 text-gray-800">Documentación</h1>
@@ -244,11 +245,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <?php
                                 $accordionItems2 = [
                                     ["title" => "Tarjeta de circulación", "id" => "tarjetaC", "color" => "secondary"],
-                                    ["title" => "Refrendo actual", "id" => "Refrendo", "color" => "warning"],
+                                    ["title" => "Refrendo actual", "id" => "Refrendo", "color" => "black"],
                                     ["title" => "Seguro de auto (Póliza vigente)", "id" => "Seguro", "color" => "secondary"],
-                                    ["title" => "Verificación vigente", "id" => "Verificacion", "color" => "warning"],
+                                    ["title" => "Verificación vigente", "id" => "Verificacion", "color" => "black"],
                                     ["title" => "Licencia de manejo", "id" => "Licencia", "color" => "secondary"],
-                                    ["title" => "Tarjeta Efecticard", "id" => "TarjetaEfe", "color" => "warning"],
+                                    ["title" => "Tarjeta Efecticard", "id" => "TarjetaEfe", "color" => "black"],
                                     ["title" => "Tarjeta IAVE", "id" => "TarjetaIAVE", "color" => "secondary"]
                                 ];
 
@@ -266,7 +267,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                         echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
                                                                 echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
                                                     } else {	
@@ -277,7 +278,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
                                                                 echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
-                                                                echo '<label for="si_no_' . $item["id"] . '">Si/No</label>';
+                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
                                                     }
@@ -302,7 +303,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                 echo '<div class="row">';                                                
                                                         echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
                                                             echo '<label for="foto_inspeccion">Foto:</label>';
-                                                            echo '<input type="file" id="foto_' . $item["id"] . '" name="foto_' . $item["id"] . '" class="form-control form-control-sm" accept="image/*" capture="camera">';                                                        
+                                                            echo '<input type="file" id="foto_' . $item["id"] . '" name="foto_' . $item["id"] . '" class="form-control form-control-sm" accept="image/*" capture="camera">';
                                                         echo '</div>';                                                                                                    
                                                 echo '</div>';                                
                                         echo '</div>';
@@ -517,18 +518,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
             
         }
-        
-        // Función para capturar la foto de inspección
-        $('#foto_TarjetaIAVE').on('click', function () {
-            
-            // Verificar si el dispositivo es móvil
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                // Si es móvil, establecer el atributo 'capture' para abrir la cámara
-                $(this).attr('capture', 'environment'); // 'environment' para usar la cámara trasera                      
-            } else {
-                $(this).removeAttr('capture');
-            }
-        });
+                
         // Función para obtener el valor de una cookie por su nombre
         function getCookie(name) {
             var value = "; " + document.cookie;
@@ -546,5 +536,54 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('#DivVehiculosAsignados').show();
 
         }
+
+       /* $('input[type="file"]').on('click', function (e) {
+            //alert("Por favor, selecciona una foto de inspección." + navigator.userAgent);
+            // Solo aplica en dispositivos móviles
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // Forzar el atributo capture para abrir la cámara
+                alert("Por favor, selecciona una foto de inspección.");
+                $(this).attr('capture', 'environment');
+                // Opcional: evitar que se pueda seleccionar archivos existentes
+                $(this).attr('accept', 'image/*');
+            } else {
+                // En desktop, permitir selección normal
+                $(this).removeAttr('capture');
+            }
+        });*/
+        document.addEventListener('DOMContentLoaded', function() {
+            // Selecciona el input por su ID (tendrás que adaptar esto si tienes varios inputs dinámicos)
+            // Usaremos un selector más genérico si tienes varios inputs con nombres similares
+            var inputsFoto = document.querySelectorAll('input[type="file"][name^="foto_"]');
+
+            inputsFoto.forEach(function(input) {
+                input.addEventListener('change', function(event) {
+                    const file = event.target.files[0]; // Obtiene el primer archivo seleccionado
+
+                    if (file) {
+                        console.log('¡Foto detectada!', file.name, file.type, file.size);
+                        // Aquí es donde puedes mostrar una vista previa de la imagen,
+                        // subirla por AJAX, etc.
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            // Por ejemplo, mostrar una vista previa:
+                            const previewId = 'preview_' + input.id.split('_')[1]; // Asumiendo que quieres una ID de vista previa para cada input
+                            let previewElement = document.getElementById(previewId);
+                            if (!previewElement) {
+                                previewElement = document.createElement('img');
+                                previewElement.id = previewId;
+                                previewElement.style.maxWidth = '100px';
+                                previewElement.style.maxHeight = '100px';
+                                input.parentNode.appendChild(previewElement); // Añade la vista previa debajo del input
+                            }
+                            previewElement.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file); // Lee el archivo como una URL de datos para la vista previa
+                    } else {
+                        console.log('No se seleccionó ninguna foto.');
+                    }
+                });
+            });
+        });
 </script>
 </html>

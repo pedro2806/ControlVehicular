@@ -42,25 +42,37 @@
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class = "h3 mb-0 text-black-800">Lista de Mantenimientos</h1>                        
                     </div>
+
+                    <div class="row">                        
+                        <div class="col-12">
+                            <div class="btn-group" role="group" aria-label="Opciones de Mantenimiento">
+                                <button onclick="cargarMantenimientos('PENDIENTE', 'warning')" type="button" class="btn btn-outline-warning">Por autorizar</button>
+                                <button onclick="cargarMantenimientos('AUTORIZADO', 'primary')" type="button" class="btn btn-outline-primary">Autorizados</button>
+                                <button onclick="cargarMantenimientos('REALIZADO', 'success')" type="button" class="btn btn-outline-success">Realizados</button>
+                            </div>
+                        </div>
+                    </div>
                     <!-- FORMULARIO DE REGISTRO DE MANTENIMIENTO -->
-                    <div class="table-responsive">
-                        <table id="tablaMantenimientos" name= "tablaMantenimientos" class="table table-striped table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Vehiculo</th>
-                                    <th>Detalles Vehiculo</th>
-                                    <th>Fecha Registro</th>
-                                    <th>Kilometraje</th>
-                                    <th>Tipo de Mantenimiento</th>
-                                    <th>Descripción</th>
-                                    <th>Estatus</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Las filas se cargarán dinámicamente -->
-                            </tbody>
-                        </table>
+                    <div class="row">
+                        <div class="table-responsive">
+                            <table id="tablaMantenimientos" name= "tablaMantenimientos" class="table table-striped table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Vehiculo</th>
+                                        <th>Placa</th>                                        
+                                        <th>Fecha Registro</th>
+                                        <th>Kilometraje</th>
+                                        <th>Tipo de Mantenimiento</th>
+                                        <th>Descripción</th>
+                                        <th>Estatus</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Las filas se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <br>
                 </div>
@@ -123,62 +135,49 @@
 
     <script type="text/javascript">
     $(document).ready(function() {
-        cargarMantenimientos();
-        $("#tablaMantenimientos").DataTable({
-            destroy: true,
-            paging: true,
-            ordering: true,
-            searching: true,
-            info: true,
-            language: {
+        cargarMantenimientos('PENDIENTE', 'warning'); // Cargar mantenimientos por autorizar al cargar la página
+        
+        $('#tablaMantenimientos').DataTable({
+                destroy: true, // Permitir reinicializar la tabla
+                paging: true, // Quitar paginado
+                ordering: false, // Quitar orden
+                searching: false, // Quitar buscador
+                info: false, // Quitar leyendas a pie de tabla
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                language: {
                 decimal: ",",
                 thousands: ".",
                 processing: "Procesando...",
                 loadingRecords: "Cargando...",
                 zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
+                emptyTable: "No hay datos disponibles en la tabla"
                 },
-                lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                createdRow: function(row, data, dataIndex) {
+                    $(row).css('font-size', '14px'); // Reducir tamaño del texto
                 }
-            },
-            //Justifica el buscador y la paginación
-            dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
-        });
+            });
+        
     });
 
     // Función para cargar los mantenimientos desde la base de datos
-    function cargarMantenimientos() {
+    function cargarMantenimientos(estatus, estiloTabla) {
         const rol = getCookie('rol'); // Obtener el rol del usuario desde las cookies
 
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento.php",
-            data: { accion: "consultarMantenimientos" },
+            data: { accion: "consultarMantenimientos", estatus: estatus },
             dataType: "json",
             success: function (respuesta) {
-                var tabla = $("#tablaMantenimientos tbody");
-                tabla.empty(); // Limpiar la tabla antes de llenarla
-                // Mostrar u ocultar la columna "Acción" según el rol
-                if (rol != 3) {
-                    $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").hide(); // Ocultar columna "Acción"
-                } else {
-                    $("#tablaMantenimientos th:last-child, #tablaMantenimientos td:last-child").show(); // Mostrar columna "Acción"
-                }
-                respuesta.forEach(function (mantenimiento) {
+                
+                var table = $('#tablaMantenimientos').DataTable();                
+
+                table.clear().draw();                            
+                respuesta.forEach(function(mantenimiento) { 
+
                     var botones = "";
-                    if (rol == 3) { 
+                    if (rol == 3 && estatus == "PENDIENTE") { 
                         botones = `
                             <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
@@ -187,19 +186,23 @@
                                 <ion-icon name="close-outline" class="fs-6"></ion-icon>
                             </button>`;
                     }
-                    var fila = `
-                        <tr>
-                            <td><i class="fas fa-car"></i>${mantenimiento.placa} - ${mantenimiento.modelo}</td>
-                            <td>${mantenimiento.marca} - ${mantenimiento.color}</td>
-                            <td>${mantenimiento.fecha_registro}</td>
-                            <td>${mantenimiento.kilometraje}</td>
-                            <td>${mantenimiento.tipo_mantenimiento}</td>
-                            <td>${mantenimiento.descripcion}</td>
-                            <td>${mantenimiento.VoBo_jefe}</td>
-                            <td>${botones}</td>
-                        </tr>`;
-                    tabla.append(fila);
+
+
+                    table.row.add([                                    
+                        mantenimiento.modelo,
+                        mantenimiento.placa,       
+                        mantenimiento.fecha_registro,
+                        mantenimiento.kilometraje,
+                        mantenimiento.tipo_mantenimiento,
+                        mantenimiento.descripcion,
+                        mantenimiento.VoBo_jefe,                        
+                        botones
+                    ]).draw(false);
                 });
+                 // Agregar estilo al thead de la tabla            
+                $('#tablaMantenimientos thead').removeClass('table-warning table-primary table-success');
+                $('#tablaMantenimientos thead').addClass('table-' + estiloTabla);
+
             },
             error: function () {
                 Swal.fire({
@@ -266,6 +269,17 @@
         var accion = $("#modalMantenimiento").data("accion");
         var comentario = $("#comentario").val();
         var fecha_programada = $("#fecha_programada").val();
+
+        // Validar que la fecha programada no esté vacía si el campo está visible y habilitado
+        if ($("#fecha_programada").is(":visible") && !$("#fecha_programada").prop("disabled") && fecha_programada === "") {
+            Swal.fire({
+            icon: "warning",
+            title: "Campo requerido",
+            text: "Por favor ingresa la fecha programada.",
+            confirmButtonText: "Aceptar"
+            });
+            return;
+        }
 
         $.ajax({
             type: "POST",

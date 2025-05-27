@@ -341,7 +341,7 @@
                             $("#archivoVerificacion").hide();
                             cambiarVehiculo();
                             infoVehiculos();
-                            window.location.href = "autorizar_mantenimiento";
+                            window.location.href = "seguimiento_documentacion";
                         });
                     } else {
                         Swal.fire({

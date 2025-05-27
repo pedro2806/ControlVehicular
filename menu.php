@@ -29,19 +29,28 @@
     <!-- Divider -->
     <hr class="sidebar-divider">
 
-    <!-- Heading -->
+    <!-- Heading 
     <div class="sidebar-heading">
         <span class="badge text-xl-white">Menú</span>
     </div>
-
+    -->
     <!-- Menú Siniestro -->
-    <li class="nav-item">
-        <a class="nav-link" href="siniestros">
+    <li class="nav-item btn-warning active">
+        <a class="nav-link" href="siniestros" style="font-size: 1.3rem;">
             <i class="fas fa-fw fa-car-crash"></i>
-            <span>Siniestro</span>
+            <span style="font-size: 1.1rem;">Siniestro</span>
         </a>
     </li>
 
+    <li class="nav-item">
+        <a class="nav-link" href="seguimiento_siniestro">
+            <i class="fas fa-fw fa-car-crash"></i>
+            <span>Hist. Siniestros</span>
+        </a>
+    </li>
+
+    <hr class="sidebar-divider">
+    
     <!-- Menú Mantenimiento -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="true" aria-controls="collapseMantenimiento">
@@ -51,6 +60,7 @@
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
+                <a class="collapse-item" href="autorizar_mantenimiento">Seguimiento Mantenimientos</a>
                 <a class="collapse-item" href="autorizar_mantenimiento">Autorizar Mantenimiento</a>
             </div>
         </div>
@@ -65,7 +75,8 @@
         <div id="collapseDocumentacion" class="collapse" aria-labelledby="headingDocumentacion" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="documentacion">Registrar Documentación</a>
-            </div>
+                <a class="collapse-item" href="seguimiento_documentacion">Ver Documentación</a>
+            </div>            
         </div>
     </li>
 
@@ -79,15 +90,22 @@
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="prestamos">Solicitar Préstamo</a>
                 <a class="collapse-item" href="autorizar_prestamo">Autorizar Préstamos</a>
-            </div>
+            </div>            
         </div>
     </li>
     <!-- Menú CheckIn -->
     <li class="nav-item">
-        <a class="nav-link" href="checkVehiculo">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
             <i class="fas fa-fw fa-check"></i>
-            <span>Check In Vehiculo</span>
+            <span>Check In</span>
         </a>
+        <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-parent="#accordionSidebar">
+            <div class="bg-white py-1 collapse-inner rounded">
+                <a class="collapse-item" href="checkVehiculo">Registrar Check In</a>
+                <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check In</a>
+            </div>            
+        </div>
+    
     </li>
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">

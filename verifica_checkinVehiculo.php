@@ -56,6 +56,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <tr>
                                         <th>Placa</th>
                                         <th>Modelo</th>
+                                        <th>Color</th>
+                                        <th>Año</th>
+                                        <th>Asignado</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -209,6 +212,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         table.row.add([                                    
                             '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                             '<b> ' + Registro.modelo + ' </b>',
+                            '<b> ' + Registro.color + ' </b>',
+                            '<b> ' + Registro.anio + ' </b>',
+                            '<b> ' + Registro.asignado + ' </b>',                            
                             '<center><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
                         ]).draw(false);
                     });
@@ -538,7 +544,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         const imagen = document.createElement('img');
                         imagen.src = registro[key]; // Ajusta esto al nombre real de la propiedad de la imagen
                         imagen.alt = registro.nombre_seccion || 'Imagen'; // Texto alternativo para la imagen
-                        imagen.classList.add('img-fluid', 'mt-1');
+                        imagen.classList.add('img-fluid', 'mt-1');                        
+                        imagen.style.maxHeight = '120px'; // Controla la altura máxima de la imagen
                         cardBodyDiv.appendChild(imagen);
                     }
                     break; // Suponiendo que solo hay una imagen por tarjeta
@@ -560,5 +567,33 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         const palabras = nombrePropiedad.split('_');
         return palabras.map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1)).join('');
     }
+
+    $(document).on('mouseenter', 'img.img-fluid', function () {
+        // Crear un clon de la imagen para el zoom
+        var $img = $(this);
+        var offset = $img.offset();
+        var $zoomImg = $img.clone()
+            .addClass('zoom-img-fixed')
+            .css({
+                'position': 'fixed',
+                'top': '50%',
+                'left': '50%',
+                'transform': 'translate(-50%, -50%) scale(2.5)',
+                'z-index': 99999,
+                'transition': 'transform 0.2s',
+                'box-shadow': '0 0 20px rgba(0,0,0,0.5)',
+                'background': '#fff',
+                'border-radius': '8px',
+                'max-width': '20vw',
+                'max-height': '20vh',
+                'width': 'auto',
+                'height': 'auto',
+                'pointer-events': 'none'
+            });
+        $('body').append($zoomImg);
+    }).on('mouseleave', 'img.img-fluid', function () {
+        // Eliminar la imagen de zoom
+        $('.zoom-img-fixed').remove();
+    });
 </script>
 </html>

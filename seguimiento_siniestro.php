@@ -54,16 +54,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <!-- Tabla de Vehículos -->
                                 <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto;">
-                                        <table class="table table-bordered" id="TablaInventario" width="100%" cellspacing="0">
+                                        <table class="table table-striped table-bordered table-sm" id="TablaInventario" width="100%" cellspacing="0">
                                             <thead></thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
-                                </div>
-                                <!-- Tabla de Registros -->
-                                <div class="card-body">
                                     <div class="table-responsive" style="overflow-x: auto; display: none;">
-                                        <table class="table table-bordered" id="TablaRegistrosSiniestros" width="100%" cellspacing="0">
+                                        <table class="table table-striped table-bordered" id="TablaRegistrosSiniestros" width="100%" cellspacing="0">
                                             <thead></thead>
                                             <tbody></tbody>
                                         </table>
@@ -140,13 +137,16 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         sortAscending: ": activar para ordenar la columna de manera ascendente",
                         sortDescending: ": activar para ordenar la columna de manera descendente"
                     }
+                },                
+                createdRow: function(row, data, dataIndex) {
+                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
                 }
             });
             // Inicializar DataTables para la tabla de registros
             var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable({
                 data: [], // Inicialmente vacío
                 columns: [
-                    { title: "Fecha de Siniestro" },
+                    { title: "Fecha" },
                     { title: "Origen" },
                     { title: "Destino" },
                     { title: "Empresa" },
@@ -180,6 +180,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         sortAscending: ": activar para ordenar la columna de manera ascendente",
                         sortDescending: ": activar para ordenar la columna de manera descendente"
                     }
+                },                
+                createdRow: function(row, data, dataIndex) {
+                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
                 }
             });
             cargarVehiculos(TablaInventario);
@@ -335,7 +338,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // Crear la tarjeta con los detalles del siniestro
             var tarjeta = `
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
+                    <div class="card-header py-3 text-bg-primary">
                         <h6 class="m-0 font-weight-bold text-black">Detalle del Siniestro</h6>
                     </div>
                     <div class="card-body">

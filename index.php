@@ -99,6 +99,7 @@
             
             if (!$res2) {
                 die("Error in query execution: " . mysqli_error($conn));
+                echo $Qempresas;
             }
             
             $nr = mysqli_num_rows($res2);
@@ -131,11 +132,29 @@
     <script src = "https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src = "js/sb-admin-2.min.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
     $(document).ready(function () {
-        
+        validarNavegadorChrome();    
     });        
+
+    function validarNavegadorChrome() {
+        var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        // Verifica si el navegador es Chrome
+        
+        if (!isChrome) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Navegador no compatible',
+                text: 'Este sistema solo puede ser utilizado en Google Chrome.'
+            });
+            // Redirigir a la página de descarga de Chrome
+            window.location.href = "navegadorValido.php";
+        }
+    }
+
+    
     </script>
 </body>
 </html>

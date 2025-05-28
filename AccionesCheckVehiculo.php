@@ -479,7 +479,7 @@ if ($opcion == 'guardarCheckIn') {
     }
 
     // Insert into checklist_estereos_aire
-    $resultadoEstereos = insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_AireAcondicionado, $placa);
+    $resultadoEstereos = insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_AireAcondicionado, $placa, $buenEstado_AireAcondicionado);
     if (!$resultadoEstereos) {
         die(json_encode(array("error" => "Failed to insert checklist estereos: " . mysqli_error($conn))));
     }
@@ -649,12 +649,12 @@ function insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $o
     }
 }
 
-function insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_estereos, $placa) {
+function insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_estereos, $placa, $buenEstado_AireAcondicionado) {
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Estereos", $_FILES['foto_AireAcondicionado'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/estereos/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_estereos_aire (id_checklist, cd_estereo, si_no, observaciones, foto) 
-        VALUES ('$id_checklist', '$CEAireAcondicionado', '$si_no_AireAcondicionado', '$observaciones_AireAcondicionado', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_estereos_aire (id_checklist, cd_estereo, si_no, observaciones, foto, buen_estado) 
+        VALUES ('$id_checklist', '$CEAireAcondicionado', '$si_no_AireAcondicionado', '$observaciones_AireAcondicionado', '$rutaChecklist', '$buenEstado_AireAcondicionado')";
     
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_AireAcondicionado'])) {

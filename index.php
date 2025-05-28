@@ -140,17 +140,51 @@
     });        
 
     function validarNavegadorChrome() {
-        var isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-        // Verifica si el navegador es Chrome
-        
-        if (!isChrome) {
+        var ua = navigator.userAgent;
+        var isChromeDesktop = /Chrome/.test(ua) && /Google Inc/.test(navigator.vendor) && !/Edg/.test(ua) && !/OPR|Opera/.test(ua) && !/Brave/.test(ua);
+        var isChromeMobile = /CriOS/.test(ua) && /Mobile/.test(ua);
+        var isSafariMobile = /Safari/.test(ua) && /Mobile/.test(ua) && !/CriOS/.test(ua);
+        var isAndroidWebView = /\bwv\b/.test(ua) || /Android.*Version\/[\d.]+/.test(ua);
+
+        if (isChromeDesktop || isChromeMobile) {
+            // Chrome en PC o móvil
+            Swal.fire({
+                icon: 'success',
+                title: 'Bienvenido',
+                text: 'Estás usando Google Chrome. ¡Puedes continuar!',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } else if (isSafariMobile) {
+            // Safari en iOS
+            Swal.fire({
+                icon: 'warning',
+                title: 'Navegador no recomendado',
+                text: 'Estás usando Safari en un dispositivo móvil. Por favor, utiliza Google Chrome para una mejor experiencia.',
+                footer: '<a href="navegadorValido.php">¿Por qué no puedo usar otro navegador?</a>'
+            }).then(() => {
+                window.location.href = "navegadorValido.php";
+            });
+        } else if (isAndroidWebView) {
+            // WebView Android
             Swal.fire({
                 icon: 'warning',
                 title: 'Navegador no compatible',
-                text: 'Este sistema solo puede ser utilizado en Google Chrome.'
+                text: 'Estás usando un navegador no compatible. Por favor, utiliza Google Chrome.',
+                footer: '<a href="navegadorValido.php">¿Por qué no puedo usar otro navegador?</a>'
+            }).then(() => {
+                window.location.href = "navegadorValido.php";
             });
-            // Redirigir a la página de descarga de Chrome
-            window.location.href = "navegadorValido.php";
+        } else {
+            // Otros navegadores
+            Swal.fire({
+                icon: 'warning',
+                title: 'Navegador no compatible',
+                text: 'Este sistema solo puede ser utilizado en Google Chrome.',
+                footer: '<a href="navegadorValido.php">¿Por qué no puedo usar otro navegador?</a>'
+            }).then(() => {
+                window.location.href = "navegadorValido.php";
+            });
         }
     }
 

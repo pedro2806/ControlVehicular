@@ -27,24 +27,17 @@
             margin-bottom: 1em;
         }
         h1 {
-            color: #d32f2f;
+            color:rgb(237, 127, 59);
         }
     </style>
-    <script>
-        // Detecta si el navegador es Chrome
-        if (!/Chrome/.test(navigator.userAgent) || /Edge|OPR|Brave/.test(navigator.userAgent)) {
-            // No es Chrome, mostrar la página
-        } else {
-            // Es Chrome, redirigir a la página principal
-            window.location.href = "index.php";
-        }
-    </script>
+    
 </head>
 <body>
     <div class="container">
-        <img src="https://www.google.com/chrome/static/images/chrome-logo.svg" alt="Chrome Logo" class="chrome-logo">
+        <img src = "img/MESS_05_Imagotipo.svg" alt = "Logo MESS" width = "300px">        
         <h1>Navegador no compatible</h1>
         <p>Este sistema solo puede ser utilizado desde el navegador <strong>Google Chrome</strong>.</p>
+        <img src="https://www.google.com/chrome/static/images/chrome-logo.svg" alt="Chrome Logo" class="chrome-logo" width="60">
         <p>Por favor, acceda nuevamente usando Chrome.</p>
         
     </div>

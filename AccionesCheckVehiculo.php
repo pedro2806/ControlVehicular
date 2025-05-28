@@ -432,7 +432,8 @@ if ($opcion == 'checklist_documentacion') {
     $vencimiento_TarjetaIAVE = $_POST['vencimiento_TarjetaIAVE'] ?? null;
     $no_tarjeta_TarjetaIAVE = $_POST['no_tarjeta_TarjetaIAVE'] ?? null;
     $observaciones_TarjetaIAVE = $_POST['observaciones_TarjetaIAVE'] ?? null;
-
+    $id_revisor = '0'; // Default value, can be updated later
+    $opcion = $_POST['opcion'] ?? null;
     // Handle uploaded images
     $foto_Limpieza = isset($_FILES['foto_Limpieza']) ? file_get_contents($_FILES['foto_Limpieza']['tmp_name']) : null;
     $foto_Exterior = isset($_FILES['foto_Exterior']) ? file_get_contents($_FILES['foto_Exterior']['tmp_name']) : null;

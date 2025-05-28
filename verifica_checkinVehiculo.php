@@ -26,6 +26,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">    
 
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
 </head>
 
@@ -133,17 +137,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         <i class="fas fa-angle-up"></i>
     </a>
 </body>
-
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <!-- Removed duplicate Bootstrap script to avoid conflicts -->    
+<!-- Bootstrap core JavaScript-->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
-    <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom scripts for all pages-->
-    <script src = "js/sb-admin-2.min.js"></script>    
-    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/1.10.8/js/jquery.dataTables.min.js" defer="defer"></script>    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="js/sb-admin-2.min.js"></script>
+    <!-- DataTables JavaScript -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     
 <script type="text/javascript">
                         
@@ -275,6 +279,23 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         checklist_placas(idCheck);
         checklist_puertas_llaves(idCheck);
         checklist_documentacion(idCheck);
+    }
+
+    function checklist_limpiaparabrisas(idCheck) {
+        // Implementación de la función para checklist_limpiaparabrisas        
+        opcion = "checklist_limpiaparabrisas";
+        $.ajax({
+            url: 'AccionesCheckVehiculo.php', 
+            method: 'POST',
+            dataType: 'json', //TIPO DE DATO JSON
+            data:{opcion, idCheck}, 
+            success: function(registros) {
+                generarTarjetas(registros); // Llamar a la función para generar tarjetas con los registros
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                
+            }
+        });
     }
 
     function checklist_documentacion(idCheck) {

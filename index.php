@@ -147,14 +147,7 @@
         var isAndroidWebView = /\bwv\b/.test(ua) || /Android.*Version\/[\d.]+/.test(ua);
 
         if (isChromeDesktop || isChromeMobile) {
-            // Chrome en PC o móvil
-            Swal.fire({
-                icon: 'success',
-                title: 'Bienvenido',
-                text: 'Estás usando Google Chrome. ¡Puedes continuar!',
-                timer: 1500,
-                showConfirmButton: false
-            });
+            
         } else if (isSafariMobile) {
             // Safari en iOS
             Swal.fire({

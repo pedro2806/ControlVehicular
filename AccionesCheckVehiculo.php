@@ -793,8 +793,8 @@ function insertChecklistDocumentaciontarjetaC($conn, $id_checklist, $si_no_tarje
     $rutaImagen = obtenerRutaImagen($placa, "checklist_TarjetaC", $_FILES['foto_tarjetaC'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaC/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto) 
-        VALUES ('$id_checklist', '$si_no_tarjetaC', 'Tarjeta de Circulacion', '$observaciones_documentacion_tarjetaC', '$rutaChecklist')";
+    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado) 
+        VALUES ('$id_checklist', '$si_no_tarjetaC', 'Tarjeta de Circulacion', '$observaciones_documentacion_tarjetaC', '$rutaChecklist', 'S/R')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_tarjetaC'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaC";
@@ -810,8 +810,8 @@ function insertChecklistDocumentacionRefrendo($conn, $id_checklist, $si_no_refre
     $rutaImagen = obtenerRutaImagen($placa, "checklist_Refrendo", $_FILES['foto_Refrendo'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/refrendo/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado) 
-        VALUES ('$id_checklist', '$si_no_refrendo', 'Refrendo', '$observaciones_documentacion_refrendo', '$rutaChecklist', 'S/R')";
+    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto) 
+        VALUES ('$id_checklist', '$si_no_refrendo', 'Refrendo', '$observaciones_documentacion_refrendo', '$rutaChecklist')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Refrendo'])) {
             $rutaChecklist = "img_control_vehicular/$placa/checklist/refrendo";

@@ -50,7 +50,22 @@
     </li>
 
     <hr class="sidebar-divider">
-    
+    <!-- Menú CheckIn -->
+    <li class="nav-item btn-primary active">
+        <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
+            <i class="fas fa-fw fa-check"></i>
+            <span>CheckIn</span>
+        </a>
+    </li>
+
+    <!-- Menú CheckIn -->
+    <li class="nav-item">
+        <a class="nav-link" href="verActividades">
+            <i class="fas fa-fw fa-check"></i>
+            <span>Ver Actividades</span>
+        </a>
+    </li>
+
     <!-- Menú Mantenimiento -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="true" aria-controls="collapseMantenimiento">
@@ -60,7 +75,7 @@
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-                <a class="collapse-item" href="autorizar_mantenimiento">Seguimiento Mantenimientos</a>
+                <a class="collapse-item" href="autorizar_mantenimiento">Seg. Mantenimientos</a>
                 <a class="collapse-item" href="autorizar_mantenimiento">Autorizar Mantenimiento</a>
             </div>
         </div>
@@ -89,24 +104,25 @@
         <div id="collapsePrestamos" class="collapse" aria-labelledby="headingPrestamos" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="prestamos">Solicitar Préstamo</a>
-                <a class="collapse-item" href="autorizar_prestamo">Autorizar Préstamos</a>
+                <a class="collapse-item" href="autorizar_prestamo">Seguimiento Préstamos</a>
             </div>            
         </div>
     </li>
-    <!-- Menú CheckIn -->
+    <!-- Menú CheckList -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
-            <i class="fas fa-fw fa-check"></i>
-            <span>Check In</span>
+            <i class="fas fa-fw fa-book"></i>
+            <span>Check List</span>
         </a>
         <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
-                <a class="collapse-item" href="checkVehiculo">Registrar Check In</a>
-                <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check In</a>
+                <a class="collapse-item" href="checkVehiculo">Registrar Check List</a>
+                <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check List</a>
             </div>            
         </div>
     
     </li>
+    
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 

@@ -1,231 +1,507 @@
 <!-- Topbar -->
-<nav class = "navbar navbar-expand navbar-light bg-white topbar mb-2 static-top shadow">
-<!-- Enlace a Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<nav class="navbar navbar-expand navbar-light bg-white topbar mb-2 static-top shadow">
+    <!-- Enlace a Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<!-- Enlace a Bootstrap JS (necesario para el funcionamiento del modal) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Enlace a Bootstrap JS (necesario para el funcionamiento del modal) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Enlace a FontAwesome para los íconos (si usas íconos) -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Enlace a FontAwesome para los íconos (si usas íconos) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 
-<!-- SweetAlert2 CDN -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Sidebar Toggle (Topbar) -->
+    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+        <i class="fa fa-bars"></i>
+    </button>
 
-<!-- Sidebar Toggle (Topbar) -->
-<button id = "sidebarToggleTop" class = "btn btn-link d-md-none rounded-circle mr-3">
-    <i class = "fa fa-bars"></i>
-</button>
-
-<!-- Topbar Search 
-<form
-    class = "d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-    <div class = "input-group">
-        <input type = "text" class = "form-control bg-light border-0 small" placeholder = "Search for..."
-            aria-label = "Search" aria-describedby = "basic-addon2">
-        <div class = "input-group-append">
-            <button class = "btn btn-primary" type = "button">
-                <i class = "fas fa-search fa-sm"></i>
-            </button>
-        </div>
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-0">
+        <h6 class="h6 mb-0 text-gray-800">Control Vehicular MESS</h6>
     </div>
-</form>
--->
-<!-- Page Heading -->
-<div class="d-sm-flex align-items-center justify-content-between mb-0">
-    <h6 class="h6 mb-0 text-gray-800">Control Vehicular MESS</h6>
-</div>
-<!-- Topbar Navbar -->
-<ul class = "navbar-nav ml-auto">
-    <div class = "topbar-divider d-none d-sm-block"></div>
-    <!-- Nav Item - User Information -->
-    <li class = "nav-item dropdown no-arrow">
-        <a class = "nav-link dropdown-toggle" href = "#" id = "userDropdown" role = "button"
-            data-toggle = "dropdown" aria-haspopup = "true" aria-expanded = "false">
-            <span class = "mr-2 d-none d-lg-inline text-gray-600 small">
-                <?php echo $_COOKIE['nombredelusuario']?>
-            </span>
-            <?php
-            $currentURL = $_SERVER['REQUEST_URI']; // Obtiene la ruta actual de la URL
 
-            if (strpos($currentURL, "/incidencias/SalasDeJuntas/") !== false || 
-                strpos($currentURL, "/incidencias/inicio") !== false) {
-                echo '<img class="img-profile rounded-circle" 
-                     src="/incidencias/img/undraw_profile.svg" 
-                     style="width: 100%;">';
-            } else {
-                echo '<img class="img-profile rounded-circle" 
-                     src="/incidencias/img/undraw_profile.svg"  
-                     style="width: 100%;">';
-            }
-            ?>
-        </a>
-        <!-- Dropdown - User Information -->
-        <div class = "dropdown-menu dropdown-menu-right shadow animated--grow-in"
-            aria-labelledby = "userDropdown">
-            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-                <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                Cambiar Contraseña
-            </button>
-
-            <!--<a class = "dropdown-item" href = "#">
-                <i class = "fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                Settings
+    <!-- Topbar Navbar -->
+    <ul class="navbar-nav ml-auto">
+        <div class="topbar-divider d-none d-sm-block"></div>
+        <!-- Nav Item - User Information -->
+        <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="mr-0 d-none d-lg-inline text-gray-600 small">
+                    <?php echo $_COOKIE['nombredelusuario']?>
+                </span>
+                <img class="img-profile rounded-circle" src="img/undraw_profile.svg" style="width: 100%;">
             </a>
-            <a class = "dropdown-item" href = "#">
-                <i class = "fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                Activity Log
-            </a>-->
-            <div class = "dropdown-divider"></div>
-            <a class = "dropdown-item" href = "#" data-toggle = "modal" data-target = "#logoutModalN">
-                <i class = "fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                Salir
-            </a>
-        </div>
-    </li>
+            <!-- Dropdown - User Information -->
+            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Cambiar Contraseña
+                </button>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModalN">
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Salir
+                </a>
+            </div>
+        </li>
+    </ul>
 
-</ul>
     <!-- MODAL PARA CAMBIO DE CONTRASEÑA-->
     <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="staticBackdropLabel">Cambiar Contraseña</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-            <div class="modal-body">
-                <div class = "row">
-                    <div class="col-sm-6">
-                        <label>Contraseña Nueva:</label>
-                        <input id="nuevapass" name="nuevapass" class="form-control" type="password" required>
-                    </div>
-                
-                    <div class="col-sm-6">
-                        <label>Confirmar Contraseña:</label>
-                        <input id="confirmapass" name="confirmapass" class="form-control" type="password" required>
-                        <label id="msgPassword" name ="msgPassword"></label>
-                        
-                    </div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="staticBackdropLabel">Cambiar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class = "row">
-                    <div class = "col-sm-1"></div>
-                    <div class = "col-sm-6">
-                        <input class="form-check-input" type="checkbox" id="showPassword">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <label>Contraseña Nueva:</label>
+                            <input id="nuevapass" name="nuevapass" class="form-control" type="password" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label>Confirmar Contraseña:</label>
+                            <input id="confirmapass" name="confirmapass" class="form-control" type="password" required>
+                            <label id="msgPassword" name="msgPassword"></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-6">
+                            <input class="form-check-input" type="checkbox" id="showPassword">
                             <label class="form-check-label" for="showPassword">
                                 Ver Contraseña
                             </label>
-                        </input>
-                    </div>
-                    <div class = "col-sm-1">
-                        <input type="hidden" id="noEmpleado" name ="noEmpleado"> </input>
+                            </input>
+                        </div>
+                        <div class="col-sm-1">
+                            <input type="hidden" id="noEmpleado" name="noEmpleado">
+                            </input>
+                        </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" OnClick="validarContrasenas()">Confirmar</button>
+                </div>
             </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            <button type="button" class="btn btn-primary" OnClick = "validarContrasenas()">Confirmar</button>
-          </div>
         </div>
-      </div>
     </div>
+
     <!-- Logout Modal-->
-    <div class = "modal fade" id = "logoutModalN" tabindex = "-1" role = "dialog" aria-labelledby = "exampleModalLabel"aria-hidden = "true">
-        <div class = "modal-dialog" role = "document">
-            <div class = "modal-content border-left-danger">
-                <div class = "modal-header">
-                    <h4 class = "modal-title" id = "exampleModalLabel"> Cerrar sesión </h4>
-                    <button class = "close" type = "button" data-dismiss = "modal" aria-label = "Close">
-                        <span aria-hidden = "true">X</span>
+    <div class="modal fade" id="logoutModalN" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content border-left-danger">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="exampleModalLabel"> Cerrar sesión </h4>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">X</span>
                     </button>
                 </div>
-                <div class = "modal-body"><h5><b>¿Estas seguro?</b></h5></div>
-                <div class = "modal-footer">
-                    <button class = "btn btn-warning" type = "button" data-dismiss = "modal">Cancelar</button>
-                    <a class = "btn btn-danger" href = "logout">Salir</a>
+                <div class="modal-body">
+                    <h5><b>¿Estas seguro?</b></h5>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-warning" type="button" data-dismiss="modal">Cancelar</button>
+                    <a class="btn btn-danger" href="logout">Salir</a>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-    // Función para mostrar/ocultar contraseñas
-    document.getElementById('showPassword').addEventListener('change', function () {
-        var passwordField = document.getElementById('nuevapass');
-        var confirmPasswordField = document.getElementById('confirmapass');
-        
-        if (this.checked) {
-          // Mostrar contraseñas (tipo 'text')
-          passwordField.type = 'text';
-          confirmPasswordField.type = 'text';
-        } else {
-          // Ocultar contraseñas (tipo 'password')
-          passwordField.type = 'password';
-          confirmPasswordField.type = 'password';
-        }
-    });
-    
-    //Funcion para validar las contraseñas
-    function validarContrasenas() {
-        var password = $('#nuevapass').val()
-        var confirmPassword = $('#confirmapass').val()
-        var error = document.getElementById("error");
 
-        // Si las contraseñas no coinciden
-        if (password !== confirmPassword) {
-            $('#msgPassword').text("Las constraseñas no coinciden."); 
-        } else {
-            Confirmar();
-        }
-    }
-    
-    //Funcion para Enviar los datos
-    function Confirmar(){
-        var password = $('#nuevapass').val();
-        var noEmpleado = $('#noEmpleado').val();
-        var accion = "CambioPassword";
-        
+    <!-- MODAL PARA CAPTURAR KM DE UN AUTO -->
+    <div class="modal fade" id="capturaKmModal" tabindex="-1" aria-labelledby="capturaKmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="capturaKmModalLabel">Check In Uso Vehiculo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCapturaKm">
+                        <div class="mb-2">
+                            <label for="vehiculoAsignado" class="form-label">Vehículo Asignado</label>
+                            <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" required>
+                                <option value="">Seleccione un vehículo</option>                                
+                            </select>
+                        </div>
+                        <div class="mb-2 row g-2">
+                            <div class="col-6 col-md-6">
+                                <label for="otRelacionada1" class="form-label">OT Relacionada</label>
+                                <input type="text" class="form-control" id="otRelacionada" name="otRelacionada" required>
+                            </div>
+                            <div class="col-6 col-md-6">
+                                <label for="otRelacionada2" class="form-label">Patron</label>
+                                <input type="text" class="form-control" id="patronRelacionado" name="patronRelacionado" required>
+                            </div>
+                        </div>
+                        <div class="mb-2 row g-2">
+                            <div class="col-6 col-md-6">
+                                <label for="kmActual" class="form-label">Km Actual</label>
+                                <input type="number" class="form-control" id="kmActual" name="kmActual" min="0" required>
+                            </div>
+                            <div class="col-6 col-md-6">
+                                <label for="kmActual" class="form-label">Gas. Actual</label>
+                                <input type="number" class="form-control" id="gasActual" name="gasActual" min="0" required>
+                            </div>    
+                        </div>
+                        <div class="mb-2 row g-2">
+                            <div class="col-6 col-md-6">
+                                <label for="kmActual" class="form-label">Notas</label>
+                                <textarea name="notasCheckin" id="notasCheckin" class="form-control" rows="2" cols="5"></textarea>
+                            </div>
+                            <div class="col-6 col-md-6">
+                                <label for="kmActual" class="form-label">Img.</label>
+                                <input type="file" class="form-control" id="imgCheckin" name="imgCheckin" accept=".jpg,.jpeg,.png,.pdf">
+                            </div>    
+                        </div>
+                        <div id="msgKm" class="form-text text-danger"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarKm()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA VER ACTIVIDADES PENDIENTES -->
+    <div class="modal fade" id="actividadesPendientesModal" tabindex="-1" aria-labelledby="actividadesPendientesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="actividadesPendientesModalLabel">Actividades Pendientes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="actividadesPendientesContent">
+                        <div class="text-center">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Título</th>
+                                        <th>Descripción</th>
+                                        <th>Vehículo</th>                                    
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaActividadesPendientes">                                    
+                                </tbody>
+                            </table>
+                            <form id="formNuevaActividadPendiente" class="mb-3">                                
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-3">
+                                        <label for="kmActualNuevo" class="form-label">Km Actual</label>
+                                        <input type="number" class="form-control" id="kmActualNuevo" name="kmActualNuevo" min="0" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="gasActualNuevo" class="form-label">Gas. Actual</label>
+                                        <input type="number" class="form-control" id="gasActualNuevo" name="gasActualNuevo" min="0" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="notasCheckinNuevo" class="form-label">Notas</label>
+                                        <textarea name="notasCheckinNuevo" id="notasCheckinNuevo" class="form-control" rows="1"></textarea>
+                                    </div>
+                                    <div class="col-6 col-md-6">
+                                        <label for="kmActual" class="form-label">Img.</label>
+                                        <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo" accept=".jpg,.jpeg,.png,.pdf">
+                                    </div>  
+                                </div>
+                                <div class="mt-2" id ="cerrarActividadPendiente">                                    
+                                </div>
+                            </form>                            
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Función para cargar y mostrar actividades pendientes en el modal
+        // Sobrescribe la función para mostrar actividades en tabla
+    function mostrarActividadesPendientes() {
+        $('#actividadesPendientesModal').modal('show');
+        $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center"><span class="spinner-border" role="status" aria-hidden="true"></span> Cargando actividades...</td></tr>');
         $.ajax({
-            url: 'acciones_contrasena.php',
+            url: 'acciones_kilometraje.php',
             method: 'POST',
-            async: false,
             dataType: 'json',
-            data:{accion, password, noEmpleado},
-            success: function(Registros) {
-                Swal.fire({
-                    title: "Confirmado!",
-                    text: "Contraseña cambiada!",
-                    icon: "success",
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then(function() {
-                    // Limpiar los campos después de cerrar la alerta
-                    $('#nuevapass').val('');
-                    $('#confirmapass').val('');
-                    $('#staticBackdrop').modal('hide');
-                });
-            },error: function(jqXHR, textStatus, errorThrown) {
-              console.error('Error al aplicar el cambio', error);
+            data: { accion: 'ActividadesPendientes' },
+            success: function (data) {
+                if (data.length > 0) {
+                    var html = '';
+                    var botonCerrarActividad = '';
+                    data.forEach(function (actividad, idx) {
+                        // Si la actividad tiene los datos necesarios, guarda el botón en una variable aparte (no en la tabla)
+                            botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut('
+                                + actividad.id_vehiculo + ', \'' + actividad.ot + '\', \'' + actividad.patron + '\')">'
+                                + '<i class="fas fa-check"></i> Captura CheckOut</button>';
+                                                                        
+
+                        html += '<tr>';
+                        html += '<td>' + (idx + 1) + '</td>';
+                        html += '<td>' + (actividad.titulo || 'Actividad') + '</td>';
+                        html += '<td>' + (actividad.notas || '') + '</td>';
+                        html += '<td>' + (actividad.vehiculo || actividad.placa || '') + '</td>';                        
+                        html += '</tr>';
+                    });
+                    $('#tablaActividadesPendientes').html(html);
+                    $('#cerrarActividadPendiente').html(botonCerrarActividad);
+                } else {
+                    $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center text-success">No tienes actividades pendientes.</td></tr>');
+                }
+            },
+            error: function () {
+                $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar las actividades pendientes.</td></tr>');
             }
         });
     }
 
-    //Funcion para leer cookies
-    function getCookie(name) {
-        let value = "; " + document.cookie;
-        let parts = value.split("; " + name + "=");
-        if (parts.length === 2) return parts.pop().split(";").shift();
-        return null; // Si no encuentra la cookie, retorna null
-    }
-    // Asignar el valor de la cookie al input
-    window.onload = function() {
-        var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
-    
-        // Verificar si la cookie existe y asignar el valor al input
-        if (cookieValue) {
-            document.getElementById("noEmpleado").value = cookieValue;
+    function guardarKm() {            
+            // Obtener los valores de los campos del formulario
+            var vehiculoAsignado = $('#vehiculoAsignado').val();
+            var otRelacionada = $('#otRelacionada').val();
+            var kmActual = $('#kmActual').val();
+            var patronRelacionado = $('#patronRelacionado').val();
+            var notasCheckin = $('#notasCheckin').val();
+            var gasActual = $('#gasActual').val();            
+            var imgCheckin = $('#imgCheckin')[0].files[0];
+
+            // Validar que los campos no estén vacíos
+            if (!vehiculoAsignado || !kmActual || !gasActual) {
+            $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
+            return;
+            }
+
+            var formData = new FormData();
+            formData.append('accion', 'CapturaCheckIn');
+            formData.append('vehiculoAsignado', vehiculoAsignado);
+            formData.append('otRelacionada', otRelacionada);
+            formData.append('kmActual', kmActual);
+            formData.append('patronRelacionado', patronRelacionado);
+            formData.append('notasCheckin', notasCheckin);
+            formData.append('gasActual', gasActual);
+            if (imgCheckin) {
+            formData.append('imgCheckin', imgCheckin);
+            }
+
+            $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            dataType: 'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (resp) {
+                Swal.fire({
+                title: "¡Guardado!",
+                text: "Kilometraje registrado correctamente.",
+                icon: "success",
+                timer: 2000,
+                timerProgressBar: true
+                }).then(function () {
+                $('#formCapturaKm')[0].reset();
+                $('#capturaKmModal').modal('hide');
+                $('#msgKm').text('');
+                });
+            },
+            error: function () {
+                $('#msgKm').text('Error al guardar el kilometraje.');
+            }
+            });
         }
-    };
+
+        function CapturaCheckOut(id_vehiculo, otRelacionada, patronRelacionado) {
+            var vehiculoAsignado = id_vehiculo;
+            var otRelacionada = otRelacionada;
+            var kmActual = $('#kmActualNuevo').val();
+            var patronRelacionado = patronRelacionado;
+            var notasCheckin = $('#notasCheckinNuevo').val();
+            var gasActual = $('#gasActualNuevo').val();            
+            var imgCheckin = $('#imgCheckinNuevo')[0].files[0];
+
+            // Validar que los campos no estén vacíos
+            if (!vehiculoAsignado || !kmActual || !gasActual) {
+            $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
+            return;
+            }
+
+            var formData = new FormData();
+            formData.append('accion', 'CapturaCheckOut');
+            formData.append('vehiculoAsignado', vehiculoAsignado);
+            formData.append('otRelacionada', otRelacionada);
+            formData.append('kmActual', kmActual);
+            formData.append('patronRelacionado', patronRelacionado);
+            formData.append('notasCheckin', notasCheckin);
+            formData.append('gasActual', gasActual);
+            if (imgCheckin) {
+            formData.append('imgCheckin', imgCheckin);
+            }
+
+            $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            dataType: 'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (resp) {
+                Swal.fire({
+                title: "¡Guardado!",
+                text: "Kilometraje registrado correctamente.",
+                icon: "success",
+                timer: 2000,
+                timerProgressBar: true
+                }).then(function () {
+                $('#formCapturaKm')[0].reset();
+                $('#capturaKmModal').modal('hide');
+                $('#msgKm').text('');
+                });
+            },
+            error: function () {
+                $('#msgKm').text('Error al guardar el kilometraje.');
+            }
+            });
+            
+        }
+        
+        // Cargar vehículos al select
+        function cargarVehiculos() {
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                method: 'POST',
+                dataType: 'json',
+                data: { accion: 'CargarVehiculos' },
+                success: function (data) {
+                    var select = $('#vehiculoAsignado');
+                    select.empty();
+                    select.append('<option value="">Seleccione un vehículo</option>');
+                    $.each(data, function (index, vehiculo) {
+                        select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '</option>');
+                    });
+                },
+                error: function () {
+                    console.error('Error al cargar los vehículos');
+                }
+            });
+        }
+
+        //valida actividades pendientes
+        function validarActividadesPendientes() {
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                method: 'POST',
+                dataType: 'json',
+                data: { accion: 'ActividadesPendientes' },
+                success: function (data) {
+                    if (data.length > 0) {
+                        Swal.fire({
+                            title: "¡Atención!",
+                            text: "Tienes actividades pendientes de inicio.",
+                            icon: "warning",
+                            confirmButtonText: "Ver Actividades"
+                        }).then(function () {
+                            $('#actividadesPendientesModal').modal('show'); // Mostrar el modal de captura de km
+                            mostrarActividadesPendientes(); // Cargar vehículos al select
+                        });
+                    }
+                    else{
+                        cargarVehiculos(); // Cargar vehículos al select si no hay actividades pendientes
+                        $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
+                    }
+                },
+                error: function () {
+                    cargarVehiculos();
+                    $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
+                    console.error('Error al verificar actividades pendientes');
+                }
+            });
+        }
+    
+        // Función para mostrar/ocultar contraseñas
+        document.getElementById('showPassword').addEventListener('change', function () {
+            var passwordField = document.getElementById('nuevapass');
+            var confirmPasswordField = document.getElementById('confirmapass');
+
+            if (this.checked) {
+                // Mostrar contraseñas (tipo 'text')
+                passwordField.type = 'text';
+                confirmPasswordField.type = 'text';
+            } else {
+                // Ocultar contraseñas (tipo 'password')
+                passwordField.type = 'password';
+                confirmPasswordField.type = 'password';
+            }
+        });
+
+        //Funcion para validar las contraseñas
+        function validarContrasenas() {
+            var password = $('#nuevapass').val()
+            var confirmPassword = $('#confirmapass').val()
+            var error = document.getElementById("error");
+
+            // Si las contraseñas no coinciden
+            if (password !== confirmPassword) {
+                $('#msgPassword').text("Las constraseñas no coinciden.");
+            } else {
+                Confirmar();
+            }
+        }
+
+        //Funcion para Enviar los datos
+        function Confirmar() {
+            var password = $('#nuevapass').val();
+            var noEmpleado = $('#noEmpleado').val();
+            var accion = "CambioPassword";
+
+            $.ajax({
+                url: 'acciones_contrasena.php',
+                method: 'POST',
+                async: false,
+                dataType: 'json',
+                data: { accion, password, noEmpleado },
+                success: function (Registros) {
+                    Swal.fire({
+                        title: "Confirmado!",
+                        text: "Contraseña cambiada!",
+                        icon: "success",
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(function () {
+                        // Limpiar los campos después de cerrar la alerta
+                        $('#nuevapass').val('');
+                        $('#confirmapass').val('');
+                        $('#staticBackdrop').modal('hide');
+                    });
+                }, error: function (jqXHR, textStatus, errorThrown) {
+                    console.error('Error al aplicar el cambio', error);
+                }
+            });
+        }
+
+        //Funcion para leer cookies
+        function getCookie(name) {
+            let value = "; " + document.cookie;
+            let parts = value.split("; " + name + "=");
+            if (parts.length === 2) return parts.pop().split(";").shift();
+            return null; // Si no encuentra la cookie, retorna null
+        }
+        // Asignar el valor de la cookie al input
+        window.onload = function () {
+            var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
+
+            // Verificar si la cookie existe y asignar el valor al input
+            if (cookieValue) {
+                document.getElementById("noEmpleado").value = cookieValue;
+            }
+        };
     </script>
 </nav>
 <!-- End of Topbar -->

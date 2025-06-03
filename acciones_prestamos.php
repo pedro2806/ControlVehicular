@@ -43,8 +43,8 @@ $notas_jefe = $_POST["notas_jefe"];
 //Registro de Prestamo
 if ($accion == "RegistrarPrestamo") {
     $sqlregistro = "INSERT INTO prestamos
-                    (fecha_registro, id_usuario, id_checklist, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, detalle_tipo_uso)
-                    VALUES (NOW(), '$id_usuario', '$id_checklist', '$fecha_inc_prestamo', '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso', '$detalle_tipo_uso')";
+                    (fecha_registro, id_usuario, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, detalle_tipo_uso)
+                    VALUES (NOW(), '$id_usuario', '$fecha_inc_prestamo', '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso', '$detalle_tipo_uso')";
     $resultregistro = $conn->query($sqlregistro); 
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Préstamo registrado exitosamente."]);
@@ -58,25 +58,28 @@ if ($accion == "RegistrarPrestamo") {
 if ($accion == "consultarPrestamos") {
     if ($rol == 3) {
         // ROL 3 es jefe de área
-        $sqlConsulta = " SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, 
-                                prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus, prest.km_inicio, 
-                                prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us, prest.fecha_entrega
-                        FROM prestamos prest
-                        LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-                        WHERE prest.id_usuario = $id_usuario AND prest.estatus = 'PENDIENTE'
-                        GROUP BY prest.id_prestamo DESC";
+        $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
+                        prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
+                        prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                FROM prestamos prest
+                LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+                WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+                AND prest.estatus = 'PENDIENTE'
+                ORDER BY prest.id_prestamo DESC";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
-        $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus, km_inicio, 
-                               tipo_uso, detalle_tipo_uso, motivo_us
-                        FROM prestamos 
+        $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
+                            tipo_uso, detalle_tipo_uso, motivo_us,
+                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        FROM prestamos prest
                         WHERE id_usuario = $id_usuario
-                        GROUP BY prest.id_prestamo DESC";
+                        GROUP BY id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;
     }
-
+//echo $sqlConsulta;
     // Ejecutar la consulta
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
@@ -88,18 +91,20 @@ if ($accion == "consultarPrestamos") {
 
 //Consulta Actualizar Prestamo
 if ($accion == "actualizarPrestamo") {
-    $sqlConsulta = " SELECT prest.id_prestamo, 
+    $sqlConsulta = "SELECT prest.id_prestamo, 
                         prest.id_vehiculo, 
                         IFNULL(prest.tipo_uso, 'S/R') AS tipo_uso, 
                         IFNULL(prest.detalle_tipo_uso, 'S/R') AS detalle_tipo_uso, 
                         IFNULL(prest.motivo_us, 'S/R') AS motivo_us, 
-                        IFNULL(prest.notas_jefe, 'S/R') AS notas_jefe, 
-                        IFNULL(prest.fecha_entrega, 'S/R') AS fecha_entrega, 
+                        IFNULL(prest.notas_jefe, 'S/R') AS notas_jefe,
+                        IFNULL(prest.fecha_entrega, 'S/R') AS fecha_entrega,
                         IFNULL(prest.fecha_fin_prestamo, 'S/R') AS fecha_fin_prestamo, 
                         IFNULL((SELECT inv.placa FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS placa,
-                        IFNULL((SELECT inv.modelo FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS modelo
+                        IFNULL((SELECT inv.modelo FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS modelo,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
                     FROM prestamos prest
-                    WHERE  prest.id_usuario = $id_usuario AND prest.estatus = 'AUTORIZADO'
+                    WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+                    AND prest.estatus = 'AUTORIZADO'
                     GROUP BY id_prestamo DESC";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
@@ -112,11 +117,12 @@ if ($accion == "actualizarPrestamo") {
 //Consulta Prestamos EN CURSO
 if ($accion == "consultarPrestamosEnCurso") {
     $sqlConsulta= " SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, 
-                        prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus, prest.km_inicio, 
+                        prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us, inv.modelo
                     FROM prestamos prest
                     INNER JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-                    WHERE prest.id_usuario = $id_usuario AND prest.estatus = 'EN CURSO'
+                    WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+                    AND prest.estatus = 'EN CURSO'
                     GROUP BY id_prestamo DESC";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
@@ -158,6 +164,25 @@ if ($accion == "denegarPrestamo") {
     exit;
 }
 
+//Consulta de PRESTAMOS TERMINADOS
+if ($accion == "consultarPrestamosTerminados") {
+    $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
+                    prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
+                    prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
+                    IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+            FROM prestamos prest
+            LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+            WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+            AND prest.estatus IN ('FINALIZADO', 'CANCELADO')
+            ORDER BY prest.id_prestamo DESC";
+    $result = $conn->query($sqlConsulta);
+    $prestamos = [];
+    while ($row = $result->fetch_assoc()) {
+        $prestamos[] = $row;
+    }
+    echo json_encode($prestamos);
+}
+
 //Cambia información de un vehículo en el modal de préstamo
 if ($accion == "obtenerInfoVehiculo") {
     $sqlInfo = "SELECT modelo, color, estatus, asignado FROM inventario WHERE id_vehiculo = '$id_vehiculo'";
@@ -175,8 +200,7 @@ if ($accion == "obtenerInfoVehiculo") {
 //Iniciar Préstamo
 if ($accion == "iniciarPrestamo") {
     $sql = "UPDATE prestamos 
-            SET estatus = 'EN CURSO', km_inicio = '$km_inicio', gasolina_inicio = '$gasolina_inicio', 
-                notas_entrega = '$notas_entrega', fecha_registro_entrega = NOW() 
+            SET estatus = 'EN CURSO', notas_entrega = '$notas_entrega', fecha_registro_entrega = NOW() 
             WHERE id_prestamo = '$id_prestamo'";
             
     $result = $conn->query($sql);
@@ -219,10 +243,11 @@ if ($accion == "iniciarPrestamo") {
 
         // Actualizar la ruta de la foto de inicio en la base de datos
         if ($ruta_destino_inicio) {
-            $sqlActualizarFoto = "UPDATE prestamos 
-                                  SET foto_entrega = '$ruta_destino_inicio' 
-                                  WHERE id_prestamo = '$id_prestamo'";
-            $conn->query($sqlActualizarFoto);
+            // Actualizar la tabla actividad_vehiculo con la foto de inicio
+            $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
+                                        VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_inicio', '$gasolina_inicio', '$ruta_destino_inicio', NOW(), 'INICIO')";
+            
+            $conn->query($sqlActualizarActividad);
         }
 
         echo json_encode(['success' => true, 'message' => 'Préstamo iniciado exitosamente.']);
@@ -235,8 +260,7 @@ if ($accion == "iniciarPrestamo") {
 // Finalizar Préstamo
 if ($accion == "finalizarPrestamo") {
     $sql = "UPDATE prestamos 
-            SET estatus = 'FINALIZADO', km_fin = '$km_fin', gasolina_fin = '$gasolina_fin', 
-                notas_devolucion = '$notas_devolucion', fecha_registro_devolucion = NOW(), 
+            SET estatus = 'FINALIZADO', notas_devolucion = '$notas_devolucion', fecha_registro_devolucion = NOW(), 
                 id_recibe = '$id_recibe', id_autoriza = '$id_usuario' 
             WHERE id_prestamo = '$id_prestamo'";
     $result = $conn->query($sql);
@@ -276,10 +300,10 @@ if ($accion == "finalizarPrestamo") {
 
         // Actualizar la ruta de la foto de devolución en la base de datos
         if ($ruta_destino_devolucion) {
-            $sqlActualizarFoto = "UPDATE prestamos 
-                                  SET foto_devolucion = '$ruta_destino_devolucion' 
-                                  WHERE id_prestamo = '$id_prestamo'";
-            $conn->query($sqlActualizarFoto);
+            // Actualizar la tabla actividad_vehiculo con la foto de devolución
+            $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
+                                        VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_fin', '$gasolina_fin', '$ruta_destino_devolucion', NOW(), 'FINALIZACION')";
+            $conn->query($sqlActualizarActividad);           
         }
 
         echo json_encode(['success' => true, 'message' => 'Préstamo finalizado exitosamente.']);

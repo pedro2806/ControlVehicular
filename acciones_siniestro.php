@@ -96,14 +96,14 @@ if ($accion == "subirImagenes") {
 // Consulta para obtener los vehiculos asignados al usuario 
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist, inv.color, inv.anio
-                            FROM inventario inv
-                            LEFT JOIN (
-                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
-                                FROM checklist
-                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
-                            WHERE id_usuario = $id_usuario AND inv.asignado = 'NO'
-                            ORDER BY inv.modelo ASC";
+    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                            FROM inventario inv                            
+                            WHERE inv.id_us_asignado = $id_usuario
+                            UNION
+                            SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio 
+                            FROM prestamos p 
+                            INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
+                            WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
     $result = $conn->query($sqlConsultaVehiculos);
 
     $vehiculos = [];

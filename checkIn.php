@@ -40,7 +40,7 @@
 
                     <!-- Page Heading -->
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class = "h3 mb-0 text-black-800">Registro de Siniestro</h1>                        
+                        <h1 class = "h3 mb-0 text-black-800">CheckIn Semanal</h1>                        
                     </div>
                     <!-- TABLA DE VEHICULOS -->
                     <div class="container">
@@ -63,140 +63,21 @@
                     <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
                     <button id="btnCambiarVehiculo" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                     <!-- FORMULARIO DEL SINIESTRO -->
+                    
                     <form id="formRegistroSiniestro" style="display: none;">
-                        <!-- Content Row -->
-                        <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" required>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Hora:</label> 
-                                <input type = "time" class = "form-control" id = "hora" name = "hora" required>       
-                            </div>                            
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" style="display: none;">
-                                <label>Tipo de Vehiculo:</label> 
-                                <select class="form-select" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
-                                    <option value="S/R">Seleccione...</option>
-                                    <option value="Asignado">Asignado</option>
-                                    <option value="Propio">Propio</option>
-                                    <option value="Prestado">Prestado</option>
-                                </select>       
-                            </div>
-                            <br>
-                            <br>
-                            <!-- Campo adicional para el nombre del dueño -->
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
-                                <label>Propietario:</label>
-                                <select class="form-select" id="id_dueno" name="id_dueno" required>
-                                    <option value="">Seleccione...</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
-                                </select>
-                            </div>
-                        </div>
-                        <br>
-                        <!-- Content Row -->
-                        <h1 class = "h5 mb-0 text-gray-800">Ubicacion</h1>
+                        
+                        <h1 class="h4 mb-4 text-gray-800">Registrar CheckIn</h1>                                               
+                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">                    
                         <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Origen:</label>  
-                                <input class = "form-control" id = "origen" name = "origen"  required>    
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Destino:</label>
-                                <input type = "text" class = "form-control" id = "destino" name = "destino" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Lugar:</label>  
-                                <input class = "form-control" id = "lugar" name = "lugar">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Empresa:</label>
-                                <input type = "text" class = "form-control" id = "empresa" name = "empresa" oninput="this.value = this.value.toUpperCase()">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Servicio:</label>
-                                <input type = "text" class = "form-control" id = "servicio" name = "servicio">
+                            <div class="col-md-6 mb-3">                                
+                                <label for="kilometraje">Kilometraje (Km)</label>
+                                <input type="number" class="form-control" id="kilometraje" name="kilometraje" min="0" required>
                             </div>
                         </div>
-                        <br>
-                        <!-- Content Row -->
-                        <div class = "row">
-                            <h1 class = "h5 mb-0 text-gray-800">Detalles del Automovil</h1>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Kilometraje:</label>  
-                                <input class = "form-control" id = "kilometraje" name = "kilometraje" type="number" min="0">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Gasolina:</label>
-                                <select class = "form-select" id = "gasolina" name = "gasolina">
-                                    <option value = "">Seleccione...</option>
-                                    <option value = "SD">Sin Datos</option>
-                                    <option value = "1/8">1/8</option>
-                                    <option value = "2/8">2/8</option>
-                                    <option value = "3/8">3/8</option>    
-                                    <option value = "4/8">4/8</option>
-                                    <option value = "5/8">5/8</option>
-                                    <option value = "6/8">6/8</option>
-                                    <option value = "7/8">7/8</option>
-                                    <option value = "8/8">8/8</option>
-                                </select>  
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Ubicacion del Vehiculo:</label>  
-                                <input class = "form-control" id = "ubicacion" name = "ubicacion" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Partes Dañadas:</label>  
-                                <input class = "form-control" id = "daños" name = "daños" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto:</label>  
-                                <input class = "form-control" id = "contacto" name = "contacto" type="tel" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Descripción:</label>
-                                <input type="text" class="form-control" id="descripcion" name="descripcion" required>
-                            </div>
-                            <div id="contenedorFotos">
-                                <label>Fotos del Siniestro:</label>
-                                <div class="input-group mb-3">
-                                    <input 
-                                        type="file" 
-                                        class="form-control foto-siniestro" 
-                                        name="foto[]" 
-                                        accept="image/*" 
-                                        capture="environment" 
-                                        required>
-                                </div>
-                            </div>
-                        </div>                        
-                        <button type="button" class="btn btn-outline-info btn-sm" id="btnAgregarFoto" onclick="agregarCampoFoto()">
-                            <i class="fas fa-plus"></i> Agregar Foto
-                        </button>
-                        <input type="hidden" id = "coordenadas" name = "coordenadas">
-                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Guardar</button>
                         </center>
+
                     </form>
                     <br>
                 </div>

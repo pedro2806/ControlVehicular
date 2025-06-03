@@ -591,7 +591,39 @@ function subirImagenAsientos($rutaChecklist, $rutaImagen, $tempFilePath) {
     if (!is_dir($rutaChecklist)) {
         mkdir($rutaChecklist, 0775, true);
     }
-    move_uploaded_file($tempFilePath, $rutaChecklist . "/" . basename($rutaImagen));
+    $destino = $rutaChecklist . "/" . basename($rutaImagen);
+    // Reducir el peso de la imagen antes de moverla
+    reducirPesoImagen($tempFilePath, $destino);
+}
+
+/**
+ * Reduce el peso de una imagen JPEG o PNG.
+ * @param string $origen Ruta temporal de la imagen subida.
+ * @param string $destino Ruta final donde se guardará la imagen optimizada.
+ * @param int $calidad Calidad de compresión (por defecto 75).
+ */
+function reducirPesoImagen($origen, $destino, $calidad = 75) {
+    $info = getimagesize($origen);
+    if ($info === false) {
+        // Si no es una imagen válida, solo mover el archivo
+        move_uploaded_file($origen, $destino);
+        return;
+    }
+
+    $mime = $info['mime'];
+    if ($mime == 'image/jpeg') {
+        $image = imagecreatefromjpeg($origen);
+        imagejpeg($image, $destino, $calidad);
+        imagedestroy($image);
+    } elseif ($mime == 'image/png') {
+        $image = imagecreatefrompng($origen);
+        // PNG usa calidad inversa: 0 (sin compresión) a 9 (máxima compresión)
+        imagepng($image, $destino, 7);
+        imagedestroy($image);
+    } else {
+        // Otros formatos, solo mover
+        move_uploaded_file($origen, $destino);
+    }
 }
 
 

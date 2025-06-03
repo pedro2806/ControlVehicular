@@ -44,16 +44,20 @@
                     <!-- FORMULARIO DE REGISTROS DE PRESTAMOS -->
                     <!-- Pestañas de navegación -->
                     <ul class="nav nav-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
-                    </li>
-                    <!-- Nueva pestaña para Devolución -->
-                    <li class="nav-item">
-                        <a class="nav-link" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link bg-warning text-bg-dark active" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link bg-success text-bg-dark" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
+                        </li>
+                        <!-- Nueva pestaña para Devolución -->
+                        <li class="nav-item">
+                            <a class="nav-link bg-primary text-bg-dark" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
+                        </li>
+                        <!-- Nueva pestaña para Terminados -->
+                        <li class="nav-item">
+                            <a class="nav-link bg-danger text-bg-dark" id="tabTerminados" data-bs-toggle="tab" href="#terminados">Terminados</a>
+                        </li>                        
                     </ul>
                     <!-- Contenedor de las tablas -->
                     <div class="tab-content mt-3">
@@ -61,8 +65,9 @@
                         <div class="tab-pane fade show active" id="pendientes">
                             <div class="table-responsive">
                                 <table id="tablaPrestamos" class="table table-striped table-bordered">
-                                    <thead>
+                                    <thead class="table-warning">
                                         <tr>
+                                            <th>Solicita</th>
                                             <th>Inicio Préstamo</th>    
                                             <th>Fin Préstamo</th>
                                             <th>Tipo de Uso</th>
@@ -81,8 +86,9 @@
                         <div class="tab-pane fade" id="autorizados">
                             <div class="table-responsive">
                                 <table id="tablaAutorizados" class="table table-striped table-bordered">
-                                    <thead>
+                                    <thead class="table-success">
                                         <tr>
+                                            <th>Solicita</th>
                                             <th>Fecha Entrega</th>
                                             <th>Vehiculo</th>
                                             <th>Notas del Jefe</th>
@@ -101,7 +107,7 @@
                         <div class="tab-pane fade" id="devolucion">
                             <div class="table-responsive">
                                 <table id="tablaDevolucion" class="table table-striped table-bordered">
-                                    <thead>
+                                    <thead class="table-primary">
                                         <tr>
                                             <th>Fecha Inicio</th>    
                                             <th>Vehículo</th>
@@ -117,6 +123,24 @@
                                 </table>
                             </div>
                         </div>
+                        <!-- Nueva tabla para terminados -->
+                        <div class="tab-pane fade" id="terminados">
+                            <div class="table-responsive">
+                                <table id="tablaTerminados" class="table table-striped table-bordered">
+                                    <thead class="table-danger">
+                                        <tr>
+                                            <th>Fecha Inicio</th>    
+                                            <th>Vehículo</th>
+                                            <th>Tipo de Uso</th>
+                                            <th>Detalle del Uso</th>
+                                            <th>Fecha Devolucion</th>                                            
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Las filas se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
                     </div>
                 <br>
             </div>
@@ -147,7 +171,7 @@
                         <div class="mb-3">
                             <label>Seleccionar Vehículo:</label>
                             <select id="id_vehiculo" name="id_vehiculo" class="form-select" onchange="actualizarInfoVehiculo(this.value)" required>
-                                <option value="">Seleccione un vehículo</option>
+                                <option value="">Seleccione...</option>
                                 <!-- Las opciones se cargarán dinámicamente -->
                             </select>
                         </div>
@@ -343,6 +367,8 @@
         cargarPrestamos();
         cargarPrestamosAutorizados();
         cargarPrestamosDevolucion();
+        cargarPrestamosTerminados();
+
         $("#tablaPrestamos").DataTable({
             destroy: true,
             paging: true,
@@ -433,6 +459,37 @@
                 }
             }
         });
+        $("#tablaTerminados").DataTable({
+            destroy: true,
+            paging: true,
+            ordering: true,
+            searching: true,
+            info: true,
+        language: {
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                search: "Buscar:",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                lengthMenu: "Mostrar _MENU_ registros",
+                aria: {
+                    sortAscending: ": activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                }
+            }
+        });    
+
         $("#fecha").val(fecha); 
         $("#hora").val(hora);
     });
@@ -472,6 +529,7 @@
                         
                         var fila = `
                             <tr>
+                                <td>${prestamo.nombre_usuario}</td>
                                 <td>${prestamo.fecha_inc_prestamo}</td>
                                 <td>${prestamo.fecha_fin_prestamo}</td>
                                 <td>${prestamo.tipo_uso}</td>
@@ -517,6 +575,7 @@
                             </button>`;
                         var fila = `
                             <tr>
+                                <td>${prestamo.nombre_usuario}</td>
                                 <td>${prestamo.fecha_entrega}</td>
                                 <td>${prestamo.placa} - ${prestamo.modelo}</td>
                                 <td>${prestamo.notas_jefe}</td>
@@ -579,6 +638,39 @@
         });
     }
 
+    // Nueva función para cargar préstamos terminados
+    function cargarPrestamosTerminados() {
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: { accion: "consultarPrestamosTerminados" }, // Cambia la acción según sea necesario
+            dataType: "json",
+            success: function (respuesta) {
+                var tablaTerminados = $("#tablaTerminados tbody");
+                tablaTerminados.empty(); // Limpiar la tabla antes de agregar nuevas filas
+                respuesta.forEach(function (prestamo) {                    
+                        var fila = `
+                            <tr>
+                                <td>${prestamo.fecha_inc_prestamo}</td>    
+                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.tipo_uso}</td>
+                                <td>${prestamo.detalle_tipo_uso}</td>
+                                <td>${prestamo.fecha_fin_prestamo}</td>
+                            </tr>`;
+                        tablaTerminados.append(fila);
+                    
+                });
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al cargar los préstamos terminados.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
     //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
     function infoVehiculos() {
         $.ajax({
@@ -587,14 +679,14 @@
             data: { accion: "consultarInventarioGeneral" },
             dataType: "json",
             success: function (respuesta) {
-                var select = $("#id_vehiculo");
-                select.empty();
+                var select = $("#id_vehiculo");                
                 respuesta.forEach(function (vehiculo) {
                     var option = `<option value="${vehiculo.id_vehiculo}">${vehiculo.modelo} - ${vehiculo.placa}</option>`;
                     select.append(option);
                 });
             },
             error: function (xhr, status, error) {
+                select.empty();
                 Swal.fire({
                     icon: "error",
                     title: "Error",
@@ -736,6 +828,7 @@
                     cargarPrestamos();
                     cargarPrestamosAutorizados();
                     cargarPrestamosDevolucion();
+                    cargarPrestamosTerminados();
                     cerrarModal("modalPrestamo");
                     document.getElementById("formModalPrestamo").reset();
                 } 
@@ -825,6 +918,7 @@
                         cargarPrestamos();
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
+                        cargarPrestamosTerminados();
                         cerrarModal("modalInicioPrestamo");
                         document.getElementById("formInicioPrestamo").reset();
                     });
@@ -885,6 +979,7 @@
                         cargarPrestamos();
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
+                        cargarPrestamosTerminados();
                         cerrarModal("modalFinalizarPrestamo");
                         document.getElementById("formFinalizarPrestamo").reset();
                     });

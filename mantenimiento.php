@@ -79,6 +79,7 @@
                                     <option value = "">Seleccione...</option>
                                     <option value = "Preventivo">Preventivo</option>
                                     <option value = "Correctivo">Correctivo</option>
+                                    <option value = "Verificacion">Verificación</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="div_tipo_carro" style="display: none;">

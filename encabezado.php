@@ -356,7 +356,7 @@
                 Swal.fire({
                 title: "¡Guardado!",
                 text: "Kilometraje registrado correctamente.",
-                icon: "success",
+                icon: "1uccess",
                 timer: 2000,
                 timerProgressBar: true
                 }).then(function () {
@@ -382,10 +382,14 @@
                 success: function (data) {
                     var select = $('#vehiculoAsignado');
                     select.empty();
-                    select.append('<option value="">Seleccione un vehículo</option>');
-                    $.each(data, function (index, vehiculo) {
-                        select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '</option>');
-                    });
+                    if (data && data.length > 0) {
+                        select.append('<option value="">Seleccione un vehículo</option>');
+                        $.each(data, function (index, vehiculo) {
+                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '</option>');
+                        });
+                    } else {
+                        select.append('<option value="">No hay vehículos disponibles</option>');
+                    }
                 },
                 error: function () {
                     console.error('Error al cargar los vehículos');

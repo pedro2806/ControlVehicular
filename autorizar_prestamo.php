@@ -46,6 +46,9 @@
                     <ul class="nav nav-tabs">
                         <li class="nav-item">
                             <a class="nav-link bg-warning text-bg-dark active" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
+                        </li>                        
+                        <li class="nav-item">
+                            <a class="nav-link bg-info text-bg-dark" id="tabAutorizaAsignado" data-bs-toggle="tab" href="#AutorizaAsignado">Asigando otra area</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link bg-success text-bg-dark" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
@@ -364,6 +367,7 @@
         const fecha = now.toISOString().split('T')[0]; 
         const hora = now.toTimeString().split(' ')[0].slice(0, 5);
     $(document).ready(function() {
+        infoVehiculos()
         cargarPrestamos();
         cargarPrestamosAutorizados();
         cargarPrestamosDevolucion();
@@ -679,14 +683,24 @@
             data: { accion: "consultarInventarioGeneral" },
             dataType: "json",
             success: function (respuesta) {
-                var select = $("#id_vehiculo");                
+                var select = $("#id_vehiculo");
+                
                 respuesta.forEach(function (vehiculo) {
-                    var option = `<option value="${vehiculo.id_vehiculo}">${vehiculo.modelo} - ${vehiculo.placa}</option>`;
+                    // Define el color según el valor de vehiculo.usuario
+                    let color = "";
+                    switch (vehiculo.id_usuario) {
+                        case leerCookie("id_usuario"):
+                            color = "background-color: #ffeeba;";
+                            break;                        
+                        default:
+                            color = "background-color:rgb(186, 201, 255);";
+                    }
+                    var option = `<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
                     select.append(option);
                 });
             },
             error: function (xhr, status, error) {
-                select.empty();
+                
                 Swal.fire({
                     icon: "error",
                     title: "Error",
@@ -753,8 +767,7 @@
                     const fechaHora = prestamo.fecha_inc_prestamo.replace(" ", "T");
                     $("#fecha_entrega").val(fechaHora);
 
-                    $("#btnGuardarModal").attr("data-id-prestamo", id_prestamo);
-                    infoVehiculos()
+                    $("#btnGuardarModal").attr("data-id-prestamo", id_prestamo);                    
                     abrirModal("modalPrestamo");
                 } else {
                     Swal.fire({
@@ -1042,6 +1055,21 @@
         if (idModal === "modalFinalizarPrestamo") {
             document.getElementById("formFinalizarPrestamo").reset(); // Limpia el formulario
         }
+    }
+    /**
+     * Lee el valor de una cookie por nombre.
+     * @param {string} nombre - El nombre de la cookie.
+     * @returns {string|null} El valor de la cookie o null si no existe.
+     */
+    function leerCookie(nombre) {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.startsWith(nombre + '=')) {
+                return decodeURIComponent(cookie.substring(nombre.length + 1));
+            }
+        }
+        return null;
     }
     </script>
 </body>

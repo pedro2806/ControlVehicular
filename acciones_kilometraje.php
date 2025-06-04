@@ -64,16 +64,27 @@ if($accion == 'CapturaCheckOut'){
 
 if($accion == 'ActividadesPendientes'){
     // Consultar las actividades pendientes de inicio para el usuario actual
-    $sql = "SELECT av.*, i.placa, i.marca, i.modelo 
-        FROM actividad_vehiculo av
-        INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo
-        WHERE av.tipo_actividad = 'INICIO' 
-        AND av.id_usuario = '".$_COOKIE['id_usuario']."'
-        AND NOT EXISTS (
-            SELECT 1 FROM actividad_vehiculo av2
-            WHERE av2.id_usuario = av.id_usuario
-        AND av2.tipo_actividad = 'FIN'
-        )";
+    $sql = "SELECT
+                av_ultima.id_usuario,
+                av_ultima.id_vehiculo,
+                i.placa,
+                i.marca,
+                i.modelo,
+                av_ultima.tipo_actividad AS ultima_actividad_registrada,
+                av_ultima.fecha_actividad AS fecha_ultima_actividad
+            FROM
+                actividad_vehiculo av_ultima
+            INNER JOIN
+                inventario i ON av_ultima.id_vehiculo = i.id_vehiculo
+            WHERE
+                av_ultima.id_usuario = $_COOKIE[id_usuario]
+                AND av_ultima.fecha_actividad = (
+                    SELECT MAX(av_max.fecha_actividad)
+                    FROM actividad_vehiculo av_max
+                    WHERE av_max.id_usuario = av_ultima.id_usuario
+                    AND av_max.id_vehiculo = av_ultima.id_vehiculo
+                )
+                AND av_ultima.tipo_actividad = 'INICIO'";
     $result = $conn->query($sql);
 
     if ($result && $result->num_rows > 0) {
@@ -89,6 +100,26 @@ if($accion == 'ActividadesPendientes'){
 }
 
 if($accion == 'Actividades'){
+    // Consultar las actividades del usuario actual
+    $sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
+        FROM actividad_vehiculo av
+        INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo        
+        WHERE av.id_usuario = '".$_COOKIE['id_usuario']."'";
+    $result = $conn->query($sql);
+
+    if ($result && $result->num_rows > 0) {
+        $actividades = [];
+        while ($row = $result->fetch_assoc()) {
+            $actividades[] = $row;
+        }
+        echo json_encode(['status' => 'success', 'actividades' => $actividades]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'No se encontraron actividades.']);
+    }
+    exit;
+}
+
+if($accion == 'ActividadesCalendario'){
     // Consultar las actividades del usuario actual
     $sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
         FROM actividad_vehiculo av

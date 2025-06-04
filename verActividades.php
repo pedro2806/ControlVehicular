@@ -24,6 +24,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.css">
     
 </head>
 <body id="page-top">
@@ -68,7 +69,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </div>
                         </div>
                     </div>
-
+                    <div class="row">
+                        <div id="calendarioActividades" name="calendarioActividades"></div>
+                    </div>
 
                 </div>
             </div>
@@ -124,6 +127,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 }
             });
             cargarActividades(); 
+            mostrarCalendarioActividades();
         });
 
         function cargarActividades() {
@@ -161,6 +165,79 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
         }
 
+        function mostrarCalendarioActividades() {
+            // Limpiar el contenedor antes de agregar el calendario
+            $('#calendarioActividades').empty();
+
+            // Crear un array de eventos para FullCalendar
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                type: 'POST',
+                data: { accion: 'ActividadesCalendario' },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.status === 'success') {
+                        var eventos = [];
+                        $.each(data.actividades, function(index, actividad) {
+                            eventos.push({
+                                title: actividad.placa + ' - ' + (actividad.tipo_actividad || ''),
+                                start: actividad.fecha_actividad || actividad.fecha_ultima_actividad,
+                                description: 
+                                    'Modelo: ' + actividad.modelo + '<br>' +
+                                    'Marca: ' + actividad.marca + '<br>' +
+                                    'Usuario: ' + (actividad.usuario || '') + '<br>' +
+                                    'Notas: ' + (actividad.notas || '')
+                            });
+                        });
+
+                        // Crear el calendario
+                        var calendarEl = document.createElement('div');
+                        calendarEl.id = 'fullcalendar';
+                        $('#calendarioActividades').append(calendarEl);
+
+                        // Cargar scripts de FullCalendar si no están cargados
+                        if (typeof FullCalendar === 'undefined') {
+                            $.when(
+                                $.getScript('https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js')
+                            ).done(function() {
+                                inicializarCalendario(calendarEl, eventos);
+                            });
+                        } else {
+                            inicializarCalendario(calendarEl, eventos);
+                        }
+                    } else {
+                        $('#calendarioActividades').html('<p>No hay actividades pendientes.</p>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al cargar actividades pendientes:', error);
+                    $('#calendarioActividades').html('<p>Error al cargar actividades.</p>');
+                }
+            });
+
+            function inicializarCalendario(calendarEl, eventos) {
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    locale: 'es',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    events: eventos,
+                    eventDidMount: function(info) {
+                        // Tooltip con la descripción
+                        $(info.el).tooltip({
+                            title: info.event.extendedProps.description,
+                            html: true,
+                            placement: 'top',
+                            container: 'body'
+                        });
+                    }
+                });
+                calendar.render();
+            }
+        }
         
     </script>
 </body>

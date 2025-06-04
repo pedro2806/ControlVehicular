@@ -118,14 +118,13 @@ if ($accion == "consultarInventario") {
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
 
-    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, chek.id_checklist, inv.color, inv.anio
+    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
                             FROM inventario inv
-                            LEFT JOIN (
-                                SELECT id_vehiculo, IFNULL(MAX(id_checklist), 0)  AS id_checklist
-                                FROM checklist
-                                GROUP BY id_vehiculo) chek ON inv.id_vehiculo = chek.id_vehiculo
-                            WHERE inv.asignado = 'NO'
-                            ORDER BY inv.modelo ASC";
+                            WHERE id_usuario = $id_usuario AND asignado = 'NO'
+                            UNION
+                            SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
+                            FROM inventario inv
+                            WHERE inv.id_usuario != $id_usuario AND inv.asignado = 'NO'";
     $result = $conn->query($sqlConsultaVehiculosG);
 
     $vehiculos = [];

@@ -84,6 +84,10 @@
                                 <label>OV/Cliente/OT/Proyecto:</label>
                                 <input type="text" id = "dato" name = "dato" class="form-control" required>
                             </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                                <label>Destino:</label>
+                                <input type="text" id = "destino" name = "destino" class="form-control" required>
+                            </div>
                         </div>
                         <br>
                         <div class = "row">
@@ -184,6 +188,7 @@
             var accion = "RegistrarPrestamo";
             var tipo_uso = $("#visita_vinculada").val();
             var detalle_tipo_uso = $("#dato").val();
+            var destino = $("#destino").val();
 
             // Validar campos obligatorios generales
             if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo) {
@@ -199,7 +204,7 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_prestamos",
-                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso },
+                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino },
                 dataType: "json",
                 success: function (respuesta) {
                     Swal.fire({
@@ -213,10 +218,7 @@
                         window.location.replace("autorizar_prestamo");
                     });
                 },
-                error: function (xhr, status, error) {
-                    //console.error("Error en la solicitud AJAX:", error); 
-                    //console.error("Detalles del error:", xhr.responseText); 
-                    //console.error("Estado:", status); 
+                error: function (xhr, status, error) {                    
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',

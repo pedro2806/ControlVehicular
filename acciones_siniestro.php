@@ -97,8 +97,8 @@ if ($accion == "subirImagenes") {
 if ($accion == "consultarInventario") {
 
     $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
-                            FROM inventario inv                            
-                            WHERE inv.id_us_asignado = $id_usuario
+                            FROM inventario inv
+                            WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
                             UNION
                             SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio 
                             FROM prestamos p 
@@ -120,7 +120,7 @@ if ($accion == "consultarInventarioGeneral") {
 
     $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
                             FROM inventario inv
-                            WHERE id_usuario = $id_usuario AND asignado = 'NO'
+                            WHERE id_usuario = $id_usuario AND  asignado = 'NO'  OR inv.id_usuario = $id_usuario
                             UNION
                             SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
                             FROM inventario inv

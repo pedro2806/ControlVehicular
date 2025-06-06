@@ -25,7 +25,8 @@ $id_usuario = $_COOKIE['id_usuario'];
 $foto = $_POST["rutaImagen"];
 $placa = $_POST["placa"];
 $foto = $_POST["rutaImagen"];
-
+$folioOC = $_POST["folioOC"];
+/*---------------------------------------------*/
 $id_mantenimiento = $_POST["id_mantenimiento"];
 $notas = $_POST['comentario'];
 $fecha_programada = $_POST['fecha_programada'];
@@ -111,7 +112,7 @@ if ($accion == "consultarMantenimientos") {
                     mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
                     FROM mantenimientos mant
                     INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                    WHERE mant.VoBo_jefe = '$estatus' AND mant.solicitante = '$id_usuario'
+                    WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
                     ORDER BY mant.fecha_registro DESC";
     $result = $conn->query($sqlConsulta);
 
@@ -126,7 +127,7 @@ if ($accion == "consultarMantenimientos") {
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
     $sqlAutoriza = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada' 
+            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = $folioOC
             WHERE id_mantenimiento = '$id_mantenimiento'";
     $resultAutoriza = $conn->query($sqlAutoriza);
     echo json_encode(["success" => true]);

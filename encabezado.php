@@ -129,11 +129,24 @@
                             </select>
                         </div>
                         <div class="mb-2 row g-2">
-                            <div class="col-6 col-md-6">
-                                <label for="otRelacionada1" class="form-label">OT Relacionada</label>
+                            <div class="col-4 col-md-4">
+                                <label>Tipo de uso:</label>
+                                <select class="form-select" id="tipoServicio" name="tipoServicio" onchange="cambiaLabelTServicio()" required>
+                                    <option value="" disabled selected>Seleccione una opción</option>
+                                    <option value="Entrega">Entrega</option>
+                                    <option value="Recoleccion">Recolección</option>
+                                    <option value="Prospeccion">Prospección</option>
+                                    <option value="Negociacion">Negociación</option>
+                                    <option value="Proyecto">Proyecto</option>
+                                    <option value="OV">OV</option>
+                                    <option value="OT">OT</option>
+                                </select>
+                            </div>
+                            <div class="col-4 col-md-4">
+                                <label for="labelTServicio" id="labelTServicio" name="labelTServicio" class="form-label">OT Relacionada</label>
                                 <input type="text" class="form-control" id="otRelacionada" name="otRelacionada" required>
                             </div>
-                            <div class="col-6 col-md-6">
+                            <div class="col-4 col-md-4">
                                 <label for="otRelacionada2" class="form-label">Patron</label>
                                 <input type="text" class="form-control" id="patronRelacionado" name="patronRelacionado" required>
                             </div>
@@ -194,6 +207,7 @@
                             </table>
                             <form id="formNuevaActividadPendiente" class="mb-3">                                
                                 <div class="row g-2 mt-2">
+
                                     <div class="col-md-3">
                                         <label for="kmActualNuevo" class="form-label">Km Actual</label>
                                         <input type="number" class="form-control" id="kmActualNuevo" name="kmActualNuevo" min="0" required>
@@ -273,9 +287,10 @@
             var notasCheckin = $('#notasCheckin').val();
             var gasActual = $('#gasActual').val();            
             var imgCheckin = $('#imgCheckin')[0].files[0];
-
+            var tipoServicio = $('#tipoServicio').val();
+            // Validar que el tipo de servicio sea válido               
             // Validar que los campos no estén vacíos
-            if (!vehiculoAsignado || !kmActual || !gasActual) {
+            if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio || !otRelacionada) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
             return;
             }
@@ -288,6 +303,8 @@
             formData.append('patronRelacionado', patronRelacionado);
             formData.append('notasCheckin', notasCheckin);
             formData.append('gasActual', gasActual);
+            formData.append('tipoServicio', tipoServicio);
+
             if (imgCheckin) {
             formData.append('imgCheckin', imgCheckin);
             }
@@ -427,6 +444,20 @@
                     console.error('Error al verificar actividades pendientes');
                 }
             });
+        }
+
+        function cambiaLabelTServicio() {
+            var tipoServicio = document.getElementById("tipoServicio").value;
+            var labelTServicio = document.getElementById("labelTServicio");
+            if (tipoServicio === "OV") {
+                labelTServicio.innerHTML = "MESS-OV";
+            } else if (tipoServicio === "OT") {
+                labelTServicio.innerHTML = "OT Relacionada";
+            } else if (tipoServicio === "Proyecto") {
+                labelTServicio.innerHTML = "Proyecto Relacionado";
+            } else {
+                labelTServicio.innerHTML = "Detalle"; // Valor por defecto
+            }
         }
     
         // Función para mostrar/ocultar contraseñas

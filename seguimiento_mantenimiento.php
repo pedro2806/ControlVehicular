@@ -172,7 +172,7 @@
                 estiloEstatus = 'warning';                
             } else if (estiloEstatus == 'AUTORIZADO') {
                 estiloEstatus = 'primary';
-                encabezado = `<button class="btn btn-outline-success btn-sm" onclick="mantenimientoRealizado('${mantenimiento.id_mantenimiento}')"><i class="fas fa-check"></i>Marcar como realizado</button>`;
+                encabezado = `<button class="btn btn-outline-success btn-sm" onclick="mantenimientoRealizado('${mantenimiento.id_mantenimiento}')"><i class="fas fa-check"></i> Marcar como realizado</button>`;
             } else if (estiloEstatus == 'REALIZADO') {
                 estiloEstatus = 'success';
             } else {
@@ -201,7 +201,8 @@
                             </div>
                             <!-- Segunda columna con la imagen -->
                             <div class="col-sm-5">
-                                <h4><span class="badge text-bg-${estiloEstatus}"><strong>Estatus:</strong> ${mantenimiento.VoBo_jefe || 'N/A'}</span></h4>
+                                <h5><span class="badge text-bg-${estiloEstatus}"><strong>Estatus:</strong> ${mantenimiento.VoBo_jefe || 'N/A'}</span></h5>
+                                <p style="margin:0;"><strong>Folio OC:</strong> ${mantenimiento.folio || 'N/A'}</p> <br>
                                 ${imgHtml}
                             </div>
                             <!-- Imagen centrada -->

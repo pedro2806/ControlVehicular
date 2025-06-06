@@ -51,7 +51,7 @@
 
     <hr class="sidebar-divider">
     <!-- Menú CheckIn -->
-    <li class="nav-item btn-primary active">
+    <li class="nav-item btn-success active">
         <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
             <i class="fas fa-fw fa-check"></i>
             <span>CheckIn</span>

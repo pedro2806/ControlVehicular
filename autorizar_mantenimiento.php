@@ -104,6 +104,10 @@
                             <input type="date" class="form-control" id="fecha_programada" name="fecha_programada" required>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Folio:</label>
+                            <input type="text" class="form-control" id="folioOC" name="folioOC" required>
+                        </div>
+                        <div class="mb-3">
                             <label for="comentario" class="form-label">Comentario:</label>
                             <textarea class="form-control" id="comentario" name="comentario" rows="3" required></textarea>
                         </div>
@@ -269,6 +273,7 @@
         var accion = $("#modalMantenimiento").data("accion");
         var comentario = $("#comentario").val();
         var fecha_programada = $("#fecha_programada").val();
+        var folioOC = $("#folioOC").val();
 
         // Validar que la fecha programada no esté vacía si el campo está visible y habilitado
         if ($("#fecha_programada").is(":visible") && !$("#fecha_programada").prop("disabled") && fecha_programada === "") {
@@ -284,7 +289,7 @@
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento",
-            data: { accion, id_mantenimiento, comentario, fecha_programada },
+            data: { accion, id_mantenimiento, comentario, fecha_programada, folioOC},
             success: function (respuesta) {
                 Swal.fire({
                     icon: "success",

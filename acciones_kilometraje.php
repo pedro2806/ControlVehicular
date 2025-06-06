@@ -13,6 +13,9 @@ $patron = isset($_POST['patronRelacionado']) ? $_POST['patronRelacionado'] : nul
 $accion = isset($_POST['accion']) ? $_POST['accion'] : null;
 $gasActual = isset($_POST['gasActual']) ? $_POST['gasActual'] : null;
 $otRelacionada = isset($_POST['otRelacionada']) ? $_POST['otRelacionada'] : null;
+$tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
+
+
 // Si recibes archivos (foto), puedes procesarlos aquí
 if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
     $nombreArchivo = uniqid('foto_', true) . '.' . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
@@ -21,7 +24,7 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
 }
 
 if ($accion == 'CargarVehiculos'){
-    $sql = "SELECT id_vehiculo, placa, marca, modelo, color FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."'";
+    $sql = "SELECT id_vehiculo, placa, marca, modelo, color FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";
     $result = $conn->query($sql);
     
     if ($result->num_rows > 0) {
@@ -38,8 +41,8 @@ if ($accion == 'CargarVehiculos'){
 
 if($accion == 'CapturaCheckIn'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio')";
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.']);

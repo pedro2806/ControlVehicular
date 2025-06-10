@@ -497,7 +497,7 @@ if ($opcion == 'guardarCheckIn') {
     }
 
     // Insert into checklist_limpiaParabrisas
-    $resultadoLimpiaParabrisas = insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_LimpiaParabrisas, $observaciones_LimpiaParabrisas, $foto_limpiaParabrisas, $placa, $buenEstado_Limpiaparabrisas);
+    $resultadoLimpiaParabrisas = insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_Limpiaparabrisas, $observaciones_Limpiaparabrisas, $foto_limpiaparabrisas, $placa, $buenEstado_Limpiaparabrisas);
     if (!$resultadoLimpiaParabrisas) {
         die(json_encode(array("error" => "Failed to insert checklist limpiaParabrisas: " . mysqli_error($conn))));
     }

@@ -45,21 +45,21 @@
                     <!-- Pestañas de navegación -->
                     <ul class="nav nav-tabs">
                         <li class="nav-item">
-                            <a class="nav-link bg-warning text-bg-dark active" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
+                            <a class="btn btn-outline-warning" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
                         </li>                        
                         <li class="nav-item">
-                            <a class="nav-link bg-info text-bg-dark" id="tabAutorizaAsignado" data-bs-toggle="tab" href="#AutorizaAsignado">Asigando otra area</a>
+                            <a class="btn btn-outline-info" id="tabAutorizaAsignadoOtraArea" data-bs-toggle="tab" href="#AutorizaAsignadoOtraArea">Asignado otra area</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link bg-success text-bg-dark" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
+                            <a class="btn btn-outline-success" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
                         </li>
                         <!-- Nueva pestaña para Devolución -->
                         <li class="nav-item">
-                            <a class="nav-link bg-primary text-bg-dark" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
+                            <a class="btn btn-outline-primary" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
                         </li>
                         <!-- Nueva pestaña para Terminados -->
                         <li class="nav-item">
-                            <a class="nav-link bg-danger text-bg-dark" id="tabTerminados" data-bs-toggle="tab" href="#terminados">Terminados</a>
+                            <a class="btn btn-outline-danger" id="tabTerminados" data-bs-toggle="tab" href="#terminados">Terminados</a>
                         </li>                        
                     </ul>
                     <!-- Contenedor de las tablas -->
@@ -69,6 +69,27 @@
                             <div class="table-responsive">
                                 <table id="tablaPrestamos" class="table table-striped table-bordered">
                                     <thead class="table-warning">
+                                        <tr>
+                                            <th>Solicita</th>
+                                            <th>Inicio Préstamo</th>    
+                                            <th>Fin Préstamo</th>
+                                            <th>Tipo de Uso</th>
+                                            <th>Detalle del Uso</th>
+                                            <th>Motivo</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Las filas se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Tabla de préstamos autorizados para otra área -->
+                        <div class="tab-pane fade show" id="AutorizaAsignadoOtraArea">
+                            <div class="table-responsive">
+                                <table id="tablaPrestamosOtraArea" class="table table-striped table-bordered">
+                                    <thead class="table-info">
                                         <tr>
                                             <th>Solicita</th>
                                             <th>Inicio Préstamo</th>    
@@ -144,6 +165,7 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
                     </div>
                 <br>
             </div>
@@ -186,6 +208,7 @@
                             <div style="flex: 1;">
                                 <label class="form-label" for="color">Color:</label>
                                 <input type="text" class="form-control" id="color" name="color" readonly>
+                                <input type="hidden" class="form-control" id="tipoP" name="tipoP" readonly>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -372,6 +395,7 @@
         cargarPrestamosAutorizados();
         cargarPrestamosDevolucion();
         cargarPrestamosTerminados();
+        cargarPrestamosOtraArea();
 
         $("#tablaPrestamos").DataTable({
             destroy: true,
@@ -492,7 +516,38 @@
                     sortDescending: ": activar para ordenar la columna de manera descendente"
                 }
             }
-        });    
+        });
+        
+        $("#tablaPrestamosOtraArea").DataTable({
+            destroy: true,
+            paging: true,
+            ordering: true,
+            searching: true,
+            info: true,
+            language: {
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                search: "Buscar:",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                },
+                lengthMenu: "Mostrar _MENU_ registros",
+                aria: {
+                    sortAscending: ": activar para ordenar la columna de manera ascendente",
+                    sortDescending: ": activar para ordenar la columna de manera descendente"
+                }
+            }
+        });
 
         $("#fecha").val(fecha); 
         $("#hora").val(hora);
@@ -524,7 +579,7 @@
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTE") {
                         var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo})">
+                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                             </button>
                             <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
@@ -555,6 +610,58 @@
                     icon: "error",
                     title: "Error",
                     text: "Hubo un problema al cargar los préstamos pendientes.",
+                    confirmButtonText: "Aceptar"
+                });
+            }
+        });
+    }
+
+
+    // Función para cargar préstamos autorizados para otra área    
+    function cargarPrestamosOtraArea() {
+        const rol = getCookie('rol'); 
+        $.ajax({
+            type: "POST",
+            url: "acciones_prestamos",
+            data: { accion: "consultarPrestamosOtraArea" },
+            dataType: "json",
+            success: function (respuesta) {
+                var tablaPendientesOtraArea = $("#tablaPrestamosOtraArea tbody");
+                tablaPendientesOtraArea.empty();
+                respuesta.forEach(function (prestamo) {
+                    if (prestamo.estatus === "PENDIENTEAREA") {
+                        var botones = `
+                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 1)">
+                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
+                                <ion-icon name="close-outline" class="fs-6"></ion-icon>
+                            </button>`;
+                        
+                        var fila = `
+                            <tr>
+                                <td>${prestamo.nombre_usuario}</td>
+                                <td>${prestamo.fecha_inc_prestamo}</td>
+                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.tipo_uso}</td>
+                                <td>${prestamo.detalle_tipo_uso}</td>
+                                <td>${prestamo.motivo_us}</td>
+                                <td>${botones}</td>
+                            </tr>`;
+                        tablaPendientesOtraArea.append(fila);
+                    }
+                });
+                if (rol != 3) {
+                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").hide(); // Ocultar columna "Acción"
+                } else {
+                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").show(); // Mostrar columna "Acción"
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Hubo un problema al cargar los préstamos pendientes otra area.",
                     confirmButtonText: "Aceptar"
                 });
             }
@@ -695,7 +802,7 @@
                         default:
                             color = "background-color:rgb(186, 201, 255);";
                     }
-                    var option = `<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
+                    var option = `<option value="${vehiculo.id_vehiculo},${vehiculo.tipo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
                     select.append(option);
                 });
             },
@@ -751,11 +858,11 @@
     }
 
     // Función para autorizar un prestamo
-    function abrirModalAutoriza(id_prestamo) {
+    function abrirModalAutoriza(id_prestamo, tipo) {
         $.ajax({
             type: "POST",
             url: "acciones_prestamos",
-            data: { accion: "consultarPrestamos", id_prestamo },
+            data: { accion: "consultarPrestamosDetalle", id_prestamo},
             dataType: "json",
             success: function (respuesta) {
                 const prestamo = respuesta.find(p => p.id_prestamo == id_prestamo);
@@ -763,7 +870,9 @@
                     $("#placa").val(prestamo.placa);
                     $("#modelo").val(prestamo.modelo);
                     $("#color").val(prestamo.color);
-
+                    $("#id_vehiculo").val(prestamo.id_vehiculo+",EXTERNO");
+                    $("#id_vehiculo").prop("disabled", true);
+                    $("#tipoP").val(tipo);
                     const fechaHora = prestamo.fecha_inc_prestamo.replace(" ", "T");
                     $("#fecha_entrega").val(fechaHora);
 
@@ -787,6 +896,7 @@
                 });
             }
         });
+        //OTRA_AREA
     }
 
     // Función para abrir el modal de iniciar préstamo
@@ -817,6 +927,7 @@
         var id_vehiculo = $("#id_vehiculo").val();
         var fecha_entrega = $("#fecha_entrega").val();
         var notas_jefe = $("#notas_jefe").val();
+        var tipo_uso = $("#tipoP").val();
         var accion = "autorizarPrestamo"; 
         
         $.ajax({
@@ -827,7 +938,8 @@
                 id_prestamo,
                 id_vehiculo,
                 fecha_entrega,
-                notas_jefe
+                notas_jefe,
+                tipo_uso
             },
             dataType: "json",
             success: function (respuesta) {
@@ -842,6 +954,7 @@
                     cargarPrestamosAutorizados();
                     cargarPrestamosDevolucion();
                     cargarPrestamosTerminados();
+                    cargarPrestamosOtraArea();
                     cerrarModal("modalPrestamo");
                     document.getElementById("formModalPrestamo").reset();
                 } 
@@ -932,6 +1045,7 @@
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
                         cargarPrestamosTerminados();
+                        cargarPrestamosOtraArea();
                         cerrarModal("modalInicioPrestamo");
                         document.getElementById("formInicioPrestamo").reset();
                     });
@@ -993,6 +1107,7 @@
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
                         cargarPrestamosTerminados();
+                        cargarPrestamosOtraArea();
                         cerrarModal("modalFinalizarPrestamo");
                         document.getElementById("formFinalizarPrestamo").reset();
                     });

@@ -139,6 +139,7 @@
                             </div>
                             <br>
                             <br>
+                            <!--
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Fecha Prox. Servicio:</label>
                                 <input type = "date" class = "form-control" id = "prox_fecha" name = "prox_fecha" required>
@@ -147,6 +148,7 @@
                                 <label>Kilometraje Prox. Servicio:</label>  
                                 <input class = "form-control" id = "prox_kilometraje" name = "prox_kilometraje" type="number" min="0">
                             </div>
+                            -->
                             <div class="col-lg-12 col-md-12 col-sm-12 col-12">
                                 <label>Foto del Automovil:</label>
                                 <input 
@@ -339,8 +341,8 @@
             var descripcion = $("#descripcion").val();
             var solicitante = getCookie("id_usuario"); 
             var VoBo_jefe = "PENDIENTE"; 
-            var fecha_proxi = $("#prox_fecha").val();
-            var km_proxi = $("#prox_kilometraje").val();
+            var fecha_proxi ='';// $("#prox_fecha").val();
+            var km_proxi = '';//$("#prox_kilometraje").val();
             var tipo_carro = $("#tipo_carro").val();
             var id_dueno = $("#id_dueno").val();
             var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
@@ -354,8 +356,8 @@
             //if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
             //if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
             if (!descripcion) camposFaltantes.push("Descripción");
-            if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
-            if (!km_proxi) camposFaltantes.push("Kilometraje del próximo servicio");
+            //if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
+            //if (!km_proxi) camposFaltantes.push("Kilometraje del próximo servicio");
             if (!kilometraje) camposFaltantes.push("Kilometraje actual");
             if (!tipo_mantenimiento) camposFaltantes.push("Tipo de servicio");
             if (!contacto) camposFaltantes.push("Contacto");
@@ -370,16 +372,7 @@
                 });
                 return;
             }
-            // Validar que el kilometraje del próximo servicio sea mayor que el kilometraje actual
-            if (parseFloat(km_proxi) <= parseFloat(kilometraje)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Kilometraje inválido',
-                    text: 'El kilometraje del próximo servicio debe ser mayor que el kilometraje actual.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
+            
             // Validar que la fecha del próximo servicio sea mayor que la fecha del servicio actual
             if (new Date(fecha_proxi) <= new Date(fecha_registro)) {
                 Swal.fire({
@@ -401,7 +394,7 @@
                     type: "POST",
                     url: "acciones_mantenimiento",
                     data: { id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, 
-                            fecha_proxi, km_proxi, tipo_carro, id_dueno, rutaImagen, accion},
+                            tipo_carro, id_dueno, rutaImagen, accion},
                     dataType: 'json',
                     success: function (respuesta) {
                         Swal.fire({

@@ -157,8 +157,19 @@
                                 <input type="number" class="form-control" id="kmActual" name="kmActual" min="0" required>
                             </div>
                             <div class="col-6 col-md-6">
-                                <label for="kmActual" class="form-label">Gas. Actual</label>
-                                <input type="number" class="form-control" id="gasActual" name="gasActual" min="0" required>
+                                <label for="kmActual" class="form-label">Gas. Actual</label>                                
+                                <select class = "form-select" id = "gasActual" name = "gasActual">
+                                    <option value = "">Seleccione...</option>
+                                    <option value = "SD">Sin Datos</option>
+                                    <option value = "1/8">1/8</option>
+                                    <option value = "2/8">2/8</option>
+                                    <option value = "3/8">3/8</option>    
+                                    <option value = "4/8">4/8</option>
+                                    <option value = "5/8">5/8</option>
+                                    <option value = "6/8">6/8</option>
+                                    <option value = "7/8">7/8</option>
+                                    <option value = "8/8">8/8</option>
+                                </select> 
                             </div>    
                         </div>
                         <div class="mb-2 row g-2">
@@ -402,7 +413,7 @@
                     if (data && data.length > 0) {
                         select.append('<option value="">Seleccione un vehículo</option>');
                         $.each(data, function (index, vehiculo) {
-                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '</option>');
+                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa +' - '+ vehiculo.modelo+'</option>');
                         });
                     } else {
                         select.append('<option value="">No hay vehículos disponibles</option>');

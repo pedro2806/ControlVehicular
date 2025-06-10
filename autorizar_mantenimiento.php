@@ -104,7 +104,7 @@
                             <input type="date" class="form-control" id="fecha_programada" name="fecha_programada" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Folio:</label>
+                            <label class="form-label">Folio MESS-OC:</label>
                             <input type="text" class="form-control" id="folioOC" name="folioOC" required>
                         </div>
                         <div class="mb-3">
@@ -181,7 +181,7 @@
                 respuesta.forEach(function(mantenimiento) { 
 
                     var botones = "";
-                    if (rol == 3 && estatus == "PENDIENTE") { 
+                    if (rol == 2 && estatus == "PENDIENTE") { 
                         botones = `
                             <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>

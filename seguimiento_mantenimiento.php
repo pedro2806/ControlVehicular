@@ -169,14 +169,17 @@
             encabezado = '';
             estiloEstatus = mantenimiento.VoBo_jefe;
             if (estiloEstatus == 'PENDIENTE') {
+                encabezado = '';
                 estiloEstatus = 'warning';                
             } else if (estiloEstatus == 'AUTORIZADO') {
                 estiloEstatus = 'primary';
                 encabezado = `<button class="btn btn-outline-success btn-sm" onclick="mantenimientoRealizado('${mantenimiento.id_mantenimiento}')"><i class="fas fa-check"></i> Marcar como realizado</button>`;
             } else if (estiloEstatus == 'REALIZADO') {
                 estiloEstatus = 'success';
+                encabezado = '';
             } else {
                 estiloEstatus = 'secondary';
+                encabezado = '';
             }
 
             $('#footerDetalleMantenimiento').html(encabezado);
@@ -193,10 +196,9 @@
                         <div class="row">
                             <!-- Primera columna con información -->
                             <div class="col-sm-7">
-                                <p style="margin:0;"><strong>Fecha de Registro:</strong> ${mantenimiento.fecha_registro || 'N/A'}</p>
+                                <p style="margin:1;"><strong>Fecha de Registro:</strong> ${mantenimiento.fecha_registro || 'N/A'}</p>
                                 <p style="margin:1;"><strong>Tipo:</strong> ${mantenimiento.tipo_mantenimiento || 'N/A'}</p>
-                                <p style="margin:0;"><strong>Kilometraje:</strong> ${mantenimiento.kilometraje || 'N/A'}</p>
-                                <p style="margin:1;"><strong>Fecha Próximo Mantenimiento:</strong> ${mantenimiento.fecha_proxi || 'N/A'}</p>
+                                <p style="margin:1;"><strong>Kilometraje:</strong> ${mantenimiento.kilometraje || 'N/A'}</p>                                
                                 <p style="margin:1;"><strong>Descripción:</strong> ${mantenimiento.descripcion || 'N/A'}</p>
                             </div>
                             <!-- Segunda columna con la imagen -->

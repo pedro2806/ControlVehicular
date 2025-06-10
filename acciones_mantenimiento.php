@@ -22,6 +22,8 @@ $id_dueno = $_POST["id_dueno"];
 
 $noEmpleado = $_COOKIE['noEmpleado'];
 $id_usuario = $_COOKIE['id_usuario'];
+$rol = $_COOKIE['rol'];
+
 $foto = $_POST["rutaImagen"];
 $placa = $_POST["placa"];
 $foto = $_POST["rutaImagen"];
@@ -42,7 +44,7 @@ if ($accion == "RegistrarMantenimiento") {
                     (id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe, 
                     fecha_proxi, km_proxi, tipo_carro, id_dueno, foto)
                     VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE' ,
-                    '$fecha_proxi', '$km_proxi', '$tipo_carro', '$id_dueno', '$foto')";                   
+                    NULL, NULL, '$tipo_carro', '$id_dueno', '$foto')";                   
     $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Mantenimiento registrado exitosamente."]);
@@ -108,12 +110,23 @@ if ($accion == "consultarUsuarios") {
 
 //Consulta de Mantenimientos
 if ($accion == "consultarMantenimientos") {
-    $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
-                    mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
-                    FROM mantenimientos mant
-                    INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                    WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
-                    ORDER BY mant.fecha_registro DESC";
+    
+    if($rol == '2'){
+        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
+                        FROM mantenimientos mant
+                        INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                        WHERE mant.VoBo_jefe = '$estatus'
+                        ORDER BY mant.fecha_registro DESC";
+    } else {        
+    
+        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
+                        FROM mantenimientos mant
+                        INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                        WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
+                        ORDER BY mant.fecha_registro DESC";
+    }
     $result = $conn->query($sqlConsulta);
 
     $mantenimientos = [];

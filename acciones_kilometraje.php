@@ -6,10 +6,10 @@ date_default_timezone_set('America/Mexico_City');
 
 // Obtener datos del POST
 $id_vehiculo = isset($_POST['vehiculoAsignado']) ? $_POST['vehiculoAsignado'] : null;
-$id_prestamo = isset($_POST['id_prestamo']) ? $_POST['id_prestamo'] : null;
+$id_prestamo = (isset($_POST['id_prestamo']) && $_POST['id_prestamo'] !== '' && $_POST['id_prestamo'] !== 'undefined') ? $_POST['id_prestamo'] : null;
 $km_inicio = isset($_POST['kmActual']) ? $_POST['kmActual'] : null;
 $notas = isset($_POST['notasCheckin']) ? $_POST['notasCheckin'] : null;
-$patron = isset($_POST['patronRelacionado']) ? $_POST['patronRelacionado'] : null;
+$patron = (isset($_POST['patronRelacionado']) && $_POST['patronRelacionado'] !== '' && $_POST['patronRelacionado'] !== 'undefined') ? $_POST['patronRelacionado'] : null;
 $accion = isset($_POST['accion']) ? $_POST['accion'] : null;
 $gasActual = isset($_POST['gasActual']) ? $_POST['gasActual'] : null;
 $otRelacionada = isset($_POST['otRelacionada']) ? $_POST['otRelacionada'] : null;

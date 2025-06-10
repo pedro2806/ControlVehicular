@@ -75,8 +75,7 @@
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-                <a class="collapse-item" href="autorizar_mantenimiento">Seg. Mantenimientos</a>
-                <a class="collapse-item" href="autorizar_mantenimiento">Autorizar Mantenimiento</a>
+                <a class="collapse-item" href="autorizar_mantenimiento">Seg. Mantenimientos</a>                
             </div>
         </div>
     </li>

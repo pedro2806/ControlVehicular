@@ -90,6 +90,62 @@ if ($accion == "consultarPrestamos") {
     echo json_encode($prestamos);
 }
 
+//Consulta de Prestamos
+if ($accion == "consultarPrestamosDetalle") {    
+        $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, prest.id_vehiculo,
+                        prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
+                        prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                FROM prestamos prest
+                LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+                WHERE prest.id_prestamo = $id_prestamo
+                ORDER BY prest.id_prestamo DESC";
+    
+//echo $sqlConsulta;
+    // Ejecutar la consulta
+    $result = $conn->query($sqlConsulta);
+    $prestamos = [];
+    while ($row = $result->fetch_assoc()) {
+        $prestamos[] = $row;
+    }
+    echo json_encode($prestamos);
+}
+
+//Consulta de Prestamos Otra Area
+if ($accion == "consultarPrestamosOtraArea") {
+    if ($rol == 3) {
+        // ROL 3 es jefe de área
+        $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
+                        prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
+                        prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                FROM prestamos prest
+                LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+                WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+                AND prest.estatus = 'PENDIENTEAREA'
+                ORDER BY prest.id_prestamo DESC";
+    } elseif ($rol == 1) {
+        // ROL 1 es usuario
+        $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
+                            tipo_uso, detalle_tipo_uso, motivo_us,
+                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        FROM prestamos prest
+                        WHERE id_usuario = $id_usuario
+                        GROUP BY id_prestamo DESC";
+    } else {
+        echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
+        exit;
+    }
+    //echo $sqlConsulta;
+    // Ejecutar la consulta
+    $result = $conn->query($sqlConsulta);
+    $prestamos = [];
+    while ($row = $result->fetch_assoc()) {
+        $prestamos[] = $row;
+    }
+    echo json_encode($prestamos);
+}
+
 //Consulta Actualizar Prestamo
 if ($accion == "actualizarPrestamo") {
     $sqlConsulta = "SELECT prest.id_prestamo, 
@@ -134,11 +190,35 @@ if ($accion == "consultarPrestamosEnCurso") {
 }
 
 //Aprobar Prestamo
-if ($accion == "autorizarPrestamo") {
-    $sqlAutoriza = "UPDATE prestamos 
-                    SET estatus = 'AUTORIZADO', id_vehiculo = '$id_vehiculo', fecha_registro_asignado = NOW(), 
-                        notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario' 
-                    WHERE id_prestamo = '$id_prestamo'";
+if ($accion == "autorizarPrestamo") {    
+
+    $parts = explode(',', $id_vehiculo);
+
+    $idV = $parts[0];
+    $tipo = $parts[1];
+
+    if($tipo_uso == '1'){
+        $sqlAutoriza = "UPDATE prestamos 
+                        SET estatus = 'AUTORIZADO', fecha_registro_asignado = NOW(), 
+                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario',
+                            id_vehiculo = '$idV'
+                        WHERE id_prestamo = '$id_prestamo'";
+    }
+    else{
+        if($tipo == 'EXTERNO') {
+            $sqlAutoriza = "UPDATE prestamos 
+                        SET estatus = 'PENDIENTEAREA', fecha_registro_asignado = NOW(), 
+                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario',
+                            id_vehiculo = '$idV'
+                        WHERE id_prestamo = '$id_prestamo'";
+        } else {
+            $sqlAutoriza = "UPDATE prestamos 
+                        SET estatus = 'AUTORIZADO', id_vehiculo = '$idV', fecha_registro_asignado = NOW(), 
+                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario' 
+                        WHERE id_prestamo = '$id_prestamo'";    
+        }
+    }
+    
     $resultAutoriza = $conn->query($sqlAutoriza);
     if ($resultAutoriza) {
         echo json_encode(["success" => true]);

@@ -118,11 +118,11 @@ if ($accion == "consultarInventario") {
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
 
-    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
+    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
                             WHERE id_usuario = $id_usuario AND  asignado = 'NO'  OR inv.id_usuario = $id_usuario
                             UNION
-                            SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario
+                            SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
                             FROM inventario inv
                             WHERE inv.id_usuario != $id_usuario AND inv.asignado = 'NO'";
     $result = $conn->query($sqlConsultaVehiculosG);

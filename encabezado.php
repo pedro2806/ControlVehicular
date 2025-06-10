@@ -307,6 +307,7 @@
             }
 
             var formData = new FormData();
+            formData.append('id_prestamo', '');
             formData.append('accion', 'CapturaCheckIn');
             formData.append('vehiculoAsignado', vehiculoAsignado);
             formData.append('otRelacionada', otRelacionada);

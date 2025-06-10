@@ -454,9 +454,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         function guardarCheckIn() {
             // Validar el formulario antes de enviar
-            if (!validarFormulario()) {
+           /*if (!validarFormulario()) {
                 return; // Detener la ejecución si hay errores de validación
-            }
+            }*/
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros

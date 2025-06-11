@@ -297,6 +297,16 @@
                             <label class="form-label">Foto:</label>
                             <input type="file" class="form-control" id="fotos_inicio" name="fotos_inicio[]" multiple accept="image/*">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Patron:</label>
+                            <input type="text" class="form-control" id="Ppatronp" name="Ppatronp">
+                        </div>
+                        
+
+                        <input type="text" class="form-control" id="PidPrestamop" name="PidPrestamop">
+                        <input type="text" class="form-control" id="PidVehiculop" name="PidVehiculop">
+                        <input type="text" class="form-control" id="PtipoActividadp" name="PtipoActividadp">                        
+                        <input type="text" class="form-control" id="Potp" name="Potp">
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -681,7 +691,7 @@
                 respuesta.forEach(function (prestamo) {
                     
                         var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}')">
+                            <button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                             </button>`;
                         var fila = `
@@ -869,9 +879,17 @@
                 if (prestamo) {
                     $("#placa").val(prestamo.placa);
                     $("#modelo").val(prestamo.modelo);
-                    $("#color").val(prestamo.color);
+                    $("#color").val(prestamo.color);                    
+
+                    // Si el estatus es 'VALIDAAREA', deshabilita el select de vehículo
+                    if (prestamo.estatus === "PENDIENTEAREA") {
+                        $("#id_vehiculo").prop("disabled", true);
+                    } else {
+                        $("#id_vehiculo").prop("disabled", false);
+                    }
+
                     $("#id_vehiculo").val(prestamo.id_vehiculo+",EXTERNO");
-                    $("#id_vehiculo").prop("disabled", true);
+
                     $("#tipoP").val(tipo);
                     const fechaHora = prestamo.fecha_inc_prestamo.replace(" ", "T");
                     $("#fecha_entrega").val(fechaHora);
@@ -900,9 +918,15 @@
     }
 
     // Función para abrir el modal de iniciar préstamo
-    function abrirModalInicio(id_prestamo, placa, fechaIncPrestamo) {
+    function abrirModalInicio(id_prestamo, placa, fechaIncPrestamo, id_vehiculo,  detalle_tipo_uso, tipo_uso) {
+        $("#PidVehiculop").val(id_vehiculo);    
+        $("#Potp").val(detalle_tipo_uso);
+        $("#PtipoActividadp").val(tipo_uso);        
+        $("#PidPrestamop").val(id_prestamo);
+        
+        $("#placa_ini").val(placa);
         $("#id_prestamo").val(id_prestamo);
-        $("#placa_ini").val(placa); 
+        $("#id_vehiculo").val(id_vehiculo);
 
         if (fechaIncPrestamo) {
             const fechaInicio = fechaIncPrestamo.replace(" ", "T"); 
@@ -1049,6 +1073,7 @@
                         cerrarModal("modalInicioPrestamo");
                         document.getElementById("formInicioPrestamo").reset();
                     });
+                    checkIn(); // Llamar a la función checkIn después de iniciar el préstamo
                 } else {
                     Swal.fire({
                         icon: "error",
@@ -1069,6 +1094,64 @@
         });
     }
 
+    function checkIn() {            
+            // Obtener los valores de los campos del formulario
+            var vehiculoAsignado = $('#PidVehiculop').val();
+            var otRelacionada = $('#Potp').val();
+            var kmActual = $('#km_inicio').val();
+            var patronRelacionado = $('#Ppatronp').val();
+            var notasCheckin = $('#notas_entrega').val();
+            var gasActual = $('#gasolina_inicio').val();            
+            var imgCheckin = $('#fotos_inicio')[0].files[0];
+            var tipoServicio = $('#PtipoActividadp').val();
+            var id_prestamo = $('#PidPrestamop').val();
+            // Validar que el tipo de servicio sea válido               
+            // Validar que los campos no estén vacíos
+            /*if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio || !otRelacionada) {
+            $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
+            return;
+            }*/
+
+            var formData = new FormData();
+            formData.append('id_prestamo', id_prestamo); // Asignar un ID de préstamo por defecto
+            formData.append('accion', 'CapturaCheckIn');
+            formData.append('vehiculoAsignado', vehiculoAsignado);
+            formData.append('otRelacionada', otRelacionada);
+            formData.append('kmActual', kmActual);
+            formData.append('patronRelacionado', patronRelacionado);
+            formData.append('notasCheckin', notasCheckin);
+            formData.append('gasActual', gasActual);
+            formData.append('tipoServicio', tipoServicio);
+
+            if (imgCheckin) {
+            formData.append('imgCheckin', imgCheckin);
+            }
+
+            $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            dataType: 'json',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (resp) {
+                Swal.fire({
+                title: "¡Guardado!",
+                text: "Kilometraje registrado correctamente.",
+                icon: "success",
+                timer: 2000,
+                timerProgressBar: true
+                }).then(function () {
+                $('#formCapturaKm')[0].reset();
+                $('#capturaKmModal').modal('hide');
+                $('#msgKm').text('');
+                });
+            },
+            error: function () {
+                $('#msgKm').text('Error al guardar el kilometraje.');
+            }
+            });
+        }
     // Función para enviar el formulario de finalizar el préstamo
     function finalizarPrestamo() {
         var id_prestamo = $("#id_prestamo").val(); 

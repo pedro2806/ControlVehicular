@@ -175,7 +175,7 @@ if ($accion == "actualizarPrestamo") {
 if ($accion == "consultarPrestamosEnCurso") {
     $sqlConsulta= " SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, 
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
-                        prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us, inv.modelo
+                        prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us, inv.modelo                    
                     FROM prestamos prest
                     INNER JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)

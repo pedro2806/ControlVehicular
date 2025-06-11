@@ -20,7 +20,7 @@ $fecha_fin_prestamo = $_POST["fecha_fin_prestamo"];
 $fecha_entrega = $_POST["fecha_entrega"];
 $fecha_entrega_inicio = $_POST["fecha_entrega_inicio"];
 $fecha_entrega_final = $_POST["fecha_entrega_final"];
-$hora = date("H:i:s", strtotime($hora));
+//$hora = date("H:i:s", strtotime($hora));
 
 $km_inicio = $_POST["km_inicio"];
 $km_fin = $_POST["km_fin"];

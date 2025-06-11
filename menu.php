@@ -61,7 +61,7 @@
     <!-- Menú CheckIn -->
     <li class="nav-item">
         <a class="nav-link" href="verActividades">
-            <i class="fas fa-fw fa-check"></i>
+            <i class="fas fa-fw fa-eye"></i>
             <span>Ver Actividades</span>
         </a>
     </li>

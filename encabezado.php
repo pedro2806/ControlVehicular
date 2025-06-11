@@ -225,7 +225,18 @@
                                     </div>
                                     <div class="col-md-3">
                                         <label for="gasActualNuevo" class="form-label">Gas. Actual</label>
-                                        <input type="number" class="form-control" id="gasActualNuevo" name="gasActualNuevo" min="0" required>
+                                        <select class = "form-select" id = "gasActualNuevo" name = "gasActualNuevo">
+                                            <option value = "">Seleccione...</option>
+                                            <option value = "SD">Sin Datos</option>
+                                            <option value = "1/8">1/8</option>
+                                            <option value = "2/8">2/8</option>
+                                            <option value = "3/8">3/8</option>    
+                                            <option value = "4/8">4/8</option>
+                                            <option value = "5/8">5/8</option>
+                                            <option value = "6/8">6/8</option>
+                                            <option value = "7/8">7/8</option>
+                                            <option value = "8/8">8/8</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="notasCheckinNuevo" class="form-label">Notas</label>
@@ -235,6 +246,11 @@
                                         <label for="kmActual" class="form-label">Img.</label>
                                         <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo" accept=".jpg,.jpeg,.png,.pdf">
                                     </div>  
+                                    <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
+                                    <input type="hidden" class="form-control" id="PidVehiculo" name="PidVehiculo">
+                                    <input type="hidden" class="form-control" id="PtipoActividad" name="¨PtipoActividad">
+                                    <input type="hidden" class="form-control" id="Ppatron" name="Ppatron">
+                                    <input type="hidden" class="form-control" id="Pot" name="Pot">
                                 </div>
                                 <div class="mt-2" id ="cerrarActividadPendiente">                                    
                                 </div>
@@ -265,9 +281,7 @@
                     var botonCerrarActividad = '';
                     data.forEach(function (actividad, idx) {
                         // Si la actividad tiene los datos necesarios, guarda el botón en una variable aparte (no en la tabla)
-                            botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut('
-                                + actividad.id_vehiculo + ', \'' + actividad.ot + '\', \'' + actividad.patron + '\')">'
-                                + '<i class="fas fa-check"></i> Captura CheckOut</button>';
+                            botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut()">' + '<i class="fas fa-check"></i> Captura CheckOut</button>';
                                                                         
 
                         html += '<tr>';
@@ -276,6 +290,16 @@
                         html += '<td>' + (actividad.notas || '') + '</td>';
                         html += '<td>' + (actividad.vehiculo || actividad.placa || '') + '</td>';                        
                         html += '</tr>';
+
+                        // Asignar los valores a los campos del formulario
+                        $('#kmActualNuevo').val(actividad.km_actual);
+                        $('#gasActualNuevo').val(actividad.gasolina_actual);
+                        $('#PidPrestamo').val(actividad.id_prestamo);
+                        $('#PidVehiculo').val(actividad.id_vehiculo);
+                        $('#PtipoActividad').val(actividad.detalle_tipo_uso);
+                        $('#Ppatron').val(actividad.patron);
+                        $('#Pot').val(actividad.ot);
+                        
                     });
                     $('#tablaActividadesPendientes').html(html);
                     $('#cerrarActividadPendiente').html(botonCerrarActividad);
@@ -307,7 +331,7 @@
             }
 
             var formData = new FormData();
-            formData.append('id_prestamo', '');
+            formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
             formData.append('accion', 'CapturaCheckIn');
             formData.append('vehiculoAsignado', vehiculoAsignado);
             formData.append('otRelacionada', otRelacionada);
@@ -347,15 +371,17 @@
             });
         }
 
-        function CapturaCheckOut(id_vehiculo, otRelacionada, patronRelacionado) {
-            var vehiculoAsignado = id_vehiculo;
-            var otRelacionada = otRelacionada;
+        function CapturaCheckOut() {
+
+            var id_prestamo = $('#PidPrestamo').val();
+            var vehiculoAsignado = $('#PidVehiculo').val();
+            var otRelacionada = $('#Pot').val();
             var kmActual = $('#kmActualNuevo').val();
-            var patronRelacionado = patronRelacionado;
+            var patronRelacionado = $('#Ppatron').val();
             var notasCheckin = $('#notasCheckinNuevo').val();
             var gasActual = $('#gasActualNuevo').val();            
             var imgCheckin = $('#imgCheckinNuevo')[0].files[0];
-
+            var tipoServicio = $('#PtipoActividad').val();
             // Validar que los campos no estén vacíos
             if (!vehiculoAsignado || !kmActual || !gasActual) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
@@ -364,12 +390,14 @@
 
             var formData = new FormData();
             formData.append('accion', 'CapturaCheckOut');
+            formData.append('id_prestamo', id_prestamo);
             formData.append('vehiculoAsignado', vehiculoAsignado);
             formData.append('otRelacionada', otRelacionada);
             formData.append('kmActual', kmActual);
             formData.append('patronRelacionado', patronRelacionado);
             formData.append('notasCheckin', notasCheckin);
             formData.append('gasActual', gasActual);
+            formData.append('tipoServicio', tipoServicio);
             if (imgCheckin) {
             formData.append('imgCheckin', imgCheckin);
             }
@@ -385,7 +413,7 @@
                 Swal.fire({
                 title: "¡Guardado!",
                 text: "Kilometraje registrado correctamente.",
-                icon: "1uccess",
+                icon: "success",
                 timer: 2000,
                 timerProgressBar: true
                 }).then(function () {

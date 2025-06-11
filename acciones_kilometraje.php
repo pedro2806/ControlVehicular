@@ -63,8 +63,8 @@ if($accion == 'CapturaCheckIn'){
 
 if($accion == 'CapturaCheckOut'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio')";
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);
@@ -82,8 +82,15 @@ if($accion == 'ActividadesPendientes'){
                 i.placa,
                 i.marca,
                 i.modelo,
+                av_ultima.notas,
                 av_ultima.tipo_actividad AS ultima_actividad_registrada,
-                av_ultima.fecha_actividad AS fecha_ultima_actividad
+                av_ultima.fecha_actividad AS fecha_ultima_actividad,
+                av_ultima.patron,
+                av_ultima.ot,
+                av_ultima.detalle_tipo_uso,
+                av_ultima.id_prestamo,
+                av_ultima.km_actual,
+                av_ultima.gasolina_actual                
             FROM
                 actividad_vehiculo av_ultima
             INNER JOIN
@@ -134,67 +141,70 @@ if($accion == 'Actividades'){
 if($accion == 'ActividadesCalendario'){
     // Consultar las actividades del usuario actual
     $sql ="WITH ActividadesOrdenadas AS (
+        SELECT
+            av.*,
+            ROW_NUMBER() OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as rn,
+            LEAD(av.tipo_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_tipo_actividad,
+            LEAD(av.fecha_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_fecha_actividad,
+            LEAD(av.km_actual) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_km_actual,
+            LEAD(av.gasolina_actual) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_gasolina_actual,
+            LEAD(av.foto_url) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_foto_url,
+            LEAD(av.notas) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_notas,
+            LEAD(av.patron) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_patron,
+            LEAD(av.ot) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_ot,
+            LEAD(av.id_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as id_actividad_fin,
+            LEAD(av.id_prestamo) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as id_prestamo_fin
+            -- Agrega más columnas de LEAD si necesitas más datos de la fila 'FIN'
+        FROM
+            actividad_vehiculo av
+        WHERE av.id_usuario = '$_COOKIE[id_usuario]' -- Considera un usuario específico como en tu ejemplo
+    )
     SELECT
-        av.*,
-        ROW_NUMBER() OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as rn,
-        LEAD(av.tipo_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_tipo_actividad,
-        LEAD(av.fecha_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_fecha_actividad,
-        LEAD(av.km_actual) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_km_actual,
-        LEAD(av.gasolina_actual) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_gasolina_actual,
-        LEAD(av.foto_url) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_foto_url,
-        LEAD(av.notas) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_notas,
-        LEAD(av.patron) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_patron,
-        LEAD(av.ot) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as siguiente_ot,
-        LEAD(av.id_actividad) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as id_actividad_fin,
-        LEAD(av.id_prestamo) OVER (PARTITION BY av.id_usuario, av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) as id_prestamo_fin
-        -- Agrega más columnas de LEAD si necesitas más datos de la fila 'FIN'
+        ao.id_usuario,
+        ao.id_vehiculo,
+        i.placa,
+        i.marca,
+        i.modelo,
+        ao.id_actividad AS id_actividad_inicio,
+        ao.id_prestamo AS id_prestamo_inicio,
+        ao.tipo_actividad AS tipo_actividad_inicio,
+        ao.fecha_actividad AS fecha_inicio,
+        ao.km_actual AS km_inicio,
+        ao.gasolina_actual AS gasolina_inicio,
+        ao.coordenadas AS coordenadas_inicio,
+        ao.foto_url AS foto_url_inicio,
+        ao.notas AS notas_inicio,
+        ao.patron AS patron_inicio,
+        ao.ot AS ot_inicio,
+        u.nombre,
+        -- Datos de la FINALIZACION
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_actividad_fin ELSE NULL END AS id_actividad_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_prestamo_fin ELSE NULL END AS id_prestamo_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_tipo_actividad ELSE NULL END AS tipo_actividad_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_fecha_actividad ELSE NULL END AS fecha_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_km_actual ELSE NULL END AS km_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_gasolina_actual ELSE NULL END AS gasolina_fin,
+        -- No hay 'coordenadas_fin' si solo se registra al inicio
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_foto_url ELSE NULL END AS foto_url_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_notas ELSE NULL END AS notas_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_patron ELSE NULL END AS patron_fin,
+        CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_ot ELSE NULL END AS ot_fin
     FROM
-        actividad_vehiculo av
-     WHERE av.id_usuario = 58 -- Considera un usuario específico como en tu ejemplo
-)
-SELECT
-    ao.id_usuario,
-    ao.id_vehiculo,
-    i.placa,
-    i.marca,
-    i.modelo,
-    ao.id_actividad AS id_actividad_inicio,
-    ao.id_prestamo AS id_prestamo_inicio,
-    ao.tipo_actividad AS tipo_actividad_inicio,
-    ao.fecha_actividad AS fecha_inicio,
-    ao.km_actual AS km_inicio,
-    ao.gasolina_actual AS gasolina_inicio,
-    ao.coordenadas AS coordenadas_inicio,
-    ao.foto_url AS foto_url_inicio,
-    ao.notas AS notas_inicio,
-    ao.patron AS patron_inicio,
-    ao.ot AS ot_inicio,
-    -- Datos de la FINALIZACION
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_actividad_fin ELSE NULL END AS id_actividad_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_prestamo_fin ELSE NULL END AS id_prestamo_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_tipo_actividad ELSE NULL END AS tipo_actividad_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_fecha_actividad ELSE NULL END AS fecha_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_km_actual ELSE NULL END AS km_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_gasolina_actual ELSE NULL END AS gasolina_fin,
-    -- No hay 'coordenadas_fin' si solo se registra al inicio
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_foto_url ELSE NULL END AS foto_url_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_notas ELSE NULL END AS notas_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_patron ELSE NULL END AS patron_fin,
-    CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_ot ELSE NULL END AS ot_fin
-FROM
-    ActividadesOrdenadas ao
-INNER JOIN
-    inventario i ON ao.id_vehiculo = i.id_vehiculo
-WHERE
-    ao.tipo_actividad = 'INICIO'    
-ORDER BY
-    ao.id_usuario,
-    ao.id_vehiculo,
-    ao.fecha_actividad;";
-    $sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
-        FROM actividad_vehiculo av
-        INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo        
-        WHERE av.id_usuario = '".$_COOKIE['id_usuario']."'";
+        ActividadesOrdenadas ao
+    INNER JOIN
+        inventario i ON ao.id_vehiculo = i.id_vehiculo
+    INNER JOIN
+        usuarios u ON ao.id_usuario = u.id_usuario
+    WHERE
+        ao.tipo_actividad = 'INICIO'    
+    ORDER BY
+        ao.id_usuario,
+        ao.id_vehiculo,
+        ao.fecha_actividad;";
+        /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
+            FROM actividad_vehiculo av
+            INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo        
+            WHERE av.id_usuario = '".$_COOKIE['id_usuario']."'";*/
     $result = $conn->query($sql);
 
     if ($result && $result->num_rows > 0) {

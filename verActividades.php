@@ -180,12 +180,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         var eventos = [];
                         $.each(data.actividades, function(index, actividad) {
                             eventos.push({
-                                title: actividad.placa + ' - ' + (actividad.tipo_actividad || ''),
-                                start: actividad.fecha_actividad || actividad.fecha_ultima_actividad,
+                                title: actividad.nombre+ ' - ' + actividad.placa + ' -  Patron:' + actividad.patron_inicio,
+                                start: actividad.fecha_inicio,
+                                end: actividad.fecha_fin,
                                 description: 
                                     'Modelo: ' + actividad.modelo + '<br>' +
                                     'Marca: ' + actividad.marca + '<br>' +
-                                    'Usuario: ' + (actividad.usuario || '') + '<br>' +
                                     'Notas: ' + (actividad.notas || '')
                             });
                         });

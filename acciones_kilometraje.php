@@ -68,6 +68,13 @@ if($accion == 'CapturaCheckOut'){
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);
+        // Actualizar el estatus del préstamo a 'FINALIZADO'
+            $updatePrestamo = "UPDATE prestamos SET estatus = 'FINALIZADO' WHERE id_prestamo = '$id_prestamo'";
+            if ($conn->query($updatePrestamo) === TRUE) {
+                echo json_encode(['status' => 'success', 'message' => 'Préstamo actualizado a FINALIZADO.']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el préstamo: ' . $conn->error]);
+            }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-out: ' . $conn->error]);
     }

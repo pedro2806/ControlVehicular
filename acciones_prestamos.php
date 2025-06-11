@@ -161,8 +161,7 @@ if ($accion == "actualizarPrestamo") {
                         IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
                     FROM prestamos prest
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
-                    AND prest.estatus = 'AUTORIZADO'
-                    GROUP BY id_prestamo DESC";
+                    AND prest.estatus = 'AUTORIZADO'";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
     while ($row = $result->fetch_assoc()) {
@@ -222,7 +221,7 @@ if ($accion == "autorizarPrestamo") {
     $resultAutoriza = $conn->query($sqlAutoriza);
     if ($resultAutoriza) {
         echo json_encode(["success" => true]);
-        cambiarAsignado($conn, $id_vehiculo); 
+        cambiarAsignado($conn, $idV); 
     } else {
         echo json_encode(["success" => false, "error" => $conn->error]);
     }

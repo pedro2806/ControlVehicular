@@ -179,7 +179,7 @@ if ($accion == "consultarPrestamosEnCurso") {
                     INNER JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                     AND prest.estatus = 'EN CURSO'
-                    GROUP BY id_prestamo DESC";
+                    ORDER BY id_prestamo DESC";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
     while ($row = $result->fetch_assoc()) {

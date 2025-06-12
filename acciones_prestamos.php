@@ -66,16 +66,14 @@ if ($accion == "consultarPrestamos") {
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
-                AND prest.estatus = 'PENDIENTE'
-                ORDER BY prest.id_prestamo DESC";
+                AND prest.estatus = 'PENDIENTE'";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
                             IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
                         FROM prestamos prest
-                        WHERE id_usuario = $id_usuario
-                        GROUP BY id_prestamo DESC";
+                        WHERE id_usuario = $id_usuario";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;

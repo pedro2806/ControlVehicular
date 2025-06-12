@@ -303,10 +303,10 @@
                         </div>
                         
 
-                        <input type="text" class="form-control" id="PidPrestamop" name="PidPrestamop">
-                        <input type="text" class="form-control" id="PidVehiculop" name="PidVehiculop">
-                        <input type="text" class="form-control" id="PtipoActividadp" name="PtipoActividadp">                        
-                        <input type="text" class="form-control" id="Potp" name="Potp">
+                        <input type="hidden" class="form-control" id="PidPrestamop" name="PidPrestamop">
+                        <input type="hidden" class="form-control" id="PidVehiculop" name="PidVehiculop">
+                        <input type="hidden" class="form-control" id="PtipoActividadp" name="PtipoActividadp">                        
+                        <input type="hidden" class="form-control" id="Potp" name="Potp">
                     </form>
                 </div>
                 <div class="modal-footer">

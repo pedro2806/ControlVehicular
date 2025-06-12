@@ -122,16 +122,14 @@ if ($accion == "consultarPrestamosOtraArea") {
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
-                AND prest.estatus = 'PENDIENTEAREA'
-                ORDER BY prest.id_prestamo DESC";
+                AND prest.estatus = 'PENDIENTEAREA'";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
                             IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
                         FROM prestamos prest
-                        WHERE id_usuario = $id_usuario
-                        ORDER BY prest.id_prestamo DESC";
+                        WHERE id_usuario = $id_usuario";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;
@@ -179,7 +177,7 @@ if ($accion == "consultarPrestamosEnCurso") {
                     INNER JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                     AND prest.estatus = 'EN CURSO'
-                    ORDER BY id_prestamo DESC";
+                    ";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
     while ($row = $result->fetch_assoc()) {

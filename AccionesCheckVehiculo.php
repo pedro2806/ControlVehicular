@@ -7,7 +7,7 @@ if ($opcion == "llenaTVehiculosAsignados") {
     $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado
             FROM inventario i
             INNER JOIN usuarios u ON i.id_usuario = u.id_usuario             
-            WHERE i.id_usuario = $id_usuario";
+            WHERE i.id_usuario = $id_usuario OR i.id_us_asignado = $id_usuario";
 
     $res2 = mysqli_query($conn, $sql);
 

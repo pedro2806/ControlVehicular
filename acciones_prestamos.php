@@ -131,7 +131,7 @@ if ($accion == "consultarPrestamosOtraArea") {
                             IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
                         FROM prestamos prest
                         WHERE id_usuario = $id_usuario
-                        GROUP BY id_prestamo DESC";
+                        ORDER BY prest.id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;

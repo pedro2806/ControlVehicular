@@ -75,7 +75,10 @@
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
             <div class="bg-white py-1 collapse-inner rounded">
                 <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-                <a class="collapse-item" href="autorizar_mantenimiento">Seg. Mantenimientos</a>                
+                <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
+                <?php if (isset($_COOKIE['rol']) && $_COOKIE['rol'] == 2): ?>
+                    <a class="collapse-item" href="autorizar_mantenimiento">Seg. Mantenimientos</a>
+                <?php endif; ?>
             </div>
         </div>
     </li>

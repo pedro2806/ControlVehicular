@@ -66,9 +66,7 @@
                             <div class = "col-lg-12 mx-auto">
                                 <center>
                                     <p class="alert alert-info" style="font-size: 0.9em;">
-                                        Soporte del sistema:
-                                        <a href="mailto:sebastian.gutierrez@mess.com.mx">sebastian.gutierrez@mess.com.mx</a> 
-                                        o 
+                                        Soporte del sistema:                                        
                                         <a href="mailto:pedro.martinez@mess.com.mx">pedro.martinez@mess.com.mx</a>
                                     </p>
                                 </center>

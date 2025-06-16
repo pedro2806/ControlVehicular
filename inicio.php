@@ -54,7 +54,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     <div class="row">
                         <!-- Periodico mural -->                        
                         <div class="col-xl-12 col-lg-12">
-                            <embed id="vistaPrevia" src='https://www.mess.com.mx/wp-content/uploads/2025/03/Marzo-2024.pdf#zoom=80' type="application/pdf" width="100%" height="550">
+                            <embed id="vistaPrevia" src='img/Manual Control Vehicular.pdf' type="application/pdf" width="100%" height="550">
                         </div>
                     </div>
 

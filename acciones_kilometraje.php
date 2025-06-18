@@ -14,7 +14,41 @@ $accion = isset($_POST['accion']) ? $_POST['accion'] : null;
 $gasActual = isset($_POST['gasActual']) ? $_POST['gasActual'] : null;
 $otRelacionada = isset($_POST['otRelacionada']) ? $_POST['otRelacionada'] : null;
 $tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
+$placa = isset($_POST['placa']) ? $_POST['placa'] : null;
+$coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
 
+function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn) {
+
+    // Crear carpeta principal y subcarpeta "Actividades"
+    $carpetaPlaca = "img_control_vehicular/{$_POST['placa']}";
+    if (!file_exists($carpetaPlaca)) {
+        mkdir($carpetaPlaca, 0777, true);
+    }
+    $carpetaActividad = "$carpetaPlaca/Actividades";
+    if (!file_exists($carpetaActividad)) {
+        mkdir($carpetaActividad, 0777, true);
+    }
+
+    if (!isset($imagenes) || !is_array($imagenes)) {
+        return;
+    }
+    foreach ($imagenes['tmp_name'] as $key => $tmp_name) {
+        if ($imagenes['error'][$key] === UPLOAD_ERR_OK) {
+            
+            $nombreArchivo = uniqid('img_', true) . '.' . pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
+            $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
+
+            if (move_uploaded_file($tmp_name, $ruta_destino)) {
+                $actividad = 'checkIn';
+                $stmt = $conn->prepare("INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("ssis", $actividad, $id_actividad, $id_vehiculo, $ruta_destino);
+                $stmt->execute();
+                $stmt->close();
+
+            }
+        }
+    }
+}
 
 // Si recibes archivos (foto), puedes procesarlos aquí
 if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
@@ -50,10 +84,33 @@ if ($accion == 'CargarVehiculos'){
 
 if($accion == 'CapturaCheckIn'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio', '$coordenadas')";
 
     if ($conn->query($sql) === TRUE) {
+        //actualizar el estatus del préstamo a 'EN CURSO'
+            if (!empty($id_prestamo)) {
+                $updatePrestamo = "UPDATE prestamos SET estatus = 'EN CURSO' WHERE id_prestamo = '$id_prestamo'";
+                if ($conn->query($updatePrestamo) !== TRUE) {
+                    //echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el préstamo: ' . $conn->error]);
+                    //exit;
+                }
+            }
+
+            $consultaUltimaActividad = "SELECT id_actividad FROM actividad_vehiculo WHERE id_usuario = '" . $_COOKIE['id_usuario'] . "' ORDER BY fecha_actividad DESC, id_actividad DESC LIMIT 1";
+            $resultUltimaActividad = $conn->query($consultaUltimaActividad);
+            $idUltimaActividad = null;
+
+            if ($resultUltimaActividad && $resultUltimaActividad->num_rows > 0) {
+                $rowUltimaActividad = $resultUltimaActividad->fetch_assoc();
+                $idUltimaActividad = $rowUltimaActividad['id_actividad'];
+                // Ahora $idUltimaActividad contiene solo el id de la última actividad
+            }
+            // Procesar imágenes de check-in si existen
+            if (isset($_FILES['imgCheckin'])) {
+                subirImagenesCheckin($_FILES['imgCheckin'], $idUltimaActividad, $id_vehiculo, $conn);
+            }
+
         echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-in: ' . $conn->error]);
@@ -63,17 +120,32 @@ if($accion == 'CapturaCheckIn'){
 
 if($accion == 'CapturaCheckOut'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio', '$coordenadas')";
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);
         // Actualizar el estatus del préstamo a 'FINALIZADO'
-            $updatePrestamo = "UPDATE prestamos SET estatus = 'FINALIZADO' WHERE id_prestamo = '$id_prestamo'";
+        $updatePrestamo = "UPDATE prestamos SET estatus = 'FINALIZADO' WHERE id_prestamo = '$id_prestamo'";
+        if (!empty($id_prestamo)) {
             if ($conn->query($updatePrestamo) === TRUE) {
-                echo json_encode(['status' => 'success', 'message' => 'Préstamo actualizado a FINALIZADO.']);
-            } else {
-                echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el préstamo: ' . $conn->error]);
+                //echo json_encode(['status' => 'success', 'message' => 'Préstamo actualizado a FINALIZADO.']);
+            }
+        }
+
+        // Obtener el ID de la última actividad del usuario
+            $consultaUltimaActividad = "SELECT id_actividad FROM actividad_vehiculo WHERE id_usuario = '" . $_COOKIE['id_usuario'] . "' ORDER BY fecha_actividad DESC, id_actividad DESC LIMIT 1";
+            $resultUltimaActividad = $conn->query($consultaUltimaActividad);
+            $idUltimaActividad = null;
+
+            if ($resultUltimaActividad && $resultUltimaActividad->num_rows > 0) {
+                $rowUltimaActividad = $resultUltimaActividad->fetch_assoc();
+                $idUltimaActividad = $rowUltimaActividad['id_actividad'];
+                // Ahora $idUltimaActividad contiene solo el id de la última actividad
+            }
+        // Procesar imágenes de check-out si existen
+            if (isset($_FILES['imgCheckinNuevo'])) {
+                subirImagenesCheckin($_FILES['imgCheckinNuevo'], $idUltimaActividad, $id_vehiculo, $conn);
             }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-out: ' . $conn->error]);

@@ -298,10 +298,18 @@ if ($accion == "iniciarPrestamo") {
 
         // Manejo de archivos (fotografía de inicio)
         $ruta_destino_inicio = null; // Inicializar la variable para la ruta de la foto
-        if (!empty($_FILES['fotos_inicio']['name'][0])) {
-            foreach ($_FILES['fotos_inicio']['tmp_name'] as $key => $tmp_name) {
-                $file_name = $_FILES['fotos_inicio']['name'][$key];
-                $file_tmp = $_FILES['fotos_inicio']['tmp_name'][$key];
+        if (
+            isset($_FILES['fotos_inicio']['name']) &&
+            (
+                (is_array($_FILES['fotos_inicio']['name']) && !empty($_FILES['fotos_inicio']['name'][0])) ||
+                (!is_array($_FILES['fotos_inicio']['name']) && !empty($_FILES['fotos_inicio']['name']))
+            )
+        ) {
+            $names = is_array($_FILES['fotos_inicio']['name']) ? $_FILES['fotos_inicio']['name'] : [$_FILES['fotos_inicio']['name']];
+            $tmps = is_array($_FILES['fotos_inicio']['tmp_name']) ? $_FILES['fotos_inicio']['tmp_name'] : [$_FILES['fotos_inicio']['tmp_name']];
+            foreach ($tmps as $key => $tmp_name) {
+                $file_name = $names[$key];
+                $file_tmp = $tmps[$key];
                 $fecha_actual = date('Ymd_His'); // Formato YYYYMMDD_HHMMSS
                 $nuevo_nombre = "{$placa}_Prestamo_{$fecha_actual}";
                 $extension = pathinfo($file_name, PATHINFO_EXTENSION);

@@ -17,10 +17,10 @@ $tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
 $placa = isset($_POST['placa']) ? $_POST['placa'] : null;
 $coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
 
-function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn) {
+function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
 
     // Crear carpeta principal y subcarpeta "Actividades"
-    $carpetaPlaca = "img_control_vehicular/{$_POST['placa']}";
+    $carpetaPlaca = "img_control_vehicular/$placa";
     if (!file_exists($carpetaPlaca)) {
         mkdir($carpetaPlaca, 0777, true);
     }
@@ -39,7 +39,7 @@ function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn) {
             $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
 
             if (move_uploaded_file($tmp_name, $ruta_destino)) {
-                $actividad = 'checkIn';
+                // Guardar la ruta de la imagen en la base de datos
                 $stmt = $conn->prepare("INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) VALUES (?, ?, ?, ?)");
                 $stmt->bind_param("ssis", $actividad, $id_actividad, $id_vehiculo, $ruta_destino);
                 $stmt->execute();
@@ -108,7 +108,7 @@ if($accion == 'CapturaCheckIn'){
             }
             // Procesar imágenes de check-in si existen
             if (isset($_FILES['imgCheckin'])) {
-                subirImagenesCheckin($_FILES['imgCheckin'], $idUltimaActividad, $id_vehiculo, $conn);
+                subirImagenesCheckin($_FILES['imgCheckin'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'checkin');
             }
 
         echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.']);
@@ -145,7 +145,7 @@ if($accion == 'CapturaCheckOut'){
             }
         // Procesar imágenes de check-out si existen
             if (isset($_FILES['imgCheckinNuevo'])) {
-                subirImagenesCheckin($_FILES['imgCheckinNuevo'], $idUltimaActividad, $id_vehiculo, $conn);
+                subirImagenesCheckin($_FILES['imgCheckinNuevo'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'checkout');
             }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-out: ' . $conn->error]);

@@ -244,7 +244,7 @@
                         $("#coordenadas").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo
                     }
                 );
-            } 
+            }
         });
         
          // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS

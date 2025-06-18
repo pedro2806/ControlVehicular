@@ -54,7 +54,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     <div class="row">
                         <!-- Periodico mural -->                        
                         <div class="col-xl-12 col-lg-12">
-                            <embed id="vistaPrevia" src='img/Manual Control Vehicular.pdf' type="application/pdf" width="100%" height="550">
+                            <embed id="vistaPrevia" src='img/Manual Control Vehicular.pdf' type="application/pdf" width="100%" height="650">
                         </div>
                     </div>
 

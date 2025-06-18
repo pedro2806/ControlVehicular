@@ -19,7 +19,7 @@
 
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-0">
-        <h6 class="h6 mb-0 text-gray-800">Control Vehicular MESS</h6>
+        <h6 class="h6 mb-0 text-gray-800">Control Vehicular</h6>
     </div>
 
     <!-- Topbar Navbar -->
@@ -28,11 +28,12 @@
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="mr-0 d-none d-lg-inline text-gray-600 small">
-                    <?php echo $_COOKIE['nombredelusuario']?>
+                <span class="mr-0 d-lg-inline text-gray-600" style="font-size: 0.85em;">
+                    <?php echo ' '.$_COOKIE['nombredelusuario'].' ';?>
                 </span>
                 <img class="img-profile rounded-circle" src="img/undraw_profile.svg" style="width: 100%;">
             </a>
+            <input type="hidden" id="coordenadasCheck" name="coordenadasCheck">
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                 <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
@@ -118,15 +119,16 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="capturaKmModalLabel">Check In Uso Vehiculo</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
                     <form id="formCapturaKm">
                         <div class="mb-2">
                             <label for="vehiculoAsignado" class="form-label">Vehículo Asignado</label>
-                            <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" required>
+                            <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" onchange="verPlaca()" required>
                                 <option value="">Seleccione un vehículo</option>                                
                             </select>
+                            <input type="hidden" id="placaElegida" name="placaElegida">                            
                         </div>
                         <div class="mb-2 row g-2">
                             <div class="col-4 col-md-4">
@@ -173,13 +175,17 @@
                             </div>    
                         </div>
                         <div class="mb-2 row g-2">
-                            <div class="col-6 col-md-6">
+                            <div class="col-12 col-md-12">
                                 <label for="kmActual" class="form-label">Notas</label>
                                 <textarea name="notasCheckin" id="notasCheckin" class="form-control" rows="2" cols="5"></textarea>
                             </div>
-                            <div class="col-6 col-md-6">
+                        </div>
+                        <div class="mb-2 row g-2">
+                            <div class="col-12 col-md-12">
                                 <label for="kmActual" class="form-label">Img.</label>
-                                <input type="file" class="form-control" id="imgCheckin" name="imgCheckin" accept=".jpg,.jpeg,.png,.pdf">
+                                <input type="file" class="form-control" id="imgCheckin" name="imgCheckin[]" accept=".jpg,.jpeg,.png">
+                                <div id="contenedorImgCheckin"></div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagen()">Agregar otra imagen</button>
                             </div>    
                         </div>
                         <div id="msgKm" class="form-text text-danger"></div>
@@ -187,7 +193,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="guardarKm()">Guardar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarCheckIn()">Guardar</button>
                 </div>
             </div>
         </div>
@@ -242,9 +248,13 @@
                                         <label for="notasCheckinNuevo" class="form-label">Notas</label>
                                         <textarea name="notasCheckinNuevo" id="notasCheckinNuevo" class="form-control" rows="1"></textarea>
                                     </div>
-                                    <div class="col-6 col-md-6">
+                                    <div class="col-12 col-md-12">
                                         <label for="kmActual" class="form-label">Img.</label>
+                                    </div>
+                                    <div class="col-12 col-md-12">
                                         <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo" accept=".jpg,.jpeg,.png,.pdf">
+                                        <div id="contenedorImgCheckout"></div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagenOut()">Agregar otra imagen</button>
                                     </div>  
                                     <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
                                     <input type="hidden" class="form-control" id="PidVehiculo" name="PidVehiculo">
@@ -264,7 +274,23 @@
             </div>
         </div>
     </div>
-    <script>
+
+    </nav>
+<!-- End of Topbar -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script  type="text/javascript">
+        $(document).ready(function () {
+            // Obtener coordenadas del usuario
+            if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude.toFixed(6); 
+                    const lon = position.coords.longitude.toFixed(6); 
+                    $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
+                }
+            );
+            }
+        });
         // Función para cargar y mostrar actividades pendientes en el modal
         // Sobrescribe la función para mostrar actividades en tabla
     function mostrarActividadesPendientes() {
@@ -313,7 +339,7 @@
         });
     }
 
-    function guardarKm() {            
+    function guardarCheckIn() {
             // Obtener los valores de los campos del formulario
             var vehiculoAsignado = $('#vehiculoAsignado').val();
             var otRelacionada = $('#otRelacionada').val();
@@ -321,13 +347,15 @@
             var patronRelacionado = $('#patronRelacionado').val();
             var notasCheckin = $('#notasCheckin').val();
             var gasActual = $('#gasActual').val();            
-            var imgCheckin = $('#imgCheckin')[0].files[0];
+            var placaElegida = $('#placaElegida').val();
             var tipoServicio = $('#tipoServicio').val();
+            var coordenadas = $('#coordenadasCheck').val();
+            
             // Validar que el tipo de servicio sea válido               
             // Validar que los campos no estén vacíos
             if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio || !otRelacionada) {
-            $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
-            return;
+                $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
+                return;
             }
 
             var formData = new FormData();
@@ -340,37 +368,47 @@
             formData.append('notasCheckin', notasCheckin);
             formData.append('gasActual', gasActual);
             formData.append('tipoServicio', tipoServicio);
+            formData.append('placa', placaElegida);
+            formData.append('coordenadas', coordenadas);
 
-            if (imgCheckin) {
-            formData.append('imgCheckin', imgCheckin);
-            }
+            // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
+            var archivos = document.querySelectorAll('input[name="imgCheckin[]"]');
+            archivos.forEach(function(input) {
+                if (input.files.length > 0) {
+                    for (var i = 0; i < input.files.length; i++) {
+                        formData.append('imgCheckin[]', input.files[i]);
+                    }
+                }
+            });
+            
 
             $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            dataType: 'json',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (resp) {
-                Swal.fire({
-                title: "¡Guardado!",
-                text: "Kilometraje registrado correctamente.",
-                icon: "success",
-                timer: 2000,
-                timerProgressBar: true
-                }).then(function () {
-                $('#formCapturaKm')[0].reset();
-                $('#capturaKmModal').modal('hide');
-                $('#msgKm').text('');
-                });
-            },
+                url: 'acciones_kilometraje.php',
+                method: 'POST',
+                dataType: 'json',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (resp) {
+                    Swal.fire({
+                    title: "¡Guardado!",
+                    text: "Kilometraje registrado correctamente.",
+                    icon: "success",
+                    timer: 2000,
+                    timerProgressBar: true
+                    }).then(function () {
+                        $('#formCapturaKm')[0].reset();
+                        $('#capturaKmModal').modal('hide');
+                        $('#msgKm').text('');
+                    });
+                },
             error: function () {
                 $('#msgKm').text('Error al guardar el kilometraje.');
             }
             });
         }
 
+        // Función para capturar el check-out
         function CapturaCheckOut() {
 
             var id_prestamo = $('#PidPrestamo').val();
@@ -379,9 +417,9 @@
             var kmActual = $('#kmActualNuevo').val();
             var patronRelacionado = $('#Ppatron').val();
             var notasCheckin = $('#notasCheckinNuevo').val();
-            var gasActual = $('#gasActualNuevo').val();            
-            var imgCheckin = $('#imgCheckinNuevo')[0].files[0];
+            var gasActual = $('#gasActualNuevo').val();                        
             var tipoServicio = $('#PtipoActividad').val();
+            var coordenadas = $('#coordenadasCheck').val();
             // Validar que los campos no estén vacíos
             if (!vehiculoAsignado || !kmActual || !gasActual) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
@@ -398,9 +436,17 @@
             formData.append('notasCheckin', notasCheckin);
             formData.append('gasActual', gasActual);
             formData.append('tipoServicio', tipoServicio);
-            if (imgCheckin) {
-            formData.append('imgCheckin', imgCheckin);
-            }
+            formData.append('coordenadas', coordenadas);
+            // Adjuntar la imagen del check-in si existe
+            // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
+            var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
+            archivos.forEach(function(input) {
+                if (input.files.length > 0) {
+                    for (var i = 0; i < input.files.length; i++) {
+                        formData.append('imgCheckinNuevo[]', input.files[i]);
+                    }
+                }
+            });
 
             $.ajax({
             url: 'acciones_kilometraje.php',
@@ -429,6 +475,51 @@
             
         }
         
+        // Función para agregar otro input de archivo, hasta un máximo de 4
+        function agregarInputImagen() {
+            // Contenedor donde están los inputs de imagen
+            var contenedor = document.getElementById('contenedorImgCheckin');
+            // Contar cuántos inputs hay actualmente
+            var inputs = contenedor.querySelectorAll('input[type="file"]');
+            if (inputs.length < 3) {
+                // Crear un nuevo input
+                var nuevoInput = document.createElement('input');
+                nuevoInput.type = 'file';
+                nuevoInput.className = 'form-control mt-1';
+                nuevoInput.name = 'imgCheckin[]';
+                nuevoInput.accept = '.jpg,.jpeg,.png';
+                contenedor.appendChild(nuevoInput);
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Límite alcanzado',
+                    text: 'Solo puedes subir hasta 4 imágenes.'
+                });
+            }
+        }
+        // Función para agregar otro input de archivo, hasta un máximo de 4
+        function agregarInputImagenOut() {
+            // Contenedor donde están los inputs de imagen
+            var contenedor = document.getElementById('contenedorImgCheckout');
+            // Contar cuántos inputs hay actualmente
+            var inputs = contenedor.querySelectorAll('input[name="imgCheckinNuevo[]"]');
+            if (inputs.length < 3) {
+                // Crear un nuevo input
+                var nuevoInput = document.createElement('input');
+                nuevoInput.type = 'file';
+                nuevoInput.className = 'form-control mt-1';
+                nuevoInput.name = 'imgCheckinNuevo[]';
+                nuevoInput.accept = '.jpg,.jpeg,.png';
+                contenedor.appendChild(nuevoInput);
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Límite alcanzado',
+                    text: 'Solo puedes subir hasta 4 imágenes.'
+                });
+            }
+        }
+
         // Cargar vehículos al select
         function cargarVehiculos() {
             $.ajax({
@@ -442,7 +533,7 @@
                     if (data && data.length > 0) {
                         select.append('<option value="">Seleccione un vehículo</option>');
                         $.each(data, function (index, vehiculo) {
-                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa +' - '+ vehiculo.modelo+'</option>');
+                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa +'-'+ vehiculo.modelo+'</option>');
                         });
                     } else {
                         select.append('<option value="">No hay vehículos disponibles</option>');
@@ -456,6 +547,7 @@
 
         //valida actividades pendientes
         function validarActividadesPendientes() {
+            
             $.ajax({
                 url: 'acciones_kilometraje.php',
                 method: 'POST',
@@ -499,7 +591,18 @@
                 labelTServicio.innerHTML = "Detalle"; // Valor por defecto
             }
         }
-    
+        
+        function verPlaca() {
+            var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
+            if (vehiculoAsignado) {
+                // Tomar solo el primer valor antes del guion "-"
+                var primerValor = vehiculoAsignado.split('-')[0].trim();
+                primerValor = primerValor.replace("Seleccione un vehículo", "");
+                // Asignar el valor al input oculto
+                document.getElementById("placaElegida").value = primerValor;
+            }
+        }
+
         // Función para mostrar/ocultar contraseñas
         document.getElementById('showPassword').addEventListener('change', function () {
             var passwordField = document.getElementById('nuevapass');
@@ -577,6 +680,7 @@
                 document.getElementById("noEmpleado").value = cookieValue;
             }
         };
+
+        
     </script>
-</nav>
-<!-- End of Topbar -->
+

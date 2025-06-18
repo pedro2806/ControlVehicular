@@ -34,6 +34,7 @@
                 <img class="img-profile rounded-circle" src="img/undraw_profile.svg" style="width: 100%;">
             </a>
             <input type="hidden" id="coordenadasCheck" name="coordenadasCheck">
+            <input type="hidden" id="placaElegida" name="placaElegida">
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                 <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
@@ -127,8 +128,7 @@
                             <label for="vehiculoAsignado" class="form-label">Vehículo Asignado</label>
                             <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" onchange="verPlaca()" required>
                                 <option value="">Seleccione un vehículo</option>                                
-                            </select>
-                            <input type="hidden" id="placaElegida" name="placaElegida">                            
+                            </select>                            
                         </div>
                         <div class="mb-2 row g-2">
                             <div class="col-4 col-md-4">
@@ -325,7 +325,7 @@
                         $('#PtipoActividad').val(actividad.detalle_tipo_uso);
                         $('#Ppatron').val(actividad.patron);
                         $('#Pot').val(actividad.ot);
-                        
+                        $('#placaElegida').val(actividad.placa);
                     });
                     $('#tablaActividadesPendientes').html(html);
                     $('#cerrarActividadPendiente').html(botonCerrarActividad);
@@ -420,6 +420,7 @@
             var gasActual = $('#gasActualNuevo').val();                        
             var tipoServicio = $('#PtipoActividad').val();
             var coordenadas = $('#coordenadasCheck').val();
+            var placaElegida = $('#placaElegida').val();
             // Validar que los campos no estén vacíos
             if (!vehiculoAsignado || !kmActual || !gasActual) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
@@ -437,6 +438,7 @@
             formData.append('gasActual', gasActual);
             formData.append('tipoServicio', tipoServicio);
             formData.append('coordenadas', coordenadas);
+            formData.append('placa', placaElegida);
             // Adjuntar la imagen del check-in si existe
             // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
             var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
@@ -593,6 +595,16 @@
         }
         
         function verPlaca() {
+            var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
+            if (vehiculoAsignado) {
+                // Tomar solo el primer valor antes del guion "-"
+                var primerValor = vehiculoAsignado.split('-')[0].trim();
+                primerValor = primerValor.replace("Seleccione un vehículo", "");
+                // Asignar el valor al input oculto
+                document.getElementById("placaElegida").value = primerValor;
+            }
+        }
+        function verPlacaCheckOut() {
             var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
             if (vehiculoAsignado) {
                 // Tomar solo el primer valor antes del guion "-"

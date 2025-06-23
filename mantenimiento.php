@@ -407,7 +407,19 @@
                         $("#placaSeleccionada").hide();
                         $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
-                        window.location.replace("seguimiento_mantenimiento");
+                        $.ajax({
+                            type: "POST",
+                            url: "correoMantenimiento.php",
+                            data: { },
+                            success: function () {
+                                window.location.replace("seguimiento_mantenimiento");
+                            },
+                            error: function () {
+                                window.location.replace("seguimiento_mantenimiento");
+                            }
+                        });
+                        return;
+                        //window.location.replace("seguimiento_mantenimiento");
                     },
                     error: function () {
                         Swal.fire({

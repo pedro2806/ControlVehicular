@@ -16,6 +16,8 @@ $otRelacionada = isset($_POST['otRelacionada']) ? $_POST['otRelacionada'] : null
 $tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
 $placa = isset($_POST['placa']) ? $_POST['placa'] : null;
 $coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
+$ruta_destino_inicio = '';
+
 
 function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
 
@@ -35,7 +37,10 @@ function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $pl
     foreach ($imagenes['tmp_name'] as $key => $tmp_name) {
         if ($imagenes['error'][$key] === UPLOAD_ERR_OK) {
             
-            $nombreArchivo = uniqid('img_', true) . '.' . pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
+            static $consecutivo = 1;
+            $extension = pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
+            $nombreArchivo = $placa . '_' . $actividad . '_' . $consecutivo . '.' . $extension;
+            $consecutivo++;
             $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
 
             if (move_uploaded_file($tmp_name, $ruta_destino)) {
@@ -51,11 +56,12 @@ function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $pl
 }
 
 // Si recibes archivos (foto), puedes procesarlos aquí
+/*
 if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
     $nombreArchivo = uniqid('foto_', true) . '.' . pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
     $ruta_destino_inicio = 'uploads/' . $nombreArchivo;
     move_uploaded_file($_FILES['foto']['tmp_name'], $ruta_destino_inicio);
-}
+}*/
 
 if ($accion == 'CargarVehiculos'){
     $sql = "SELECT id_vehiculo, placa, marca, modelo, color 
@@ -111,6 +117,13 @@ if($accion == 'CapturaCheckIn'){
                 subirImagenesCheckin($_FILES['imgCheckin'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'checkin');
             }
 
+            // update asignado SI del inventario
+            $updateInventario = "UPDATE inventario SET asignado = 'SI' WHERE id_vehiculo = '$id_vehiculo'";
+            if ($conn->query($updateInventario) !== TRUE) {
+                //echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el vehículo asignado: ' . $conn->error]);
+                //exit;
+            }
+
         echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-in: ' . $conn->error]);
@@ -146,6 +159,13 @@ if($accion == 'CapturaCheckOut'){
         // Procesar imágenes de check-out si existen
             if (isset($_FILES['imgCheckinNuevo'])) {
                 subirImagenesCheckin($_FILES['imgCheckinNuevo'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'checkout');
+            }
+
+            // update asignado SI del inventario
+            $updateInventario = "UPDATE inventario SET asignado = 'NO' WHERE id_vehiculo = '$id_vehiculo'";
+            if ($conn->query($updateInventario) !== TRUE) {
+                //echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el vehículo asignado: ' . $conn->error]);
+                //exit;
             }
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-out: ' . $conn->error]);

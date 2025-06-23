@@ -53,8 +53,10 @@
     <!-- Menú CheckIn -->
     <li class="nav-item btn-success active">
         <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
-            <i class="fas fa-fw fa-check"></i>
-            <span>CheckIn</span>
+            <i class="far fa-fw fa-check-square"></i>
+            <span>
+                <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:red; font-size: 1rem;">CheckOut</span>
+            </span>
         </a>
     </li>
 

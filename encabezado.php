@@ -252,7 +252,7 @@
                                         <label for="kmActual" class="form-label">Img.</label>
                                     </div>
                                     <div class="col-12 col-md-12">
-                                        <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo" accept=".jpg,.jpeg,.png,.pdf">
+                                        <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo[]" accept=".jpg,.jpeg,.png,.pdf">
                                         <div id="contenedorImgCheckout"></div>
                                         <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagenOut()">Agregar otra imagen</button>
                                     </div>  
@@ -466,7 +466,7 @@
                 timerProgressBar: true
                 }).then(function () {
                 $('#formCapturaKm')[0].reset();
-                $('#capturaKmModal').modal('hide');
+                $('#actividadesPendientesModal').modal('hide');                
                 $('#msgKm').text('');
                 });
             },

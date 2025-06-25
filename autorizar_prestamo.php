@@ -1044,6 +1044,7 @@
         formData.append("gasolina_inicio", $("#gasolina_inicio").val());
         formData.append("notas_entrega", $("#notas_entrega").val());
         formData.append("placa", $("#placa_ini").val());
+        formData.append("id_vehiculo", $("#PidVehiculop").val());
         var fotos = document.getElementById("fotos_inicio").files;
 
         for (var i = 0; i < fotos.length; i++) {

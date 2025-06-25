@@ -62,7 +62,7 @@ if ($accion == "consultarPrestamos") {
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
@@ -71,7 +71,7 @@ if ($accion == "consultarPrestamos") {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
-                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario
                         FROM prestamos prest
                         WHERE id_usuario = $id_usuario";
     } else {
@@ -93,7 +93,7 @@ if ($accion == "consultarPrestamosDetalle") {
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, prest.id_vehiculo,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_prestamo = $id_prestamo
@@ -116,7 +116,7 @@ if ($accion == "consultarPrestamosOtraArea") {
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
@@ -125,7 +125,7 @@ if ($accion == "consultarPrestamosOtraArea") {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
-                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
                         FROM prestamos prest
                         WHERE id_usuario = $id_usuario";
     } else {
@@ -154,7 +154,7 @@ if ($accion == "actualizarPrestamo") {
                         IFNULL(prest.fecha_fin_prestamo, 'S/R') AS fecha_fin_prestamo, 
                         IFNULL((SELECT inv.placa FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS placa,
                         IFNULL((SELECT inv.modelo FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS modelo,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
                     FROM prestamos prest
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                     AND prest.estatus = 'AUTORIZADO'";
@@ -326,7 +326,7 @@ if ($accion == "iniciarPrestamo") {
         }
 
         // Actualizar la ruta de la foto de inicio en la base de datos
-        
+            $ruta_destino_inicio
             // Actualizar la tabla actividad_vehiculo con la foto de inicio
             $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
                                         VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_inicio', '$gasolina_inicio', '$ruta_destino_inicio', NOW(), 'INICIO')";

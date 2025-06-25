@@ -55,7 +55,7 @@
         <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
             <i class="far fa-fw fa-check-square"></i>
             <span>
-                <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:red; font-size: 1rem;">CheckOut</span>
+                <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
             </span>
         </a>
     </li>

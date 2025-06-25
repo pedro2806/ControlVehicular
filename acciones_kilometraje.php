@@ -317,4 +317,22 @@ if($accion == 'ActividadesCalendario'){
     }
     exit;
 }
+if($accion == 'ActividadesCalendarioPlaneadas'){
+    // Consultar las actividades planeadas del usuario actual
+    $sql = "SELECT p.fecha_inc_prestamo, p.fecha_fin_prestamo, p.motivo_us, p.detalle_tipo_uso, p.estatus, u.nombre,
+                IF(i.placa IS NULL OR i.placa = '', 'Vehiculo por asignar', i.placa) AS placa,
+                IF(i.modelo IS NULL OR i.modelo = '', '', i.modelo) AS modelo,
+                IF(i.marca IS NULL OR i.marca = '', '', i.marca) AS marca
+            FROM prestamos p
+            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+            LEFT JOIN inventario i ON p.id_vehiculo = i.id_vehiculo";
+    $result = $conn->query($sql);
+    if ($result && $result->num_rows > 0) {
+        $actividades = [];
+        while ($row = $result->fetch_assoc()) {
+            $actividades[] = $row;
+        }
+        echo json_encode(['status' => 'success', 'actividades' => $actividades]);
+    }   
+}
 ?>

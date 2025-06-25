@@ -326,13 +326,13 @@ if ($accion == "iniciarPrestamo") {
         }
 
         // Actualizar la ruta de la foto de inicio en la base de datos
-        if ($ruta_destino_inicio) {
+        
             // Actualizar la tabla actividad_vehiculo con la foto de inicio
             $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
                                         VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_inicio', '$gasolina_inicio', '$ruta_destino_inicio', NOW(), 'INICIO')";
             
             $conn->query($sqlActualizarActividad);
-        }
+        
 
         echo json_encode(['success' => true, 'message' => 'Préstamo iniciado exitosamente.']);
     } else {
@@ -383,12 +383,12 @@ if ($accion == "finalizarPrestamo") {
         }
 
         // Actualizar la ruta de la foto de devolución en la base de datos
-        if ($ruta_destino_devolucion) {
+        
             // Actualizar la tabla actividad_vehiculo con la foto de devolución
             $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
                                         VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_fin', '$gasolina_fin', '$ruta_destino_devolucion', NOW(), 'FINALIZACION')";
             $conn->query($sqlActualizarActividad);           
-        }
+        
 
         echo json_encode(['success' => true, 'message' => 'Préstamo finalizado exitosamente.']);
         cambiarAsignadoNo($conn, $id_vehiculo); 

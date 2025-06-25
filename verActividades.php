@@ -70,10 +70,34 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                     </div>
                     <div class="row">
-                        <div id="calendarioActividades" name="calendarioActividades"></div>
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                            <li class="nav-item">                                
+                                <button class="nav-link active btn-outline-warning" onclick="verCalendario('planeadas')" type="button">Planeadas</button>
+                            </li>
+                            <li class="nav-item">                                
+                                <button class="nav-link active btn-outline-success" onclick="verCalendario('checks')"type="button">Checks</button>
+                            </li>                            
+                        </ul><br>
                     </div>
-
+                        
+                        <!-- PLANEADAS -->
+                        <div id="divPlaneadas">
+                            <div class="alert alert-warning" role="alert">
+                                Actividades planeadas para los vehiculos.
+                            </div>
+                            <div id="calendarioActividadesPlaneadas" name="calendarioActividadesPlaneadas"></div>            
+                        </div>
+                        <!-- CHECKS -->
+                        <div id="divChecks">
+                            <div class="alert alert-success" role="alert">
+                                Actividades de checks de los vehiculos.
+                            </div>
+                            <div id="calendarioActividades" name="calendarioActividades"></div>
+                        </div>
+                        
+                    
                 </div>
+                <!-- /.container-fluid -->
             </div>
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
@@ -126,8 +150,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     }
                 }
             });
-            cargarActividades(); 
-            mostrarCalendarioActividades();
+            cargarActividades();
+            mostrarCalendarioActividadesPlaneadas();
+            $('#divChecks').hide();
         });
 
         function cargarActividades() {
@@ -217,7 +242,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
             function inicializarCalendario(calendarEl, eventos) {
                 var calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
+                    initialView: 'timeGridWeek',
                     locale: 'es',
                     headerToolbar: {
                         left: 'prev,next today',
@@ -239,6 +264,112 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             }
         }
         
+        function mostrarCalendarioActividadesPlaneadas() {
+            // Limpiar el contenedor antes de agregar el calendario
+            $('#calendarioActividadesPlaneadas').empty();
+
+            // Crear un array de eventos para FullCalendar
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                type: 'POST',
+                data: { accion: 'ActividadesCalendarioPlaneadas' },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.status === 'success') {
+                        var eventos = [];
+                        $.each(data.actividades, function(index, actividad) {
+                            // Definir color según el estatus
+                            var colorEvento = '';
+                            switch (actividad.estatus) {
+                                case 'PENDIENTE':
+                                    colorEvento = '#ffc107'; // Amarillo
+                                    break;
+                                case 'PENDIENTEAREA':
+                                    colorEvento = '#ff9800'; // Naranja
+                                    break;
+                                case 'AUTORIZADO':
+                                    colorEvento = '#28a745'; // Verde
+                                    break;
+                                case 'Cancelado':
+                                    colorEvento = '#dc3545'; // Rojo
+                                    break;
+                                default:
+                                    colorEvento = '#007bff'; // Azul por defecto
+                            }
+                            eventos.push({
+                                title: actividad.nombre + ' - ' + actividad.placa,
+                                start: actividad.fecha_inc_prestamo,
+                                end: actividad.fecha_fin_prestamo,
+                                description:
+                                    'Modelo: ' + actividad.modelo + '<br>' +
+                                    'Marca: ' + actividad.marca + '<br>' +
+                                    'Notas: ' + (actividad.motivo_us || ''),
+                                color: colorEvento
+                            });
+                        });
+                        
+
+                        // Crear el calendario
+                        var calendarEl = document.createElement('div');
+                        calendarEl.id = 'fullcalendar';
+                        $('#calendarioActividadesPlaneadas').append(calendarEl);
+
+                        // Cargar scripts de FullCalendar si no están cargados
+                        if (typeof FullCalendar === 'undefined') {
+                            $.when(
+                                $.getScript('https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js')
+                            ).done(function() {
+                                inicializarCalendario(calendarEl, eventos);
+                            });
+                        } else {
+                            inicializarCalendario(calendarEl, eventos);
+                        }
+                    } else {
+                        $('#calendarioActividadesPlaneadas').html('<p>No hay actividades pendientes.</p>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al cargar actividades pendientes:', error);
+                    $('#calendarioActividadesPlaneadas').html('<p>Error al cargar actividades.</p>');
+                }
+            });
+
+            function inicializarCalendario(calendarEl, eventos) {
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'timeGridWeek',
+                    locale: 'es',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    events: eventos,
+                    eventDidMount: function(info) {
+                        // Tooltip con la descripción
+                        $(info.el).tooltip({
+                            title: info.event.extendedProps.description,
+                            html: true,
+                            placement: 'top',
+                            container: 'body'
+                        });
+                    }
+                });
+                calendar.render();
+            }
+        }
+
+
+        function verCalendario(tipo) {
+            if (tipo === 'planeadas') {
+                $('#divPlaneadas').show();
+                $('#divChecks').hide();
+                mostrarCalendarioActividadesPlaneadas();
+            } else if (tipo === 'checks') {
+                $('#divPlaneadas').hide();
+                $('#divChecks').show();
+                mostrarCalendarioActividades();
+            }
+        }
     </script>
 </body>
 </html>

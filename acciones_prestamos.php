@@ -326,7 +326,7 @@ if ($accion == "iniciarPrestamo") {
         }
 
         // Actualizar la ruta de la foto de inicio en la base de datos
-            $ruta_destino_inicio
+            
             // Actualizar la tabla actividad_vehiculo con la foto de inicio
             $sqlActualizarActividad = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, gasolina_actual, foto_url, fecha_actividad, tipo_actividad)
                                         VALUES ('$id_prestamo', '$id_vehiculo', '$id_usuario', '$km_inicio', '$gasolina_inicio', '$ruta_destino_inicio', NOW(), 'INICIO')";

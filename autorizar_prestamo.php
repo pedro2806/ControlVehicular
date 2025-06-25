@@ -1166,7 +1166,7 @@
         formData.append("notas_devolucion", $("#notas_devolucion").val());
         formData.append("id_recibe", id_recibe);
         formData.append("placa", $("#placa").val());
-
+        formData.append("id_vehiculo", $("#PidVehiculop").val());
         // Agregar las imágenes seleccionadas al FormData
         for (var i = 0; i < fotos.length; i++) {
             formData.append("fotos_final[]", fotos[i]);

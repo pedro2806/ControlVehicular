@@ -64,13 +64,13 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
 }*/
 
 if ($accion == 'CargarVehiculos'){
-    $sql = "SELECT id_vehiculo, placa, marca, modelo, color 
+    $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo
             FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'
             UNION
-            SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color 
+            SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-            WHERE p.id_usuario = '".$_COOKIE['id_usuario']."' AND p.estatus = 'AUTORIZADO'";
+            WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."') AND p.estatus = 'AUTORIZADO'";
     
     
     //SELECT id_vehiculo, placa, marca, modelo, color FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";

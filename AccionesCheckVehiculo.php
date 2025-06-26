@@ -584,7 +584,7 @@ function obtenerRutaImagen($placa, $tipo, $archivo) {
     if ($archivo && $archivo['error'] == UPLOAD_ERR_OK) {
         return $placa . "_" . $tipo . "_" . date("Ymd_his") . "." . pathinfo($archivo['name'], PATHINFO_EXTENSION);
     }
-    return "S/R";
+    return "S-R.jpg";
 }
 
 function subirImagenAsientos($rutaChecklist, $rutaImagen, $tempFilePath) {
@@ -738,7 +738,7 @@ function insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_LimpiaPara
     $rutaImagen = obtenerRutaImagen($placa, "checklist_LimpiaParabrisas", $_FILES['foto_Limpiaparabrisas'] ?? null);
     $rutaChecklist = "img_control_vehicular/$placa/checklist/limpiaParabrisas/" . $rutaImagen;
 
-    $sql = "INSERT INTO checklist_limpiaParabrisas (id_checklist, si_no, observaciones, foto, buen_estado) 
+    $sql = "INSERT INTO checklist_limpiaparabrisas (id_checklist, si_no, observaciones, foto, buen_estado) 
         VALUES ('$id_checklist', '$si_no_LimpiaParabrisas', '$observaciones_LimpiaParabrisas', '$rutaChecklist', '$buenEstado_Limpiaparabrisas')";
     if (mysqli_query($conn, $sql)) {
         if ($rutaImagen !== "S/R" && isset($_FILES['foto_Limpiaparabrisas'])) {

@@ -435,13 +435,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         let esValido = true;
         let mensajeError = "";
 
-        // Validar campos con la propiedad required, excepto confirmapass y nuevapass
-        $('[required]').each(function () {
-            if ($(this).attr('name') !== 'confirmapass' && $(this).attr('name') !== 'nuevapass') {
-                if ($(this).val().trim() === "") {
-                    esValido = false;
-                    mensajeError += `El campo ${$(this).attr('name')} es obligatorio.\n`;
-                }
+        // Validar solo los campos de tipo date que tengan la propiedad required
+        $('input[type="date"][required]').each(function () {
+            if ($(this).val().trim() === "") {
+            esValido = false;
+            mensajeError += `El campo ${$(this).attr('name')} es obligatorio.\n`;
             }
         });
 
@@ -454,9 +452,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         function guardarCheckIn() {
             // Validar el formulario antes de enviar
-           /*if (!validarFormulario()) {
+           if (!validarFormulario()) {
                 return; // Detener la ejecución si hay errores de validación
-            }*/
+            }
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros
@@ -496,6 +494,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // Agregar opción al FormData
             formData.append('opcion', 'guardarCheckIn');
 
+            
             // Enviar datos mediante AJAX
             $.ajax({
                 url: 'AccionesCheckVehiculo.php',

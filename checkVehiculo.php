@@ -435,8 +435,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         let esValido = true;
         let mensajeError = "";
 
-        // Validar solo los campos de tipo date que tengan la propiedad required
-        $('input[type="date"][required]').each(function () {
+        // Validar todos los campos de tipo date, sin importar si tienen required
+        $('input[type="date"]').each(function () {
             if ($(this).val().trim() === "") {
             esValido = false;
             mensajeError += `El campo ${$(this).attr('name')} es obligatorio.\n`;
@@ -452,7 +452,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         function guardarCheckIn() {
             // Validar el formulario antes de enviar
-           if (!validarFormulario()) {
+            if (!validarFormulario()) {
                 return; // Detener la ejecución si hay errores de validación
             }
             let formData = new FormData();

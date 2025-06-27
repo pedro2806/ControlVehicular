@@ -352,62 +352,72 @@ if ($opcion == 'checklist_documentacion') {
 
 //////// FUNCIONES Y  VARIABLES PARA GUARDAR CHECKLIST ////////////
 
-    $placa = $_POST['placa'] ?? null;
+    /*$placa = (!isset($_POST['placa']) || $_POST['placa'] === null || $_POST['placa'] === '') ? '' : $_POST['placa'];
     $id_coche = $_POST['id_coche'] ?? null; 
-    $motivo = $_POST['motivo'] ?? null;
+    $motivo = $_POST['motivo'] ?? null;*/
 
-    $si_no_asientos = $_POST['si_no_Asientos'] ?? null;
-    $buenEstado_Asientos = $_POST['buenEstado_Asientos'] ?? null;
-    $observaciones_Asientos = $_POST['observaciones_Asientos'] ?? null;
+    // Helper function to get POST value or 'S/R' if null/empty
+    function getPostOrSR($key) {
+        return (isset($_POST[$key]) && $_POST[$key] !== null && $_POST[$key] !== '') ? $_POST[$key] : 'S/R';
+    }
+    $placa = getPostOrSR('placa');
+    $id_coche = getPostOrSR('id_coche');
+    $motivo = getPostOrSR('motivo');
 
-    $si_no_Limpieza = $_POST['si_no_Limpieza'] ?? null;
-    $buenEstado_Limpieza = $_POST['buenEstado_Limpieza'] ?? null;
-    $observaciones_Limpieza = $_POST['observaciones_Limpieza'] ?? null;
+    $si_no_asientos = getPostOrSR('si_no_Asientos');
+    $buenEstado_Asientos = getPostOrSR('buenEstado_Asientos');
+    $observaciones_Asientos = getPostOrSR('observaciones_Asientos');
 
-    $si_no_Exterior = $_POST['si_no_Exterior'] ?? null;
-    $buenEstado_Exterior = $_POST['buenEstado_Exterior'] ?? null;
-    $observaciones_Exterior = $_POST['observaciones_Exterior'] ?? null;
+    $si_no_Limpieza = getPostOrSR('si_no_Limpieza');
+    $buenEstado_Limpieza = getPostOrSR('buenEstado_Limpieza');
+    $observaciones_Limpieza = getPostOrSR('observaciones_Limpieza');
 
-    $si_no_Graficas = $_POST['si_no_Graficas'] ?? null;
-    $buenEstado_Graficas = $_POST['buenEstado_Graficas'] ?? null;
-    $observaciones_Graficas = $_POST['observaciones_Graficas'] ?? null;
+    $si_no_Exterior = getPostOrSR('si_no_Exterior');
+    $buenEstado_Exterior = getPostOrSR('buenEstado_Exterior');
+    $observaciones_Exterior = getPostOrSR('observaciones_Exterior');
 
-    $si_no_Faros = $_POST['si_no_Faros'] ?? null;
-    $buenEstado_Faros = $_POST['buenEstado_Faros'] ?? null;
-    $observaciones_Faros = $_POST['observaciones_Faros'] ?? null;
+    $si_no_Graficas = getPostOrSR('si_no_Graficas');
+    $buenEstado_Graficas = getPostOrSR('buenEstado_Graficas');
+    $observaciones_Graficas = getPostOrSR('observaciones_Graficas');
 
-    $si_no_Placas = $_POST['si_no_Placas'] ?? null;
-    $buenEstado_Placas = $_POST['buenEstado_Placas'] ?? null;
-    $observaciones_Placas = $_POST['observaciones_Placas'] ?? null;
+    $si_no_Faros = getPostOrSR('si_no_Faros');
+    $buenEstado_Faros = getPostOrSR('buenEstado_Faros');
+    $observaciones_Faros = getPostOrSR('observaciones_Faros');
 
-    $si_no_Limpiaparabrisas = $_POST['si_no_Limpiaparabrisas'] ?? null;
-    $buenEstado_Limpiaparabrisas = $_POST['buenEstado_Limpiaparabrisas'] ?? null;
-    $observaciones_Limpiaparabrisas = $_POST['observaciones_Limpiaparabrisas'] ?? null;
+    $si_no_Placas = getPostOrSR('si_no_Placas');
+    $buenEstado_Placas = getPostOrSR('buenEstado_Placas');
+    $observaciones_Placas = getPostOrSR('observaciones_Placas');
 
-    $si_no_espejos = $_POST['si_no_Espejos'] ?? null;
-    $buenEstado_Espejos = $_POST['buenEstado_Espejos'] ?? null;
-    $observaciones_Espejos = $_POST['observaciones_Espejos'] ?? null;
+    $si_no_Limpiaparabrisas = getPostOrSR('si_no_Limpiaparabrisas');
+    $buenEstado_Limpiaparabrisas = getPostOrSR('buenEstado_Limpiaparabrisas');
+    $observaciones_Limpiaparabrisas = getPostOrSR('observaciones_Limpiaparabrisas');
 
-    $si_no_AireAcondicionado = $_POST['si_no_AireAcondicionado'] ?? null;
-    $buenEstado_AireAcondicionado = $_POST['buenEstado_AireAcondicionado'] ?? null;
-    $observaciones_AireAcondicionado = $_POST['observaciones_AireAcondicionado'] ?? null;
-    $CEAireAcondicionado = $_POST['CEAireAcondicionado'] ?? null;
+    $si_no_espejos = getPostOrSR('si_no_Espejos');
+    $buenEstado_Espejos = getPostOrSR('buenEstado_Espejos');
+    $observaciones_Espejos = getPostOrSR('observaciones_Espejos');
 
-    $buenEstado_Llantas = $_POST['buenEstado_Llantas'] ?? null;
-    $observaciones_Llantas = $_POST['observaciones_Llantas'] ?? null;
-    $no_rin = $_POST['CE_Llantas'] ?? null;
-    $medidas = $_POST['medidas_Llantas'] ?? null;
+    $si_no_AireAcondicionado = getPostOrSR('si_no_AireAcondicionado');
+    $buenEstado_AireAcondicionado = getPostOrSR('buenEstado_AireAcondicionado');
+    $observaciones_AireAcondicionado = getPostOrSR('observaciones_AireAcondicionado');
+    $CEAireAcondicionado = getPostOrSR('CEAireAcondicionado');
 
-    $buenEstado_PuertasLlave = $_POST['buenEstado_PuertasLlave'] ?? null;
-    $duplicado_PuertasLlave = $_POST['duplicado_PuertasLlave'] ?? null;
-    $observaciones_PuertasLlave = $_POST['observaciones_PuertasLlave'] ?? null;
+    $buenEstado_Llantas = getPostOrSR('buenEstado_Llantas');
+    $observaciones_Llantas = getPostOrSR('observaciones_Llantas');
+    $no_rin = getPostOrSR('CE_Llantas');
+    $medidas = getPostOrSR('medidas_Llantas');
 
-    $si_no_tarjetaC = $_POST['si_no_tarjetaC'] ?? null;
-    $observaciones_tarjetaC = $_POST['observaciones_tarjetaC'] ?? null;
+    $buenEstado_PuertasLlave = getPostOrSR('buenEstado_PuertasLlave');
+    $duplicado_PuertasLlave = getPostOrSR('duplicado_PuertasLlave');
+    $observaciones_PuertasLlave = getPostOrSR('observaciones_PuertasLlave');
 
-    $si_no_Refrendo = $_POST['si_no_Refrendo'] ?? null;
-    $observaciones_Refrendo = $_POST['observaciones_Refrendo'] ?? null;
+    $si_no_tarjetaC = getPostOrSR('si_no_tarjetaC');
+    $observaciones_tarjetaC = getPostOrSR('observaciones_tarjetaC');
 
+    $si_no_Refrendo = getPostOrSR('si_no_Refrendo');
+    $observaciones_Refrendo = getPostOrSR('observaciones_Refrendo');
+
+
+    
     $si_no_Seguro = $_POST['si_no_Seguro'] ?? null;
     $vencimiento_Seguro = $_POST['vencimiento_Seguro'] ?? null;
     $no_tarjeta_Seguro = $_POST['no_tarjeta_Seguro'] ?? null;
@@ -434,6 +444,7 @@ if ($opcion == 'checklist_documentacion') {
     $observaciones_TarjetaIAVE = $_POST['observaciones_TarjetaIAVE'] ?? null;
     $id_revisor = '0'; // Default value, can be updated later
     $opcion = $_POST['opcion'] ?? null;
+    
     // Handle uploaded images
     $foto_Limpieza = isset($_FILES['foto_Limpieza']) ? file_get_contents($_FILES['foto_Limpieza']['tmp_name']) : null;
     $foto_Exterior = isset($_FILES['foto_Exterior']) ? file_get_contents($_FILES['foto_Exterior']['tmp_name']) : null;

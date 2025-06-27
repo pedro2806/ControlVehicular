@@ -178,7 +178,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         });
                     } else {
                         Swal.fire({
-                            icon: 'Warning',
+                            icon: 'warning',
                             title: 'Atención',
                             text: data.message
                         });

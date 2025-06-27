@@ -35,6 +35,7 @@
             </a>
             <input type="hidden" id="coordenadasCheck" name="coordenadasCheck">
             <input type="hidden" id="placaElegida" name="placaElegida">
+            <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                 <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
@@ -255,8 +256,7 @@
                                         <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo[]" accept=".jpg,.jpeg,.png,.pdf">
                                         <div id="contenedorImgCheckout"></div>
                                         <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagenOut()">Agregar otra imagen</button>
-                                    </div>  
-                                    <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
+                                    </div>                                      
                                     <input type="hidden" class="form-control" id="PidVehiculo" name="PidVehiculo">
                                     <input type="hidden" class="form-control" id="PtipoActividad" name="¨PtipoActividad">
                                     <input type="hidden" class="form-control" id="Ppatron" name="Ppatron">
@@ -534,9 +534,17 @@
                     select.empty();
                     if (data && data.length > 0) {
                         select.append('<option value="">Seleccione un vehículo</option>');
-                        $.each(data, function (index, vehiculo) {
-                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa +'-'+ vehiculo.modelo+'</option>');
+                        $.each(data, function (index, vehiculo) {                            
+                            // Asignar id prestamo al input oculto solo si no es vacío o nulo
+                            if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
+                                $('#PidPrestamo').val(vehiculo.id_prestamo);
+                                select.append('<option value="' + vehiculo.id_vehiculo + '">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                            }
+                            else{
+                                select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                            }
                         });
+                        
                     } else {
                         select.append('<option value="">No hay vehículos disponibles</option>');
                     }
@@ -594,7 +602,7 @@
             }
         }
         
-        function verPlaca() {
+        function verPlaca() {            
             var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
             if (vehiculoAsignado) {
                 // Tomar solo el primer valor antes del guion "-"

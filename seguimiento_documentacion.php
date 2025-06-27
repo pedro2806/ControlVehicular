@@ -290,27 +290,42 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     ? `<tr>
                         <td><strong>${doc.nombre}:</strong></td>
                         <td>                            
-                            <img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;cursor:zoom-in;" class="img-thumbnail"
-                                onclick="
-                                    if (!this.classList.contains('zoomed')) {
-                                        this.style.maxWidth='60%';
-                                        this.style.maxHeight='60%';
-                                        this.style.zIndex=9999;
-                                        this.style.position='fixed';
-                                        this.style.top='50%';
-                                        this.style.left='50%';
-                                        this.style.transform='translate(-50%,-50%)';
-                                        this.style.background='#fff';
-                                        this.style.boxShadow='0 0 20px rgba(0,0,0,0.5)';
-                                        this.style.cursor='zoom-out';
-                                        this.classList.add('zoomed');
+                            ${
+                                (function() {
+                                    const ext = doc.archivo.split('.').pop().toLowerCase();
+                                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                                        return `<img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;cursor:zoom-in;" class="img-thumbnail"
+                                            onclick="
+                                                if (!this.classList.contains('zoomed')) {
+                                                    this.style.maxWidth='60%';
+                                                    this.style.maxHeight='60%';
+                                                    this.style.zIndex=9999;
+                                                    this.style.position='fixed';
+                                                    this.style.top='50%';
+                                                    this.style.left='50%';
+                                                    this.style.transform='translate(-50%,-50%)';
+                                                    this.style.background='#fff';
+                                                    this.style.boxShadow='0 0 20px rgba(0,0,0,0.5)';
+                                                    this.style.cursor='zoom-out';
+                                                    this.classList.add('zoomed');
+                                                } else {
+                                                    this.removeAttribute('style');
+                                                    this.className='img-thumbnail';
+                                                    this.classList.remove('zoomed');
+                                                }
+                                            "
+                                        />`;
+                                    } else if (ext === 'pdf') {
+                                        return `<a href="${doc.archivo}" target="_blank" class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-file-pdf"></i> Ver PDF
+                                                </a>`;
                                     } else {
-                                        this.removeAttribute('style');
-                                        this.className='img-thumbnail';
-                                        this.classList.remove('zoomed');
+                                        return `<a href="${doc.archivo}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-file"></i> Ver Archivo
+                                                </a>`;
                                     }
-                                "
-                            />
+                                })()
+                            }
                         </td>
                     </tr>`
                     : `<tr>

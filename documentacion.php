@@ -72,9 +72,9 @@
                                 <input class="form-control" id="contacto" name="contacto" type="tel" required>
                             </div>
                             <br>
-                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-6" style="display: none">
                                 <label>Fecha Prox. Revisión:</label>
-                                <input type="date" class="form-control" id="prox_fecha" name="prox_fecha" required>
+                                <input type="date" class="form-control" id="prox_fecha" name="prox_fecha" value="<?php echo date('Y-m-d'); ?>">
                             </div>
                         </div>
                         <br>
@@ -86,7 +86,7 @@
                                         <label class="form-check-label" for="licencia">Licencia para Conducir</label>
                                     </div>
                                     <div id="archivoLicencia" style="display: none;">
-                                        <input type="file" class="form-control" id="archivoLicenciaInput" name="archivoLicencia" accept="image/png, image/jpeg">
+                                        <input type="file" class="form-control" id="archivoLicenciaInput" name="archivoLicencia" accept="image/png, image/jpeg, application/pdf">
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +97,7 @@
                                         <label class="form-check-label" for="circulacion">Tarjeta de Circulación</label>
                                     </div>
                                     <div id="archivoCirculacion" style="display: none;">
-                                        <input type="file" class="form-control" id="archivoCirculacionInput" name="archivoCirculacion" accept="image/png, image/jpeg">
+                                        <input type="file" class="form-control" id="archivoCirculacionInput" name="archivoCirculacion" accept="image/png, image/jpeg, application/pdf">
                                     </div>
                                 </div>
                             </div>
@@ -111,7 +111,7 @@
                                         <label class="form-check-label" for="refrendo">Refrendo</label>
                                     </div>
                                     <div id="archivoRefrendo" style="display: none;">
-                                        <input type="file" class="form-control" id="archivoRefrendoInput" name="archivoRefrendo" accept="image/png, image/jpeg">
+                                        <input type="file" class="form-control" id="archivoRefrendoInput" name="archivoRefrendo" accept="image/png, image/jpeg, application/pdf">
                                     </div>
                                 </div>
                             </div>
@@ -122,7 +122,7 @@
                                         <label class="form-check-label" for="poliza">Poliza de Seguro</label>
                                     </div>
                                     <div id="archivoPoliza" style="display: none;">
-                                        <input type="file" class="form-control" id="archivoPolizaInput" name="archivoPoliza" accept="image/png, image/jpeg">
+                                        <input type="file" class="form-control" id="archivoPolizaInput" name="archivoPoliza" accept="image/png, image/jpeg, application/pdf">
                                     </div>
                                 </div>
                             </div>
@@ -136,7 +136,7 @@
                                         <label class="form-check-label" for="verificacion">Verificación Vigente</label>
                                     </div>
                                     <div id="archivoVerificacion" style="display: none;">
-                                        <input type="file" class="form-control" id="archivoVerificacionInput" name="archivoVerificacion" accept="image/png, image/jpeg">
+                                        <input type="file" class="form-control" id="archivoVerificacionInput" name="archivoVerificacion" accept="image/png, image/jpeg, application/pdf">
                                     </div>
                                 </div>
                             </div>

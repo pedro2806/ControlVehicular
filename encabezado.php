@@ -249,10 +249,19 @@
                                         <label for="notasCheckinNuevo" class="form-label">Notas</label>
                                         <textarea name="notasCheckinNuevo" id="notasCheckinNuevo" class="form-control" rows="1"></textarea>
                                     </div>
-                                    <div class="col-12 col-md-12">
-                                        <label for="kmActual" class="form-label">Img.</label>
+                                </div>
+                                <div class="row g-2 mt-2">
+                                    <div class="col-12 col-md-12 alert alert-primary me-0" id="divFinalizarPrestamo" name=="divFinalizarPrestamo">
+                                        <div class="form-check form-switch d-flex align-items-center mb-2" style="font-size: 1.1em;">
+                                            <input class="form-check-input me-4" type="checkbox" id="finalizarPrestamo" name="finalizarPrestamo" style="width:2.5em; height:1.5em;">
+                                            <label class="form-check-label fw-bold text-primary" for="finalizarPrestamo" style="margin-left: 1.5em;">                                                
+                                                Marca esta casilla si vas a <span class="text-success">finalizar tu préstamo</span>
+                                            </label>
+                                        </div>
                                     </div>
-                                    <div class="col-12 col-md-12">
+                                </div>
+                                <div class="row g-2 mt-2">
+                                    <div class="col-12 col-md-12">                                        
                                         <input type="file" class="form-control" id="imgCheckinNuevo" name="imgCheckinNuevo[]" accept=".jpg,.jpeg,.png,.pdf">
                                         <div id="contenedorImgCheckout"></div>
                                         <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagenOut()">Agregar otra imagen</button>
@@ -281,16 +290,27 @@
     <script  type="text/javascript">
         $(document).ready(function () {
             // Obtener coordenadas del usuario
-            if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const lat = position.coords.latitude.toFixed(6); 
-                    const lon = position.coords.longitude.toFixed(6); 
-                    $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
-                }
-            );
-            }
+            obtenerCoordenadas();   
         });
+
+        // Función para obtener las coordenadas del usuario
+        function obtenerCoordenadas() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const lat = position.coords.latitude.toFixed(6); 
+                        const lon = position.coords.longitude.toFixed(6); 
+                        $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
+                    },
+                    function (error) {
+                        //console.error("Error al obtener la ubicación: ", error);                        
+                    }
+                );
+            } else {
+                //console.error("Geolocalización no es soportada por este navegador.");
+            }
+        }
+        
         // Función para cargar y mostrar actividades pendientes en el modal
         // Sobrescribe la función para mostrar actividades en tabla
     function mostrarActividadesPendientes() {
@@ -307,8 +327,13 @@
                     var botonCerrarActividad = '';
                     data.forEach(function (actividad, idx) {
                         // Si la actividad tiene los datos necesarios, guarda el botón en una variable aparte (no en la tabla)
-                            botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut()">' + '<i class="fas fa-check"></i> Captura CheckOut</button>';
-                                                                        
+                        botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut()">' + '<i class="fas fa-check"></i> Captura CheckOut</button>';
+                        
+                        if (!actividad.id_prestamo) {
+                            $('#divFinalizarPrestamo').hide();
+                        } else {
+                            $('#divFinalizarPrestamo').show();
+                        }
 
                         html += '<tr>';
                         html += '<td>' + (idx + 1) + '</td>';
@@ -439,6 +464,7 @@
             formData.append('tipoServicio', tipoServicio);
             formData.append('coordenadas', coordenadas);
             formData.append('placa', placaElegida);
+            formData.append('finalizarPrestamo', $('#finalizarPrestamo').is(':checked') ? 'Si' : 'No');
             // Adjuntar la imagen del check-in si existe
             // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
             var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
@@ -538,7 +564,7 @@
                             // Asignar id prestamo al input oculto solo si no es vacío o nulo
                             if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
                                 $('#PidPrestamo').val(vehiculo.id_prestamo);
-                                select.append('<option value="' + vehiculo.id_vehiculo + '">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                                select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
                             }
                             else{
                                 select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');

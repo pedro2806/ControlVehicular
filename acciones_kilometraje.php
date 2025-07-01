@@ -17,7 +17,7 @@ $tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
 $placa = isset($_POST['placa']) ? $_POST['placa'] : null;
 $coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
 $ruta_destino_inicio = '';
-
+$finalizarPrestamo = isset($_POST['finalizarPrestamo']) ? $_POST['finalizarPrestamo'] : 'No';
 
 function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
 
@@ -64,13 +64,13 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
 }*/
 
 if ($accion == 'CargarVehiculos'){
-    $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo
+    $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo, '' as estatus
             FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'
             UNION
-            SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo
+            SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-            WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."') AND p.estatus = 'AUTORIZADO'";
+            WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
     
     
     //SELECT id_vehiculo, placa, marca, modelo, color FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";
@@ -140,7 +140,7 @@ if($accion == 'CapturaCheckOut'){
         echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);
         // Actualizar el estatus del préstamo a 'FINALIZADO'
         $updatePrestamo = "UPDATE prestamos SET estatus = 'FINALIZADO' WHERE id_prestamo = '$id_prestamo'";
-        if (!empty($id_prestamo)) {
+        if (!empty($id_prestamo) && $finalizarPrestamo == 'Si') {
             if ($conn->query($updatePrestamo) === TRUE) {
                 //echo json_encode(['status' => 'success', 'message' => 'Préstamo actualizado a FINALIZADO.']);
             }
@@ -290,16 +290,10 @@ if($accion == 'ActividadesCalendario'){
         CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.siguiente_ot ELSE NULL END AS ot_fin
     FROM
         ActividadesOrdenadas ao
-    INNER JOIN
-        inventario i ON ao.id_vehiculo = i.id_vehiculo
-    INNER JOIN
-        usuarios u ON ao.id_usuario = u.id_usuario
-    WHERE
-        ao.tipo_actividad = 'INICIO'    
-    ORDER BY
-        ao.id_usuario,
-        ao.id_vehiculo,
-        ao.fecha_actividad;";
+    INNER JOIN inventario i ON ao.id_vehiculo = i.id_vehiculo
+    INNER JOIN usuarios u ON ao.id_usuario = u.id_usuario
+    WHERE ao.tipo_actividad = 'INICIO'    
+    ORDER BY ao.id_usuario, ao.id_vehiculo, ao.fecha_actividad;";
         /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
             FROM actividad_vehiculo av
             INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo        

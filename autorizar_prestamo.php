@@ -637,6 +637,7 @@
             dataType: "json",
             success: function (respuesta) {
                 var tablaPendientesOtraArea = $("#tablaPrestamosOtraArea tbody");
+                var tipoU = '';
                 tablaPendientesOtraArea.empty();
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTEAREA") {
@@ -656,16 +657,22 @@
                                 <td>${prestamo.tipo_uso}</td>
                                 <td>${prestamo.detalle_tipo_uso}</td>
                                 <td>${prestamo.motivo_us}</td>
-                                <td>${botones}</td>
+                                <td>${
+                                    (rol == 3 && prestamo.source_type == '1')
+                                        ? botones
+                                        : '<span class="text-muted">Por autorizar</span>'
+                                }</td>
                             </tr>`;
                         tablaPendientesOtraArea.append(fila);
+                        tipoU = prestamo.tipoU; // Guardar el tipo de uso del último préstamo
                     }
                 });
-                if (rol != 3) {
-                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").hide(); // Ocultar columna "Acción"
+                
+                /*if (rol == 3 && tipoU == '1') {
+                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").show(); // Mostrar columna "Acción"                    
                 } else {
-                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").show(); // Mostrar columna "Acción"
-                }
+                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").hide(); // Ocultar columna "Acción"
+                }*/
             },
             error: function () {
                 Swal.fire({

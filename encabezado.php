@@ -132,7 +132,7 @@
                             </select>                            
                         </div>
                         <div class="mb-2 row g-2">
-                            <div class="col-4 col-md-4">
+                            <div class="col-6 col-md-6">
                                 <label>Tipo de uso:</label>
                                 <select class="form-select" id="tipoServicio" name="tipoServicio" onchange="cambiaLabelTServicio()" required>
                                     <option value="" disabled selected>Seleccione una opción</option>
@@ -145,21 +145,17 @@
                                     <option value="OT">OT</option>
                                 </select>
                             </div>
-                            <div class="col-4 col-md-4">
-                                <label for="labelTServicio" id="labelTServicio" name="labelTServicio" class="form-label">OT Relacionada</label>
+                            <div class="col-6 col-md-6">
+                                <label id="labelTServicio" name="labelTServicio" class="form-label">OT Relacionada</label>
                                 <input type="text" class="form-control" id="otRelacionada" name="otRelacionada" required>
-                            </div>
-                            <div class="col-4 col-md-4">
-                                <label for="otRelacionada2" class="form-label">Patron</label>
-                                <input type="text" class="form-control" id="patronRelacionado" name="patronRelacionado" required>
-                            </div>
+                            </div>                            
                         </div>
                         <div class="mb-2 row g-2">
-                            <div class="col-6 col-md-6">
+                            <div class="col-4 col-md-4">
                                 <label for="kmActual" class="form-label">Km Actual</label>
                                 <input type="number" class="form-control" id="kmActual" name="kmActual" min="0" required>
                             </div>
-                            <div class="col-6 col-md-6">
+                            <div class="col-4 col-md-4">
                                 <label for="kmActual" class="form-label">Gas. Actual</label>                                
                                 <select class = "form-select" id = "gasActual" name = "gasActual">
                                     <option value = "">Seleccione...</option>
@@ -173,7 +169,11 @@
                                     <option value = "7/8">7/8</option>
                                     <option value = "8/8">8/8</option>
                                 </select> 
-                            </div>    
+                            </div>
+                            <div class="col-4 col-md-4">
+                                <label class="form-label">Patron</label>
+                                <input type="text" class="form-control" id="patronRelacionado" name="patronRelacionado" required>
+                            </div>
                         </div>
                         <div class="mb-2 row g-2">
                             <div class="col-12 col-md-12">
@@ -618,13 +618,17 @@
             var tipoServicio = document.getElementById("tipoServicio").value;
             var labelTServicio = document.getElementById("labelTServicio");
             if (tipoServicio === "OV") {
-                labelTServicio.innerHTML = "MESS-OV";
+                labelTServicio.innerHTML = "OV Relacionada";                
+                document.getElementById("otRelacionada").placeholder = "Ej. 0000-2025";
             } else if (tipoServicio === "OT") {
                 labelTServicio.innerHTML = "OT Relacionada";
+                document.getElementById("otRelacionada").placeholder = "Ej. XX25-00X-000";
             } else if (tipoServicio === "Proyecto") {
                 labelTServicio.innerHTML = "Proyecto Relacionado";
+                document.getElementById("otRelacionada").placeholder = "0000";
             } else {
                 labelTServicio.innerHTML = "Detalle"; // Valor por defecto
+                document.getElementById("otRelacionada").placeholder = "Si aplica, OV/OT/Proyecto";
             }
         }
         

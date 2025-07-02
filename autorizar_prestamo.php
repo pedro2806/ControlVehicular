@@ -675,12 +675,12 @@
                 }*/
             },
             error: function () {
-                Swal.fire({
+                /*Swal.fire({
                     icon: "error",
                     title: "Error",
                     text: "Hubo un problema al cargar los préstamos pendientes otra area.",
                     confirmButtonText: "Aceptar"
-                });
+                });*/
             }
         });
     }

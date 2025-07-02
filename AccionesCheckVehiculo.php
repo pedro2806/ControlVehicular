@@ -439,7 +439,7 @@ if ($opcion == 'checklist_documentacion') {
     $observaciones_TarjetaEfe = $_POST['observaciones_TarjetaEfe'] ?? null;
 
     $si_no_TarjetaIAVE = $_POST['si_no_TarjetaIAVE'] ?? null;
-    $vencimiento_TarjetaIAVE = $_POST['vencimiento_TarjetaIAVE'] ?? null;
+    $vencimiento_TarjetaIAVE = getPostOrSR('vencimiento_TarjetaIAVE'); //$_POST['vencimiento_TarjetaIAVE'] ?? null;
     $no_tarjeta_TarjetaIAVE = $_POST['no_tarjeta_TarjetaIAVE'] ?? null;
     $observaciones_TarjetaIAVE = $_POST['observaciones_TarjetaIAVE'] ?? null;
     $id_revisor = '0'; // Default value, can be updated later

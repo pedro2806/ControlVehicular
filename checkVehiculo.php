@@ -436,10 +436,18 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         let mensajeError = "";
 
         // Validar todos los campos de tipo date, sin importar si tienen required
-        $('input[type="date"]').each(function () {
-            if ($(this).val().trim() === "") {
+        // Validar los campos de fecha requeridos
+        const camposFecha = [
+            'vencimiento_Seguro',
+            'vencimiento_Verificacion',
+            'vencimiento_Licencia',
+            'vencimiento_TarjetaEfe'
+        ];
+        camposFecha.forEach(function(nombreCampo) {
+            const campo = $(`input[name="${nombreCampo}"]`);
+            if (campo.length && campo.val().trim() === "") {
             esValido = false;
-            mensajeError += `El campo ${$(this).attr('name')} es obligatorio.\n`;
+            mensajeError += `El campo ${nombreCampo.replace(/_/g, ' ')} es obligatorio.\n`;
             }
         });
 

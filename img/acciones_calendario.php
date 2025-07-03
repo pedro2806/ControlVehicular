@@ -42,10 +42,9 @@ if($accion == 'ActividadesCalendarioPlaneadas'){
             FROM ordenes_servicio ot
             LEFT JOIN clientes c ON ot.customer_id = c.id_cliente
             WHERE DATE(ot.FechaPlaneadaInicio) >= '$fechaInicio' AND ot.qualityAreas NOT IN ('qualityAreas') AND ot.status IN ('Asignada', 'Trabajando') AND ot.engineers != ''";*/
-    $sql = "SELECT ot.*, DATE(ot.start_date) as FechaPlaneadaInicioDate, c.nombre as cliente
-            FROM servicios_planeados ot
-            LEFT JOIN clientes c ON ot.id_cliente = c.id_cliente
-            WHERE DATE(ot.start_date) >= '$fechaInicio'";
+    $sql = "SELECT ot.*, DATE(ot.start_date) as FechaPlaneadaInicioDate
+            FROM servicios_planeados ot            
+            WHERE DATE(ot.start_date) >= '$fechaInicio' AND ot.tipo_ot = 'SiteServiceOrder'";
     $result = $conn->query($sql);
     
     if ($result && $result->num_rows > 0) {
@@ -70,10 +69,9 @@ if($accion == 'ActividadesCalendarioPlaneadasfiltro'){
             FROM ordenes_servicio ot
             LEFT JOIN clientes c ON ot.customer_id = c.id_cliente
             WHERE DATE(ot.FechaPlaneadaInicio) >= '$fechaInicio' AND ot.qualityAreas NOT IN ('qualityAreas') AND ot.status IN ('Asignada', 'Trabajando') AND ot.engineers != ''";*/
-    $sql = "SELECT ot.*, DATE(ot.start_date) as FechaPlaneadaInicioDate, c.nombre as cliente
-            FROM servicios_planeados ot
-            LEFT JOIN clientes c ON ot.id_cliente = c.id_cliente
-            WHERE DATE(ot.start_date) >= '$fechaInicio'";
+    $sql = "SELECT ot.*, DATE(ot.start_date) as FechaPlaneadaInicioDate
+            FROM servicios_planeados ot            
+            WHERE DATE(ot.start_date) >= '$fechaInicio' AND ot.tipo_ot = 'SiteServiceOrder'";
     
 
     $whereClauses = [];

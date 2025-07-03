@@ -203,12 +203,12 @@
                                 '<i class="fas fa-user"></i> <b>' + actividad.engineer + '</b>\n' +
                                 'Area: ' + areaOT + '\n' +
                                 'OT: ' + actividad.order_code + '\n' +
-                                'Cliente: ' + (actividad.cliente || '') + '\n'+
+                                'Cliente: ' + (actividad.ds_cliente || '') + '\n'+
                                 '<hr style="margin-top:0;margin-bottom:0;border-width:2px; border-color:black; border-style:solid;">';
 
                             eventos.push({
                                 title: descripcionCompleta.replace(/\n/g, '<br>'), // Mostrar toda la descripción en el title
-                                description: descripcionCompleta.replace(/\n/g, '<br>'), // Para el tooltip en HTML
+                                description: actividad.descripcion, // Para el tooltip en HTML
                                 start: actividad.FechaPlaneadaInicioDate,
                                 end: actividad.FechaPlaneadaInicioDate,
                                 color: colorEvento
@@ -350,12 +350,12 @@
                                 '<i class="fas fa-user"></i> <b>' + actividad.engineer + '</b>\n' +
                                 'Area: ' + areaOT + '\n' +
                                 'OT: ' + actividad.order_code + '\n' +
-                                'Cliente: ' + (actividad.cliente || '') + '\n'+
+                                'Cliente: ' + (actividad.ds_cliente || '') + '\n'+
                                 '<hr style="margin-top:0;margin-bottom:0;border-width:2px; border-color:black; border-style:solid;">';
 
                             eventos.push({
                                 title: descripcionCompleta.replace(/\n/g, '<br>'), // Mostrar toda la descripción en el title
-                                description: descripcionCompleta.replace(/\n/g, '<br>'), // Para el tooltip en HTML
+                                description: actividad.descripcion, // Para el tooltip en HTML
                                 start: actividad.FechaPlaneadaInicioDate,
                                 end: actividad.FechaPlaneadaInicioDate,
                                 color: colorEvento

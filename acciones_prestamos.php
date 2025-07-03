@@ -299,7 +299,7 @@ if ($accion == "autorizarPrestamo") {
                         WHERE id_prestamo = '$id_prestamo'";
         } else {
             $sqlAutoriza = "UPDATE prestamos 
-                        SET estatus = 'AUTORIZADO', id_vehiculo = '$idV', fecha_registro_asignado = NOW(), 
+                        SET estatus = 'AUTORIZADO', fecha_registro_asignado = NOW(), 
                             notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario' 
                         WHERE id_prestamo = '$id_prestamo'";    
         }

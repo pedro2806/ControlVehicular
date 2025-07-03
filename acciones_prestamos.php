@@ -114,7 +114,7 @@ if ($accion == "consultarPrestamosOtraArea") {
     if ($rol == 3) {
         // ROL 3 es jefe de área
         $sqlConsulta ="WITH CombinedPrestamos AS (
-    -- First part of your original query
+    -- Primera parte
     SELECT
         prest.id_prestamo,
         prest.id_vehiculo,
@@ -129,18 +129,23 @@ if ($accion == "consultarPrestamosOtraArea") {
         prest.detalle_tipo_uso,
         prest.motivo_us,
         IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
-        1 AS source_type -- Indicator for the first WHERE clause condition
-    FROM
-        prestamos prest
-    LEFT JOIN
-        inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-    WHERE
-        inv.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario))
-        AND prest.estatus = 'PENDIENTEAREA'
+        1 AS source_type
+    FROM prestamos prest
+    LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+    WHERE inv.id_vehiculo IN (
+        SELECT id_vehiculo
+        FROM inventario
+        WHERE id_usuario IN (
+            SELECT id_usuario FROM usuarios WHERE jefe = $id_usuario
+            UNION ALL
+            SELECT $id_usuario
+        )
+    )
+    AND prest.estatus = 'PENDIENTEAREA'
 
-    UNION ALL -- Use UNION ALL to keep all rows, including potential logical duplicates
+    UNION ALL
 
-    -- Second part of your original query
+    -- Segunda parte
     SELECT
         prest.id_prestamo,
         prest.id_vehiculo,
@@ -155,14 +160,18 @@ if ($accion == "consultarPrestamosOtraArea") {
         prest.detalle_tipo_uso,
         prest.motivo_us,
         IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
-        2 AS source_type -- Indicator for the second WHERE clause condition
-    FROM
-        prestamos prest
-    LEFT JOIN
-        inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-    WHERE
-        prest.id_usuario = $id_usuario
+        2 AS source_type
+    FROM prestamos prest
+    LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+    WHERE prest.id_usuario = $id_usuario
+),
+
+Duplicated AS (
+    SELECT id_prestamo, COUNT(*) AS cnt
+    FROM CombinedPrestamos
+    GROUP BY id_prestamo
 )
+
 SELECT
     cp.id_prestamo,
     cp.id_vehiculo,
@@ -177,17 +186,13 @@ SELECT
     cp.detalle_tipo_uso,
     cp.motivo_us,
     cp.nombre_usuario,
+    cp.source_type,
     CASE
-        WHEN COUNT(*) OVER (PARTITION BY cp.id_prestamo) > 1 THEN 'DUPLICATED'
+        WHEN d.cnt > 1 THEN 'DUPLICATED'
         ELSE 'UNIQUE'
-    END AS duplicate_indicator, source_type
-FROM
-    CombinedPrestamos cp
-
-    GROUP BY
-    cp.id_prestamo
-
-    ";
+    END AS duplicate_indicator
+FROM CombinedPrestamos cp
+LEFT JOIN Duplicated d ON cp.id_prestamo = d.id_prestamo";
         /*
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,

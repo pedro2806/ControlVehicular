@@ -30,11 +30,65 @@
             <div id="content">
             
                 <!-- Begin Page Content -->
-                <div class="container-fluid">
-                    <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Actividades Semanales</h1>
-                    </div>                        
+                <div class="container-fluid">                    
+                    <h1>Calendario de Actividades Planeadas</h1>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="filtro-area" class="mr-2">Filtrar por Área:</label>
+                            <select id="filtro-area" class="form-select mr-3">
+                                <option value="">Todas las áreas</option>
+                                <option value="MMZ">MMZ</option>
+                                <option value="FZ">FZ</option>
+                                <option value="MG">MG</option>
+                                <option value="BR">BR</option>
+                                <option value="LC">LC</option>
+                                <option value="MT">MT</option>
+                                <option value="MTS">MTS</option>
+                                <option value="EV">EV</option>
+                                <option value="DU">DU</option>
+                                <option value="MO">MO</option>
+                                <option value="MMM">MMM</option>
+                                <option value="SFG">SFG</option>
+                                <option value="DISL">DISL</option>
+                                <option value="LE">LE</option>
+                                <option value="PT">PT</option>
+                                <option value="OPT">OPT</option>
+                                <option value="TE">TE</option>
+                                <option value="MA">MA</option>
+                                <option value="APP">APP</option>
+                                <option value="LS">LS</option>
+                                <option value="PR">PR</option>
+                                <option value="FM">FM</option>
+                                <option value="EL">EL</option>
+                                <option value="MI">MI</option>
+                                <option value="AX">AX</option>
+                                <option value="PRSL">PRSL</option>
+                                <option value="FZSL">FZSL</option>
+                                <option value="D">D</option>
+                                <option value="PTSL">PTSL</option>
+                                <option value="ELSL">ELSL</option>
+                                <option value="OPTM">OPTM</option>
+                                <option value="ME">ME</option>
+                                <option value="LD">LD</option>
+                                <option value="TF">TF</option>
+                                <option value="LDM">LDM</option>
+                                <option value="AM">AM</option>
+                                <option value="DMTY">DMTY</option>
+                                <option value="TI">TI</option>
+                                <option value="HU">HU</option>
+                                <option value="DINL">DINL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filtro-ingeniero" class="mr-2">Filtrar por Ingeniero:</label>
+                            <input type="text" id="filtro-ingeniero" class="form-control mr-3" placeholder="Buscar ingeniero...">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-primary btn-md w-100" style="margin-top: 24px;" onclick="filtrar()">Aplicar filtro</button>
+                        </div>
+                    </div>
+                    <br><br>
                     <!-- PLANEADAS -->
                     <div id="divPlaneadas">                        
                         <div id="calendarioActividadesPlaneadas" name="calendarioActividadesPlaneadas"></div>            
@@ -68,7 +122,13 @@
     <!-- Popper.js -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script>    
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.1/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.1/locales/es.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {            
             mostrarCalendarioActividadesPlaneadas();
@@ -91,63 +151,84 @@
                         $.each(data.actividades, function(index, actividad) {
                             // Definir color según el estatus
                             var colorEvento = '';
-                            switch (actividad.qualityAreas) {
-                                case 'MMZ': colorEvento = '#ffc107'; break;    // Amarillo
-                                case 'FZ': colorEvento = '#ff9800'; break;     // Naranja
-                                case 'MG': colorEvento = '#e91e63'; break;     // Rosa
-                                case 'BR': colorEvento = '#795548'; break;     // Café
-                                case 'LC': colorEvento = '#28a745'; break;     // Verde
-                                case 'MT': colorEvento = '#00bcd4'; break;     // Cyan
-                                case 'MTS': colorEvento = '#8bc34a'; break;    // Verde claro
-                                case 'EV': colorEvento = '#9c27b0'; break;     // Morado
-                                case 'DU': colorEvento = '#607d8b'; break;     // Azul grisáceo
-                                case 'MO': colorEvento = '#3f51b5'; break;     // Azul
-                                case 'MMM': colorEvento = '#f44336'; break;    // Rojo
-                                case 'SFG': colorEvento = '#cddc39'; break;    // Lima
-                                case 'DISL': colorEvento = '#ffeb3b'; break;   // Amarillo claro
-                                case 'LE': colorEvento = '#bdb76b'; break;     // Caqui
-                                case 'PT': colorEvento = '#00ff00'; break;     // Verde neón
-                                case 'OPT': colorEvento = '#009688'; break;    // Verde azulado
-                                case 'TE': colorEvento = '#2196f3'; break;     // Azul claro
-                                case 'MA': colorEvento = '#ff5722'; break;     // Naranja fuerte
-                                case 'APP': colorEvento = '#673ab7'; break;    // Morado oscuro
-                                case 'LS': colorEvento = '#b0bec5'; break;     // Gris azulado
-                                case 'PR': colorEvento = '#dc3545'; break;     // Rojo oscuro
-                                case 'FM': colorEvento = '#607d3b'; break;     // Verde oliva
-                                case 'EL': colorEvento = '#ffd700'; break;     // Dorado
-                                case 'MI': colorEvento = '#4caf50'; break;     // Verde medio
-                                case 'AX': colorEvento = '#ffb300'; break;     // Amarillo anaranjado
-                                case 'PRSL': colorEvento = '#ad1457'; break;   // Rosa oscuro
-                                case 'FZSL': colorEvento = '#ff7043'; break;   // Naranja suave
-                                case 'D': colorEvento = '#616161'; break;      // Gris oscuro
-                                case 'PTSL': colorEvento = '#00bfae'; break;   // Verde azulado claro
-                                case 'ELSL': colorEvento = '#ffd54f'; break;   // Amarillo pastel
-                                case 'OPTM': colorEvento = '#1de9b6'; break;   // Verde menta
-                                case 'ME': colorEvento = '#c62828'; break;     // Rojo intenso
-                                case 'LD': colorEvento = '#a1887f'; break;     // Marrón claro
-                                case 'TF': colorEvento = '#90caf9'; break;     // Azul pastel
-                                case 'LDM': colorEvento = '#ffccbc'; break;    // Naranja pastel
-                                case 'AM': colorEvento = '#ffd1dc'; break;     // Rosa pastel
-                                case 'DMTY': colorEvento = '#b2dfdb'; break;   // Verde agua
-                                case 'TI': colorEvento = '#b39ddb'; break;     // Morado pastel
-                                case 'HU': colorEvento = '#f8bbd0'; break;     // Rosa claro
-                                case 'DINL': colorEvento = '#c5e1a5'; break;   // Verde claro pastel
-                                default: colorEvento = '#007bff';              // Azul por defecto
-                            }
+                            // Extraer el área de order_code usando substring antes del primer '-'                            
+                            areaOT = actividad.order_code.substring(0, actividad.order_code.indexOf('-')).replace('25', '');
+
+                            switch (areaOT) {
+                                case 'MMZ': colorEvento = '#b08805'; break;    // Amarillo (oscurecido)
+                                case 'FZ': colorEvento = '#b06b00'; break;     // Naranja (oscurecido)
+                                case 'MG': colorEvento = '#a11646'; break;     // Rosa (oscurecido)
+                                case 'BR': colorEvento = '#573d32'; break;     // Café (oscurecido)
+                                case 'LC': colorEvento = '#1b722f'; break;     // Verde (oscurecido)
+                                case 'MT': colorEvento = '#008692'; break;     // Cyan (oscurecido)
+                                case 'MTS': colorEvento = '#62872f'; break;    // Verde claro (oscurecido)
+                                case 'EV': colorEvento = '#6e1c7d'; break;     // Morado (oscurecido)
+                                case 'DU': colorEvento = '#42565e'; break;     // Azul grisáceo (oscurecido)
+                                case 'MO': colorEvento = '#2d397e'; break;     // Azul (oscurecido)
+                                case 'MMM': colorEvento = '#ae2e26'; break;    // Rojo (oscurecido)
+                                case 'SFG': colorEvento = '#929900'; break;    // Lima (oscurecido)
+                                case 'DISL': colorEvento = '#b8a92b'; break;   // Amarillo claro (oscurecido)
+                                case 'LE': colorEvento = '#827f4c'; break;     // Caqui (oscurecido)
+                                case 'PT': colorEvento = '#00b800'; break;     // Verde neón (oscurecido)
+                                case 'OPT': colorEvento = '#006c61'; break;    // Verde azulado (oscurecido)
+                                case 'TE': colorEvento = '#176bb0'; break;     // Azul claro (oscurecido)
+                                case 'MA': colorEvento = '#b33e18'; break;     // Naranja fuerte (oscurecido)
+                                case 'APP': colorEvento = '#49287f'; break;    // Morado oscuro (oscurecido)
+                                case 'LS': colorEvento = '#7c8690'; break;     // Gris azulado (oscurecido)
+                                case 'PR': colorEvento = '#9b252f'; break;     // Rojo oscuro (oscurecido)
+                                case 'FM': colorEvento = '#42562a'; break;     // Verde oliva (oscurecido)
+                                case 'EL': colorEvento = '#b39800'; break;     // Dorado (oscurecido)
+                                case 'MI': colorEvento = '#357335'; break;     // Verde medio (oscurecido)
+                                case 'AX': colorEvento = '#b38000'; break;     // Amarillo anaranjado (oscurecido)
+                                case 'PRSL': colorEvento = '#760e3c'; break;   // Rosa oscuro (oscurecido)
+                                case 'FZSL': colorEvento = '#b34c2e'; break;   // Naranja suave (oscurecido)
+                                case 'D': colorEvento = '#434343'; break;      // Gris oscuro (oscurecido)
+                                case 'PTSL': colorEvento = '#008778'; break;   // Verde azulado claro (oscurecido)
+                                case 'ELSL': colorEvento = '#b39837'; break;   // Amarillo pastel (oscurecido)
+                                case 'OPTM': colorEvento = '#157a7f'; break;   // Verde menta (oscurecido)
+                                case 'ME': colorEvento = '#8c1b1b'; break;     // Rojo intenso (oscurecido)
+                                case 'LD': colorEvento = '#725f59'; break;     // Marrón claro (oscurecido)
+                                case 'TF': colorEvento = '#6287b2'; break;     // Azul pastel (oscurecido)
+                                case 'LDM': colorEvento = '#b89486'; break;    // Naranja pastel (oscurecido)
+                                case 'AM': colorEvento = '#b8949e'; break;     // Rosa pastel (oscurecido)
+                                case 'DMTY': colorEvento = '#7ea2a0'; break;   // Verde agua (oscurecido)
+                                case 'TI': colorEvento = '#7e6e9e'; break;     // Morado pastel (oscurecido)
+                                case 'HU': colorEvento = '#b28594'; break;     // Rosa claro (oscurecido)
+                                case 'DINL': colorEvento = '#8a9b72'; break;   // Verde claro pastel (oscurecido)
+                                default: colorEvento = '#00559f';              // Azul por defecto (oscurecido)
+                            }                                                        
+                            
                             // Construir la descripción con todos los campos
                             var descripcionCompleta = 
-                                'Ingeniero(s): ' + actividad.Engineers + '\n' +
-                                'Area: ' + actividad.qualityAreas + '\n' +
-                                'OT: ' + actividad.orderCode + '\n' +
-                                'Cliente: ' + (actividad.cliente || '') + '\n';
+                                '<i class="fas fa-user"></i> <b>' + actividad.engineer + '</b>\n' +
+                                'Area: ' + areaOT + '\n' +
+                                'OT: ' + actividad.order_code + '\n' +
+                                'Cliente: ' + (actividad.cliente || '') + '\n'+
+                                '<hr style="margin-top:0;margin-bottom:0;border-width:2px; border-color:black; border-style:solid;">';
 
                             eventos.push({
-                                title: descripcionCompleta, // Mostrar toda la descripción en el title
+                                title: descripcionCompleta.replace(/\n/g, '<br>'), // Mostrar toda la descripción en el title
                                 description: descripcionCompleta.replace(/\n/g, '<br>'), // Para el tooltip en HTML
                                 start: actividad.FechaPlaneadaInicioDate,
                                 end: actividad.FechaPlaneadaInicioDate,
                                 color: colorEvento
                             });
+
+                            // Construir la descripción con todos los campos
+                            /*var descripcionCompleta = 
+                                'Ingeniero(s): ' + actividad.Engineers + '\n' +
+                                'Area: ' + actividad.qualityAreas + '\n' +
+                                'OT: ' + actividad.orderCode + '\n' +
+                                'Cliente: ' + (actividad.cliente || '') + '\n'+
+                                '<hr style="margin-top:0;margin-bottom:0;border-width:2px; border-color:black; border-style:solid;">';
+
+                            eventos.push({
+                                title: descripcionCompleta.replace(/\n/g, '<br>'), // Mostrar toda la descripción en el title
+                                description: descripcionCompleta.replace(/\n/g, '<br>'), // Para el tooltip en HTML
+                                start: actividad.FechaPlaneadaInicioDate,
+                                end: actividad.FechaPlaneadaInicioDate,
+                                color: colorEvento
+                            });*/
                         });
                         
 
@@ -156,16 +237,9 @@
                         calendarEl.id = 'fullcalendar';
                         $('#calendarioActividadesPlaneadas').append(calendarEl);
 
-                        // Cargar scripts de FullCalendar si no están cargados
-                        if (typeof FullCalendar === 'undefined') {
-                            $.when(
-                                $.getScript('https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js')
-                            ).done(function() {
-                                inicializarCalendario(calendarEl, eventos);
-                            });
-                        } else {
+                        // Inicializar FullCalendar 
                             inicializarCalendario(calendarEl, eventos);
-                        }
+                        
                     } else {
                         $('#calendarioActividadesPlaneadas').html('<p>No hay actividades pendientes.</p>');
                     }
@@ -178,21 +252,26 @@
 
             function inicializarCalendario(calendarEl, eventos) {
                 var calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'timeGridWeek',
+                    initialView: 'dayGridWeek',
                     locale: 'es',
                     headerToolbar: {
                         left: 'prev,next today',
                         center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        right: 'dayGridMonth,dayGridWeek,timeGridDay'
                     },
                     events: eventos,
+                    eventContent: function(arg) {
+                        // Permitir HTML en el título del evento
+                        return { html: arg.event.title };
+                    },
                     eventDidMount: function(info) {
                         // Tooltip con la descripción
                         $(info.el).tooltip({
                             title: info.event.extendedProps.description,
                             html: true,
                             placement: 'top',
-                            container: 'body'
+                            container: 'body',
+                            trigger: 'hover'
                         });
                     }
                 });
@@ -200,6 +279,135 @@
             }
         }
 
+        //Funcion para Enviar los datos
+        function filtrar() {
+            var ing = $('#filtro-ingeniero').val();
+            var area = $('#filtro-area').val();
+            var accion = "ActividadesCalendarioPlaneadasfiltro";
+            
+            $.ajax({
+                url: 'acciones_calendario.php',
+                method: 'POST',
+                async: false,
+                dataType: 'json',
+                data: { accion, ing, area },
+                success: function (data) {
+                    $('#calendarioActividadesPlaneadas').empty();
+                    if (data.status === 'success') {
+                        var eventos = [];
+                        $.each(data.actividades, function(index, actividad) {
+                            // Definir color según el estatus
+                            var colorEvento = '';
+                            // Extraer el área de order_code usando substring antes del primer '-'                            
+                            areaOT = actividad.order_code.substring(0, actividad.order_code.indexOf('-')).replace('25', '');
+
+                            switch (areaOT) {
+                                case 'MMZ': colorEvento = '#b08805'; break;    // Amarillo (oscurecido)
+                                case 'FZ': colorEvento = '#b06b00'; break;     // Naranja (oscurecido)
+                                case 'MG': colorEvento = '#a11646'; break;     // Rosa (oscurecido)
+                                case 'BR': colorEvento = '#573d32'; break;     // Café (oscurecido)
+                                case 'LC': colorEvento = '#1b722f'; break;     // Verde (oscurecido)
+                                case 'MT': colorEvento = '#008692'; break;     // Cyan (oscurecido)
+                                case 'MTS': colorEvento = '#62872f'; break;    // Verde claro (oscurecido)
+                                case 'EV': colorEvento = '#6e1c7d'; break;     // Morado (oscurecido)
+                                case 'DU': colorEvento = '#42565e'; break;     // Azul grisáceo (oscurecido)
+                                case 'MO': colorEvento = '#2d397e'; break;     // Azul (oscurecido)
+                                case 'MMM': colorEvento = '#ae2e26'; break;    // Rojo (oscurecido)
+                                case 'SFG': colorEvento = '#929900'; break;    // Lima (oscurecido)
+                                case 'DISL': colorEvento = '#b8a92b'; break;   // Amarillo claro (oscurecido)
+                                case 'LE': colorEvento = '#827f4c'; break;     // Caqui (oscurecido)
+                                case 'PT': colorEvento = '#00b800'; break;     // Verde neón (oscurecido)
+                                case 'OPT': colorEvento = '#006c61'; break;    // Verde azulado (oscurecido)
+                                case 'TE': colorEvento = '#176bb0'; break;     // Azul claro (oscurecido)
+                                case 'MA': colorEvento = '#b33e18'; break;     // Naranja fuerte (oscurecido)
+                                case 'APP': colorEvento = '#49287f'; break;    // Morado oscuro (oscurecido)
+                                case 'LS': colorEvento = '#7c8690'; break;     // Gris azulado (oscurecido)
+                                case 'PR': colorEvento = '#9b252f'; break;     // Rojo oscuro (oscurecido)
+                                case 'FM': colorEvento = '#42562a'; break;     // Verde oliva (oscurecido)
+                                case 'EL': colorEvento = '#b39800'; break;     // Dorado (oscurecido)
+                                case 'MI': colorEvento = '#357335'; break;     // Verde medio (oscurecido)
+                                case 'AX': colorEvento = '#b38000'; break;     // Amarillo anaranjado (oscurecido)
+                                case 'PRSL': colorEvento = '#760e3c'; break;   // Rosa oscuro (oscurecido)
+                                case 'FZSL': colorEvento = '#b34c2e'; break;   // Naranja suave (oscurecido)
+                                case 'D': colorEvento = '#434343'; break;      // Gris oscuro (oscurecido)
+                                case 'PTSL': colorEvento = '#008778'; break;   // Verde azulado claro (oscurecido)
+                                case 'ELSL': colorEvento = '#b39837'; break;   // Amarillo pastel (oscurecido)
+                                case 'OPTM': colorEvento = '#157a7f'; break;   // Verde menta (oscurecido)
+                                case 'ME': colorEvento = '#8c1b1b'; break;     // Rojo intenso (oscurecido)
+                                case 'LD': colorEvento = '#725f59'; break;     // Marrón claro (oscurecido)
+                                case 'TF': colorEvento = '#6287b2'; break;     // Azul pastel (oscurecido)
+                                case 'LDM': colorEvento = '#b89486'; break;    // Naranja pastel (oscurecido)
+                                case 'AM': colorEvento = '#b8949e'; break;     // Rosa pastel (oscurecido)
+                                case 'DMTY': colorEvento = '#7ea2a0'; break;   // Verde agua (oscurecido)
+                                case 'TI': colorEvento = '#7e6e9e'; break;     // Morado pastel (oscurecido)
+                                case 'HU': colorEvento = '#b28594'; break;     // Rosa claro (oscurecido)
+                                case 'DINL': colorEvento = '#8a9b72'; break;   // Verde claro pastel (oscurecido)
+                                default: colorEvento = '#00559f';              // Azul por defecto (oscurecido)
+                            }                                                        
+                            
+                            // Construir la descripción con todos los campos
+                            var descripcionCompleta = 
+                                '<i class="fas fa-user"></i> <b>' + actividad.engineer + '</b>\n' +
+                                'Area: ' + areaOT + '\n' +
+                                'OT: ' + actividad.order_code + '\n' +
+                                'Cliente: ' + (actividad.cliente || '') + '\n'+
+                                '<hr style="margin-top:0;margin-bottom:0;border-width:2px; border-color:black; border-style:solid;">';
+
+                            eventos.push({
+                                title: descripcionCompleta.replace(/\n/g, '<br>'), // Mostrar toda la descripción en el title
+                                description: descripcionCompleta.replace(/\n/g, '<br>'), // Para el tooltip en HTML
+                                start: actividad.FechaPlaneadaInicioDate,
+                                end: actividad.FechaPlaneadaInicioDate,
+                                color: colorEvento
+                            });
+                            
+                        });
+                        
+
+                        // Crear el calendario
+                        var calendarEl = document.createElement('div');
+                        calendarEl.id = 'fullcalendar';
+                        $('#calendarioActividadesPlaneadas').append(calendarEl);
+
+                        // Inicializar FullCalendar 
+                            inicializarCalendariof(calendarEl, eventos);
+                        
+                    } else {
+                        $('#calendarioActividadesPlaneadas').html('<p>No hay actividades pendientes.</p>');
+                    }
+                    
+                }, error: function (jqXHR, textStatus, errorThrown) {
+                    console.error('Error al aplicar el filtro', error);
+                }
+            });
+            function inicializarCalendariof(calendarEl, eventos) {
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridWeek',
+                    locale: 'es',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,dayGridWeek,timeGridDay'
+                    },
+                    events: eventos,
+                    eventContent: function(arg) {
+                        // Permitir HTML en el título del evento
+                        return { html: arg.event.title };
+                    },
+                    eventDidMount: function(info) {
+                        // Tooltip con la descripción
+                        $(info.el).tooltip({
+                            title: info.event.extendedProps.description,
+                            html: true,
+                            placement: 'top',
+                            container: 'body',
+                            trigger: 'hover'
+                        });
+                    }
+                });
+                calendar.render();
+            }
+        }
     </script>
 </body>
 </html>

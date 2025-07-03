@@ -213,12 +213,12 @@ LEFT JOIN Duplicated d ON cp.id_prestamo = d.id_prestamo";
                 GROUP BY prest.id_prestamo";*/
     } elseif ($rol == 1) {
         // ROL 1 es usuario
-        $sqlConsulta = "SELECT id_prestamo, id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, estatus,
+        $sqlConsulta = "SELECT id_prestamo, prest.id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, prest.estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
                             IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-                        WHERE id_usuario = $id_usuario";
+                        WHERE prest.id_usuario = $id_usuario";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;

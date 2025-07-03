@@ -317,7 +317,7 @@ if ($accion == "autorizarPrestamo") {
 //Denegar Prestamo
 if ($accion == "denegarPrestamo") {
     $sqlDenegar = " UPDATE prestamos 
-                    SET estatus = 'DENEGADO', id_vehiculo = '$id_vehiculo', notas_jefe = '$notas_denegar', 
+                    SET estatus = 'DENEGADO', notas_jefe = '$notas_denegar', 
                         fecha_registro_asignado = NOW(), id_autoriza = '$id_usuario'
                     WHERE id_prestamo = '$id_prestamo'";
     $resultDenegar = $conn->query($sqlDenegar);

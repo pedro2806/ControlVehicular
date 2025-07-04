@@ -126,6 +126,18 @@
         </div>
     
     </li>
+
+
+
+  <!-- Menú Mapa GPS Tracking -->
+  <li class="nav-item">
+        <a class="nav-link" href="mapa_gps">
+            <i class="fas fa-fw fa-car-crash"></i>
+            <span>Mapa GPS</span>
+        </a>
+    </li>
+
+
     
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">

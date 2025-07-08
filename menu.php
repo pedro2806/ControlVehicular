@@ -127,15 +127,15 @@
     
     </li>
 
-
-
-  <!-- Menú Mapa GPS Tracking -->
-  <li class="nav-item">
-        <a class="nav-link" href="mapa_gps">
-            <i class="fas fa-fw fa-car-crash"></i>
-            <span>Mapa GPS</span>
-        </a>
-    </li>
+    <?php if ($_COOKIE['noEmpleado'] == '19' || $_COOKIE['noEmpleado'] == '183' || $_COOKIE['noEmpleado'] == '276' || $_COOKIE['noEmpleado'] == '191'): ?>
+        <!-- Menú Mapa GPS Tracking -->
+        <li class="nav-item">
+            <a class="nav-link" href="mapa_gps">
+                <i class="fas fa-fw fa-map"></i>
+                <span>Mapa GPS</span>
+            </a>
+        </li>
+    <?php endif; ?>
 
 
     

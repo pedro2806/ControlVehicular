@@ -407,6 +407,18 @@
             });
             
 
+            // Mostrar mensaje de procesando y ocultar el modal mientras se procesa la solicitud
+            Swal.fire({
+                title: "Procesando...",
+                text: "Por favor espera mientras se guarda la información.",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            $('#capturaKmModal').modal('hide');
+
             $.ajax({
                 url: 'acciones_kilometraje.php',
                 method: 'POST',
@@ -416,20 +428,21 @@
                 contentType: false,
                 success: function (resp) {
                     Swal.fire({
-                    title: "¡Guardado!",
-                    text: "Kilometraje registrado correctamente.",
-                    icon: "success",
-                    timer: 2000,
-                    timerProgressBar: true
+                        title: "¡Guardado!",
+                        text: "Kilometraje registrado correctamente.",
+                        icon: "success",
+                        timer: 2000,
+                        timerProgressBar: true
                     }).then(function () {
                         $('#formCapturaKm')[0].reset();
-                        $('#capturaKmModal').modal('hide');
                         $('#msgKm').text('');
                     });
                 },
-            error: function () {
-                $('#msgKm').text('Error al guardar el kilometraje.');
-            }
+                error: function () {
+                    Swal.close();
+                    $('#msgKm').text('Error al guardar el kilometraje, vuelva a intentarlo. Si el problema persiste, contacte al administrador.');
+                    $('#capturaKmModal').modal('show');
+                }
             });
         }
 

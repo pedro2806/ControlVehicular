@@ -181,6 +181,27 @@
                                 <textarea name="notasCheckin" id="notasCheckin" class="form-control" rows="2" cols="5"></textarea>
                             </div>
                         </div>
+                        <?php
+                        $autorizados = ['42', '290', '492', '502', '183', '276'];
+                        if (in_array($_COOKIE['noEmpleado'], $autorizados)):
+                        ?>
+                            <div class="mb-2 row g-2">
+                                <div class="col-6 col-md-6">
+                                    <label for="Ruta" class="form-label">Ruta</label>
+                                    <select class="form-select" id="ruta" name="ruta" required>
+                                        <option value="">Seleccione una ruta</option>
+                                        <option value="Ruta 1">Ruta 1</option>
+                                        <option value="Ruta 2">Ruta 2</option>
+                                        <option value="Ruta 3">Ruta 3</option>
+                                        <option value="Ruta 4">Ruta 4</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-6">
+                                    <label for="kmActual" class="form-label">Costo Ovs.</label>
+                                    <input type="text" class="form-control" id="costoOv" name="costoOv">
+                                </div>
+                            </div>
+                    <?php endif; ?>
                         <div class="mb-2 row g-2">
                             <div class="col-12 col-md-12">
                                 <label for="kmActual" class="form-label">Img.</label>
@@ -250,6 +271,27 @@
                                         <textarea name="notasCheckinNuevo" id="notasCheckinNuevo" class="form-control" rows="1"></textarea>
                                     </div>
                                 </div>
+                                <?php
+                                    $autorizados = ['42', '290', '492', '502', '183', '276'];
+                                    if (in_array($_COOKIE['noEmpleado'], $autorizados)):
+                                    ?>
+                                        <div class="mb-2 row g-2">
+                                            <div class="col-6 col-md-6">
+                                                <label for="Ruta" class="form-label">Ruta</label>
+                                                <select class="form-select" id="rutaNuevo" name="rutaNuevo" required>
+                                                    <option value="">Seleccione una ruta</option>
+                                                    <option value="Ruta 1">Ruta 1</option>
+                                                    <option value="Ruta 2">Ruta 2</option>
+                                                    <option value="Ruta 3">Ruta 3</option>
+                                                    <option value="Ruta 4">Ruta 4</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-6 col-md-6">
+                                                <label for="kmActual" class="form-label">Costo Ovs.</label>
+                                                <input type="text" class="form-control" id="costoOvNuevo" name="costoOvNuevo">
+                                            </div>
+                                        </div>
+                                <?php endif; ?>
                                 <div class="row g-2 mt-2">
                                     <div class="col-12 col-md-12 alert alert-primary me-0" id="divFinalizarPrestamo" name=="divFinalizarPrestamo">
                                         <div class="form-check form-switch d-flex align-items-center mb-2" style="font-size: 1.1em;">
@@ -375,6 +417,8 @@
             var placaElegida = $('#placaElegida').val();
             var tipoServicio = $('#tipoServicio').val();
             var coordenadas = $('#coordenadasCheck').val();
+            var ruta = $('#ruta').val();
+            var costoOv = $('#costoOv').val();
             
             // Validar que el tipo de servicio sea válido               
             // Validar que los campos no estén vacíos
@@ -383,6 +427,18 @@
                 return;
             }
 
+            
+            var pidPrestamoVal = $('#PidPrestamo').val();            
+                var partes = pidPrestamoVal.split(',');
+                var idVehiculo = partes[0];
+                var idPrestamo = partes[1];
+            if (idVehiculo == vehiculoAsignado) {
+                $('#PidPrestamo').val(idPrestamo);
+            }
+            else{
+                $('#PidPrestamo').val('');
+            }
+            
             var formData = new FormData();
             formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
             formData.append('accion', 'CapturaCheckIn');
@@ -395,6 +451,8 @@
             formData.append('tipoServicio', tipoServicio);
             formData.append('placa', placaElegida);
             formData.append('coordenadas', coordenadas);
+            formData.append('ruta', ruta);
+            formData.append('costoOv', costoOv);
 
             // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
             var archivos = document.querySelectorAll('input[name="imgCheckin[]"]');
@@ -459,6 +517,9 @@
             var tipoServicio = $('#PtipoActividad').val();
             var coordenadas = $('#coordenadasCheck').val();
             var placaElegida = $('#placaElegida').val();
+            var ruta = $('#rutaNuevo').val();
+            var costoOv = $('#costoOvNuevo').val();
+
             // Validar que los campos no estén vacíos
             if (!vehiculoAsignado || !kmActual || !gasActual) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
@@ -478,6 +539,8 @@
             formData.append('coordenadas', coordenadas);
             formData.append('placa', placaElegida);
             formData.append('finalizarPrestamo', $('#finalizarPrestamo').is(':checked') ? 'Si' : 'No');
+            formData.append('ruta', ruta);
+            formData.append('costoOv', costoOv);
             // Adjuntar la imagen del check-in si existe
             // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
             var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
@@ -576,7 +639,7 @@
                         $.each(data, function (index, vehiculo) {                            
                             // Asignar id prestamo al input oculto solo si no es vacío o nulo
                             if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
-                                $('#PidPrestamo').val(vehiculo.id_prestamo);
+                                $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
                                 select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
                             }
                             else{

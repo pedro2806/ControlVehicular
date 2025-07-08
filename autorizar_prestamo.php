@@ -697,10 +697,16 @@
                 tablaAutorizados.empty(); // Limpiar la tabla antes de agregar nuevas filas
                 respuesta.forEach(function (prestamo) {
                     
+                    if (prestamo.accion == "VERIFICAR") {
                         var botones = `
                             <button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                             </button>`;
+                    }
+                    else{
+                        var botones = 'Prestamo a otra area';
+                    }
+                        
                         var fila = `
                             <tr>
                                 <td>${prestamo.nombre_usuario}</td>

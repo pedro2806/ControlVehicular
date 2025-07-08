@@ -18,6 +18,8 @@ $placa = isset($_POST['placa']) ? $_POST['placa'] : null;
 $coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
 $ruta_destino_inicio = '';
 $finalizarPrestamo = isset($_POST['finalizarPrestamo']) ? $_POST['finalizarPrestamo'] : 'No';
+$ruta = isset($_POST['ruta']) ? $_POST['ruta'] : null;
+$costoOv = isset($_POST['costoOv']) ? $_POST['costoOv'] : null;
 
 function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
 
@@ -70,8 +72,12 @@ if ($accion == 'CargarVehiculos'){
             SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
+            WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
+            /*SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
+            FROM inventario inv
+            INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
             WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
-    
+            */
     
     //SELECT id_vehiculo, placa, marca, modelo, color FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";
     $result = $conn->query($sql);
@@ -90,8 +96,8 @@ if ($accion == 'CargarVehiculos'){
 
 if($accion == 'CapturaCheckIn'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio', '$coordenadas')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas, ruta, costoOv)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio', '$coordenadas', '$ruta', '$costoOv')";
 
     if ($conn->query($sql) === TRUE) {
         //actualizar el estatus del préstamo a 'EN CURSO'
@@ -133,8 +139,8 @@ if($accion == 'CapturaCheckIn'){
 
 if($accion == 'CapturaCheckOut'){
     // Insertar los datos en la base de datos
-    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas)
-            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio', '$coordenadas')";
+    $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas, ruta, costoOv)
+            VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio', '$coordenadas', '$ruta', '$costoOv')";
 
     if ($conn->query($sql) === TRUE) {
         echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);

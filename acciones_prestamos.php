@@ -245,10 +245,26 @@ if ($accion == "actualizarPrestamo") {
                         IFNULL(prest.fecha_fin_prestamo, 'S/R') AS fecha_fin_prestamo, 
                         IFNULL((SELECT inv.placa FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS placa,
                         IFNULL((SELECT inv.modelo FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS modelo,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario, 'VERIFICAR' AS  accion
                     FROM prestamos prest
                     WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
-                    AND prest.estatus = 'AUTORIZADO'";
+                    AND prest.estatus = 'AUTORIZADO'
+                    UNION
+                    SELECT prest.id_prestamo, 
+                        prest.id_vehiculo, 
+                        IFNULL(prest.tipo_uso, 'S/R') AS tipo_uso, 
+                        IFNULL(prest.detalle_tipo_uso, 'S/R') AS detalle_tipo_uso, 
+                        IFNULL(prest.motivo_us, 'S/R') AS motivo_us, 
+                        IFNULL(prest.notas_jefe, 'S/R') AS notas_jefe,
+                        IFNULL(prest.fecha_entrega, 'S/R') AS fecha_entrega,
+                        IFNULL(prest.fecha_fin_prestamo, 'S/R') AS fecha_fin_prestamo, 
+                        IFNULL((SELECT inv.placa FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS placa,
+                        IFNULL((SELECT inv.modelo FROM inventario inv WHERE inv.id_vehiculo = prest.id_vehiculo), 'S/R') AS modelo,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario, 'NOVERIFICAR' AS  accion
+                    FROM prestamos prest
+                    WHERE prest.id_autoriza = $id_usuario
+                    AND prest.estatus = 'AUTORIZADO'
+                    ";
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
     while ($row = $result->fetch_assoc()) {

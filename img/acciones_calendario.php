@@ -63,7 +63,7 @@ if($accion == 'ActividadesCalendarioPlaneadas'){
 if($accion == 'ActividadesCalendarioPlaneadasfiltro'){
     // Consultar las actividades planeadas del usuario actual
     $fechaHoy = date('Y-m-d');
-    $fechaInicio = date('Y-m-d', strtotime($fechaHoy . ' -10 days'));
+    $fechaInicio = date('Y-m-d', strtotime($fechaHoy . ' -50 days'));
 
     /*$sql = "SELECT ot.*, DATE(ot.FechaPlaneadaInicio) as FechaPlaneadaInicioDate, c.nombre as cliente
             FROM ordenes_servicio ot

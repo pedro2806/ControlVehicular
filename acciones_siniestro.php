@@ -35,18 +35,71 @@ $id_usuario = $_COOKIE['id_usuario'];
 $rutasImagenes = $_POST["rutasImagenes"];
 
 $id_formato = $_POST["id_formato"];
-$formato = $_POST["formato"];
+$formato = (isset($_POST["formato"]) && $_POST["formato"] !== null && $_POST["formato"] !== '') ? $_POST["formato"] : null;
 /*----------------------------------------------------------------------------*/
+
+function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
+
+    // Crear carpeta principal y subcarpeta "Actividades"
+    $carpetaPlaca = "img_control_vehicular/$placa";
+    if (!file_exists($carpetaPlaca)) {
+        mkdir($carpetaPlaca, 0777, true);
+    }
+    $carpetaActividad = "$carpetaPlaca/Siniestro";
+    if (!file_exists($carpetaActividad)) {
+        mkdir($carpetaActividad, 0777, true);
+    }
+
+    if (!isset($imagenes) || !is_array($imagenes)) {
+        return;
+    }
+    foreach ($imagenes['tmp_name'] as $key => $tmp_name) {
+        if ($imagenes['error'][$key] === UPLOAD_ERR_OK) {
+            
+            static $consecutivo = 1;
+            $extension = pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
+            $nombreArchivo = $placa . '_' . $actividad . '_' . $consecutivo . '.' . $extension;
+            $consecutivo++;
+            $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
+
+            if (move_uploaded_file($tmp_name, $ruta_destino)) {
+                // Guardar la ruta de la imagen en la base de datos
+                $stmt = $conn->prepare("INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("ssis", $actividad, $id_actividad, $id_vehiculo, $ruta_destino);
+                $stmt->execute();
+                $stmt->close();
+
+            }
+        }
+    }
+}
 
 //Registro de Siniestro
 if ($accion == "registroSiniestro") {
     $sqlregistro = "INSERT INTO siniestros 
                                 (id_vehiculo, fecha_registro, fecha, hora, tipo_carro, id_dueno, kilometraje, gasolina, origen, destino, lugar, 
                                 empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto) 
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$hora', '$tipo_carro', '$id_dueno', '$kilometraje', '$gasolina', '$origen', 
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$hora', '$tipo_carro', '$id_usuario', '$kilometraje', '$gasolina', '$origen', 
                             '$destino', '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto')";      
     if ($conn->query($sqlregistro) === TRUE) {
-        $id_formato = $conn->insert_id;
+        
+            $consultaUltimaActividad = "SELECT id_siniestro FROM siniestros WHERE id_dueno = '" . $_COOKIE['id_usuario'] . "' ORDER BY fecha_registro DESC, id_siniestro DESC LIMIT 1";
+            $resultUltimaActividad = $conn->query($consultaUltimaActividad);
+            $idUltimaActividad = null;
+
+            if ($resultUltimaActividad && $resultUltimaActividad->num_rows > 0) {
+                $rowUltimaActividad = $resultUltimaActividad->fetch_assoc();
+                $idUltimaActividad = $rowUltimaActividad['id_siniestro'];
+                // Ahora $idUltimaActividad contiene solo el id de la última actividad
+            }
+            // Procesar imágenes de check-in si existen
+            if (isset($_FILES['foto'])) {
+                subirImagenesCheckin($_FILES['foto'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'siniestro');
+            }
+
+
+
+
         echo json_encode(["success" => true, "id_formato" => $id_formato, "message" => "Siniestro registrado exitosamente."]);
     } else {
         echo json_encode(["success" => false, "message" => "Error al registrar el siniestro."]);

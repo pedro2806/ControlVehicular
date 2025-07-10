@@ -213,7 +213,7 @@ if ($opcion == 'checklist_graficas') {
 
 if ($opcion == 'checklist_limpiaparabrisas') {
     
-    $sql = "SELECT * FROM checklist_limpiaParabrisas WHERE id_checklist = '$id_checklist'";
+    $sql = "SELECT * FROM checklist_limpiaparabrisas WHERE id_checklist = '$id_checklist'";
     $res = mysqli_query($conn, $sql);
 
     if (!$res) {

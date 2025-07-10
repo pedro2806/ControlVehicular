@@ -171,7 +171,7 @@
                                 </select> 
                             </div>
                             <div class="col-4 col-md-4">
-                                <label class="form-label">Patron</label>
+                                <label class="form-label" id="labelpatronRelacionado" name="labelpatronRelacionado">Patron</label>
                                 <input type="text" class="form-control" id="patronRelacionado" name="patronRelacionado" required>
                             </div>
                         </div>
@@ -422,7 +422,7 @@
             
             // Validar que el tipo de servicio sea válido               
             // Validar que los campos no estén vacíos
-            if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio || !otRelacionada) {
+            if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio) {
                 $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
                 return;
             }
@@ -696,15 +696,23 @@
             if (tipoServicio === "OV") {
                 labelTServicio.innerHTML = "OV Relacionada";                
                 document.getElementById("otRelacionada").placeholder = "Ej. 0000-2025";
+                $('#labelpatronRelacionado').text('Patron');
+                document.getElementById("patronRelacionado").type = "show";
             } else if (tipoServicio === "OT") {
                 labelTServicio.innerHTML = "OT Relacionada";
                 document.getElementById("otRelacionada").placeholder = "Ej. XX25-00X-000";
+                $('#labelpatronRelacionado').text('Patron');
+                document.getElementById("patronRelacionado").type = "show";
             } else if (tipoServicio === "Proyecto") {
                 labelTServicio.innerHTML = "Proyecto Relacionado";
                 document.getElementById("otRelacionada").placeholder = "0000";
+                $('#labelpatronRelacionado').text('');
+                document.getElementById("patronRelacionado").type = "hidden";
             } else {
                 labelTServicio.innerHTML = "Detalle"; // Valor por defecto
                 document.getElementById("otRelacionada").placeholder = "Si aplica, OV/OT/Proyecto";
+                $('#labelpatronRelacionado').text('');
+                document.getElementById("patronRelacionado").type = "hidden";
             }
         }
         

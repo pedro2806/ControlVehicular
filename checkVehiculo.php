@@ -69,7 +69,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="MostrarDivVehiculosAsignados()">Cambiar de vehículo</button>
                         </div>
                         <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id = "btnguardarCheck2" name = "btnguardarCheck2" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
                             <input type="hidden" id="id_coche" name="id_coche">
 
                         </div>
@@ -315,7 +315,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>  
                         <div class="row">
                             <div class="col-md-12 mt-3">
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>                            
+                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>                            
                             </div>
                         </div>
                         </div>
@@ -502,7 +502,22 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // Agregar opción al FormData
             formData.append('opcion', 'guardarCheckIn');
 
+
+            // Deshabilitar botones para evitar múltiples envíos
+            $('#btnguardarCheck').prop('disabled', true);
+            $('#btnguardarCheck2').prop('disabled', true);
             
+            // Mostrar mensaje de procesamiento
+            Swal.fire({
+                title: "Procesando...",
+                text: "Se está procesando tu solicitud.",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             // Enviar datos mediante AJAX
             $.ajax({
                 url: 'AccionesCheckVehiculo.php',
@@ -512,6 +527,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 contentType: false,
                 dataType: 'json',
                 success: function(response) {
+                    Swal.close(); // Cerrar el mensaje de procesamiento
                     if (response.success) {
                         Swal.fire("Éxito", "El check-in se guardó correctamente.", "success");
                         window.location.assign("verifica_checkinVehiculo");
@@ -520,6 +536,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
+                    Swal.close(); // Cerrar el mensaje de procesamiento
                     Swal.fire("Error", "No se pudo completar la solicitud. Por favor, inténtalo más tarde.", "error");
                 }
             });

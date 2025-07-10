@@ -407,19 +407,49 @@
                 });
                 return;
             }
+
+            var formData = new FormData();
+            formData.append("id_vehiculo", id_vehiculo);
+            formData.append("fecha", fecha);
+            formData.append("hora", hora);
+            formData.append("origen", origen);
+            formData.append("destino", destino);
+            formData.append("lugar", lugar);
+            formData.append("empresa", empresa);
+            formData.append("servicio", servicio);
+            formData.append("coordenadas", coordenadas);
+            formData.append("kilometraje", kilometraje);
+            formData.append("gasolina", gasolina);
+            formData.append("ubicacion", ubicacion);
+            formData.append("daños", daños);
+            formData.append("contacto", contacto);
+            formData.append("descripcion", descripcion);
+            formData.append("tipo_carro", tipo_carro);
+            formData.append("id_dueno", id_dueno);
+            formData.append("placa", placa);
+            formData.append("accion", 'registroSiniestro');
+
+            // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
+            var archivos = document.querySelectorAll('input[name="foto[]"]');
+            archivos.forEach(function(input) {
+                if (input.files.length > 0) {
+                    for (var i = 0; i < input.files.length; i++) {
+                        formData.append('foto[]', input.files[i]);
+                    }
+                }
+            });
+
             $.ajax({
                 type: "POST",
                 url: "acciones_siniestro",
-                data: { 
-                    id_vehiculo, fecha, hora, origen, destino, lugar, empresa, servicio, coordenadas,
-                    kilometraje, gasolina, ubicacion, daños, contacto, descripcion, tipo_carro,
-                    id_dueno, placa, accion
-                },
+                data: formData,
+                processData: false,
+                contentType: false,
                 dataType: 'json',
                 success: function (respuesta) {
                     if (respuesta.success) {
                         // Subir imágenes con el id_formato devuelto
-                        subirImagenes(id_vehiculo, placa, respuesta.id_formato);
+                        //subirImagenes(id_vehiculo, placa, respuesta.id_formato);
                         Swal.fire({
                             icon: 'success',
                             title: 'Siniestro registrado exitosamente.',

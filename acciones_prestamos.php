@@ -302,7 +302,8 @@ if ($accion == "autorizarPrestamo") {
     if($tipo_uso == '1'){
         $sqlAutoriza = "UPDATE prestamos 
                         SET estatus = 'AUTORIZADO', fecha_registro_asignado = NOW(), 
-                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario'                            
+                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario',
+                            id_vehiculo = '$idV'
                         WHERE id_prestamo = '$id_prestamo'";
     }
     else{
@@ -315,7 +316,8 @@ if ($accion == "autorizarPrestamo") {
         } else {
             $sqlAutoriza = "UPDATE prestamos 
                         SET estatus = 'AUTORIZADO', fecha_registro_asignado = NOW(), 
-                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario' 
+                            notas_jefe = '$notas_jefe', fecha_entrega = '$fecha_entrega',  id_autoriza = '$id_usuario',
+                            id_vehiculo = '$idV'
                         WHERE id_prestamo = '$id_prestamo'";    
         }
     }

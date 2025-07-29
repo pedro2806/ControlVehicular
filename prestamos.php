@@ -44,10 +44,13 @@
                     <!-- FORMULARIO DEL PRESTAMO-->
                     <form id="formRegistroPrestamo">
                         <!-- Content Row -->
-                        <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Registro:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" readonly>
+                        <div class = "row">                            
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">                                
+                                <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
+                                <label>Seleccionar Vehículo:</label>
+                                <select id="id_vehiculo" name="id_vehiculo" class="form-select" required>
+                                    <option value="">Seleccione...</option>                                
+                                </select>
                             </div>
                             <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
@@ -148,28 +151,29 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_siniestro",
-                data: { accion: "consultarInventario" },
+                data: { accion: "consultarInventarioGeneral" },
                 dataType: "json",
                 success: function (respuesta) {
                     var select = $("#id_vehiculo");
-                    select.find("option:not(:first)").remove();
+                    
                     respuesta.forEach(function (vehiculo) {
-                        var option = `<option value="${vehiculo.id_vehiculo}" data-checklist="${vehiculo.id_checklist}">${vehiculo.modelo} - ${vehiculo.placa}</option>`;
+                        // Define el color según el valor de vehiculo.usuario
+                        let color = "";
+                        if(vehiculo.tipo === 'AREA') {
+                                color = "background-color: #ffeeba;";
+                        } else if(vehiculo.tipo === 'EXTERNO') {
+                                color = "background-color:rgb(186, 201, 255);";
+                        }
+                        var option = `<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
                         select.append(option);
                     });
-
-                    // Asignar el id_checklist al campo oculto cuando se selecciona un vehículo
-                    select.on("change", function () {
-                        var selectedOption = $(this).find(":selected");
-                        var idChecklist = selectedOption.data("checklist");
-                        $("#id_checklist").val(idChecklist); // Asignar el valor al campo oculto
-                    });
                 },
-                error: function () {
+                error: function (xhr, status, error) {
+                    
                     Swal.fire({
                         icon: "error",
                         title: "Error",
-                        text: "Hubo un problema al cargar los datos del inventario.",
+                        text: "Hubo un problema al cargar los datos.",
                         confirmButtonText: "Aceptar"
                     });
                 }
@@ -189,9 +193,9 @@
             var tipo_uso = $("#visita_vinculada").val();
             var detalle_tipo_uso = $("#dato").val();
             var destino = $("#destino").val();
-
+            var id_vehiculo = $("#id_vehiculo").val();
             // Validar campos obligatorios generales
-            if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo) {
+            if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo || !id_vehiculo) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Algun campo no seleccionado',
@@ -204,7 +208,7 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_prestamos",
-                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino },
+                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino, id_vehiculo },
                 dataType: "json",
                 success: function (respuesta) {
                     Swal.fire({
@@ -216,14 +220,14 @@
                     }).then(() => {
                         $("#formRegistroPrestamo")[0].reset();
                         // Ejecutar correoPrestamo.php antes de redirigir
-                        $.ajax({
+                        /*$.ajax({
                             type: "POST",
                             url: "correoPrestamo.php",
                             data: { },
                             complete: function() {
                                 window.location.replace("autorizar_prestamo");
                             }
-                        });
+                        });*/
                         window.location.replace("autorizar_prestamo");
                     });
                 },
@@ -236,6 +240,16 @@
                     });
                 }
             });
+        }
+        function leerCookie(nombre) {
+            let cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.startsWith(nombre + '=')) {
+                    return decodeURIComponent(cookie.substring(nombre.length + 1));
+                }
+            }
+            return null;
         }
     </script>
 </body>

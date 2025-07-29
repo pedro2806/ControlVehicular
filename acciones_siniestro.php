@@ -170,14 +170,29 @@ if ($accion == "consultarInventario") {
 
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
-
-    $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
+    $rol = $_COOKIE['rol'];
+    if ($rol == '3' || $rol == '4') { // 3: Gerente, 4: Administrador
+        $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
-                            WHERE id_usuario = $id_usuario AND  asignado = 'NO'  OR inv.id_usuario = $id_usuario
+                            WHERE id_usuario = $id_usuario  OR inv.id_usuario = $id_usuario
                             UNION
                             SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
                             FROM inventario inv
-                            WHERE inv.id_usuario != $id_usuario AND inv.asignado = 'NO'";
+                            WHERE inv.id_usuario != $id_usuario";
+    } 
+    if ($rol == '1') { 
+        $sqlConsultaVehiculosG ="(SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
+                            FROM inventario inv
+                            INNER JOIN usuarios u ON $id_usuario = u.id_usuario
+                            WHERE inv.id_usuario = $id_usuario
+                            OR inv.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = u.jefe UNION ALL SELECT id_usuario FROM usuarios WHERE noEmpleado =  u.jefe) ORDER BY inv.usuario)
+                            UNION
+                            (SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
+                            FROM inventario inv
+                            WHERE inv.id_usuario != $id_usuario ORDER BY inv.usuario)";
+    }
+    
+
     $result = $conn->query($sqlConsultaVehiculosG);
 
     $vehiculos = [];
@@ -188,4 +203,24 @@ if ($accion == "consultarInventarioGeneral") {
     }
     echo json_encode($vehiculos);
 }
+
+// Consulta para obtener los vehiculos en general
+if ($accion == "consultarInventarioAutoriza") {    
+        $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
+                            FROM inventario inv                            
+                            WHERE inv.id_usuario = $id_usuario";
+    
+    
+
+    $result = $conn->query($sqlConsultaVehiculosG);
+
+    $vehiculos = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+    }
+    echo json_encode($vehiculos);
+}
+
 ?>

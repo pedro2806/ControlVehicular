@@ -495,6 +495,7 @@
                         $('#formCapturaKm')[0].reset();
                         $('#msgKm').text('');
                     });
+                    window.location.replace("autorizar_prestamo");
                 },
                 error: function () {
                     Swal.close();
@@ -571,6 +572,7 @@
                 $('#actividadesPendientesModal').modal('hide');                
                 $('#msgKm').text('');
                 });
+                window.location.replace("autorizar_prestamo");
             },
             error: function () {
                 $('#msgKm').text('Error al guardar el kilometraje.');
@@ -720,7 +722,7 @@
             var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
             if (vehiculoAsignado) {
                 // Tomar solo el primer valor antes del guion "-"
-                var primerValor = vehiculoAsignado.split('-')[0].trim();
+                var primerValor = vehiculoAsignado.split('-')[1].trim();
                 primerValor = primerValor.replace("Seleccione un vehículo", "");
                 // Asignar el valor al input oculto
                 document.getElementById("placaElegida").value = primerValor;

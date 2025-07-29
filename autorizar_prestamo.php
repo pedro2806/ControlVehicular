@@ -44,11 +44,8 @@
                     <!-- FORMULARIO DE REGISTROS DE PRESTAMOS -->
                     <!-- Pestañas de navegación -->
                     <ul class="nav nav-tabs">
-                        <li class="nav-item">
+                        <li class="nav-item active">
                             <a class="btn btn-outline-warning" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
-                        </li>                        
-                        <li class="nav-item">
-                            <a class="btn btn-outline-info" id="tabAutorizaAsignadoOtraArea" data-bs-toggle="tab" href="#AutorizaAsignadoOtraArea">Asignado otra area</a>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-outline-success" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
@@ -71,10 +68,11 @@
                                     <thead class="table-warning">
                                         <tr>
                                             <th>Solicita</th>
+                                            <th>Valida Vehiculo</th>
                                             <th>Inicio Préstamo</th>    
                                             <th>Fin Préstamo</th>
                                             <th>Tipo de Uso</th>
-                                            <th>Detalle del Uso</th>
+                                            <th>Notas</th>
                                             <th>Motivo</th>
                                             <th>Acción</th>
                                         </tr>
@@ -84,40 +82,21 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                        <!-- Tabla de préstamos autorizados para otra área -->
-                        <div class="tab-pane fade show" id="AutorizaAsignadoOtraArea">
-                            <div class="table-responsive">
-                                <table id="tablaPrestamosOtraArea" class="table table-striped table-bordered">
-                                    <thead class="table-info">
-                                        <tr>
-                                            <th>Solicita</th>
-                                            <th>Inicio Préstamo</th>    
-                                            <th>Fin Préstamo</th>
-                                            <th>Tipo de Uso</th>
-                                            <th>Detalle del Uso</th>
-                                            <th>Motivo</th>
-                                            <th>Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Las filas se cargarán dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        </div>                        
                         <!-- Tabla de préstamos autorizados -->
                         <div class="tab-pane fade" id="autorizados">
                             <div class="table-responsive">
                                 <table id="tablaAutorizados" class="table table-striped table-bordered">
                                     <thead class="table-success">
                                         <tr>
-                                            <th>Solicita</th>
-                                            <th>Fecha Entrega</th>
-                                            <th>Vehiculo</th>
+                                            <th>Solicita</th>                                            
+                                            <th>Valida Vehiculo</th>
+                                            <th>Inicio Préstamo</th>    
+                                            <th>Fin Préstamo</th>
                                             <th>Notas del Jefe</th>
                                             <th>Tipo de Uso</th>
-                                            <th>Detalle del Uso</th>
+                                            <th>Notas</th>
+                                            <th>Motivo</th>
                                             <th>Iniciar Prestamo</th>
                                         </tr>
                                     </thead>
@@ -133,11 +112,14 @@
                                 <table id="tablaDevolucion" class="table table-striped table-bordered">
                                     <thead class="table-primary">
                                         <tr>
-                                            <th>Fecha Inicio</th>    
-                                            <th>Vehículo</th>
+                                            <th>Solicita</th>                                            
+                                            <th>Valida Vehiculo</th>
+                                            <th>Inicio Préstamo</th>    
+                                            <th>Fin Préstamo</th>
+                                            <th>Notas del Jefe</th>
                                             <th>Tipo de Uso</th>
-                                            <th>Detalle del Uso</th>
-                                            <th>Fecha Devolucion</th>
+                                            <th>Notas</th>
+                                            <th>Motivo</th>
                                             <th>Finalizar Prestamo</th>
                                         </tr>
                                     </thead>
@@ -153,11 +135,15 @@
                                 <table id="tablaTerminados" class="table table-striped table-bordered">
                                     <thead class="table-danger">
                                         <tr>
-                                            <th>Fecha Inicio</th>    
-                                            <th>Vehículo</th>
+                                            <th>Solicita</th>                                            
+                                            <th>Valida Vehiculo</th>
+                                            <th>Inicio Préstamo</th>    
+                                            <th>Fin Préstamo</th>
+                                            <th>Notas del Jefe</th>
                                             <th>Tipo de Uso</th>
-                                            <th>Detalle del Uso</th>
-                                            <th>Fecha Devolucion</th>                                            
+                                            <th>Notas</th>
+                                            <th>Motivo</th>
+                                            <th>Estatus</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -404,8 +390,7 @@
         cargarPrestamos();
         cargarPrestamosAutorizados();
         cargarPrestamosDevolucion();
-        cargarPrestamosTerminados();
-        cargarPrestamosOtraArea();
+        cargarPrestamosTerminados();        
 
         $("#tablaPrestamos").DataTable({
             destroy: true,
@@ -527,38 +512,7 @@
                 }
             }
         });
-        
-        $("#tablaPrestamosOtraArea").DataTable({
-            destroy: true,
-            paging: true,
-            ordering: true,
-            searching: true,
-            info: true,
-            language: {
-                decimal: ",",
-                thousands: ".",
-                processing: "Procesando...",
-                loadingRecords: "Cargando...",
-                zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
-                }
-            }
-        });
-
+        // Establecer la fecha y hora actuales en los campos correspondientes
         $("#fecha").val(fecha); 
         $("#hora").val(hora);
     });
@@ -588,6 +542,7 @@
                 tablaPendientes.empty();
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTE") {
+                        if (prestamo.propiedad_vehiculo == 'mio') { // Solo mostrar si es de tipo 1 o si el rol es 3
                         var botones = `
                             <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
@@ -595,10 +550,14 @@
                             <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
                                 <ion-icon name="close-outline" class="fs-6"></ion-icon>
                             </button>`;
-                        
+                        }
+                        else {
+                            var botones = `<span class="text-muted">Valida ${prestamo.valida}</span>`;
+                        }
                         var fila = `
                             <tr>
                                 <td>${prestamo.nombre_usuario}</td>
+                                <td>${prestamo.valida}<br>${prestamo.modelo}-${prestamo.placa}</td>
                                 <td>${prestamo.fecha_inc_prestamo}</td>
                                 <td>${prestamo.fecha_fin_prestamo}</td>
                                 <td>${prestamo.tipo_uso}</td>
@@ -626,100 +585,46 @@
         });
     }
 
-
-    // Función para cargar préstamos autorizados para otra área    
-    function cargarPrestamosOtraArea() {
-        const rol = getCookie('rol'); 
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: { accion: "consultarPrestamosOtraArea" },
-            dataType: "json",
-            success: function (respuesta) {
-                var tablaPendientesOtraArea = $("#tablaPrestamosOtraArea tbody");
-                var tipoU = '';
-                tablaPendientesOtraArea.empty();
-                respuesta.forEach(function (prestamo) {
-                    if (prestamo.estatus === "PENDIENTEAREA") {
-                        var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 1)">
-                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
-                                <ion-icon name="close-outline" class="fs-6"></ion-icon>
-                            </button>`;
-                        
-                        var fila = `
-                            <tr>
-                                <td>${prestamo.nombre_usuario}</td>
-                                <td>${prestamo.fecha_inc_prestamo}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.motivo_us}</td>
-                                <td>${
-                                    (rol == 3 && prestamo.source_type == '1')
-                                        ? botones
-                                        : '<span class="text-muted">Por autorizar</span>'
-                                }</td>
-                            </tr>`;
-                        tablaPendientesOtraArea.append(fila);
-                        tipoU = prestamo.tipoU; // Guardar el tipo de uso del último préstamo
-                    }
-                });
-                
-                /*if (rol == 3 && tipoU == '1') {
-                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").show(); // Mostrar columna "Acción"                    
-                } else {
-                    $("#tablaPrestamosOtraArea th:last-child, #tablaPrestamosOtraArea td:last-child").hide(); // Ocultar columna "Acción"
-                }*/
-            },
-            error: function () {
-                /*Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al cargar los préstamos pendientes otra area.",
-                    confirmButtonText: "Aceptar"
-                });*/
-            }
-        });
-    }
-
     // Nueva función para cargar préstamos autorizados
     function cargarPrestamosAutorizados() {
         $.ajax({
             type: "POST",
             url: "acciones_prestamos",
-            data: { accion: "actualizarPrestamo" },
+            data: { accion: "prestamosAutorizados" },
             dataType: "json",
             success: function (respuesta) {
                 var tablaAutorizados = $("#tablaAutorizados tbody");
                 tablaAutorizados.empty(); // Limpiar la tabla antes de agregar nuevas filas
                 respuesta.forEach(function (prestamo) {
-                    
-                    if (prestamo.accion == "VERIFICAR") {
-                        var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
-                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                            </button>`;
-                    }
-                    else{
-                        var botones = 'Prestamo a otra area';
-                    }
-                        
-                        var fila = `
-                            <tr>
-                                <td>${prestamo.nombre_usuario}</td>
-                                <td>${prestamo.fecha_entrega}</td>
-                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
-                                <td>${prestamo.notas_jefe}</td>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${botones}</td>
-                            </tr>`;
-                        tablaAutorizados.append(fila);
-                    
-                });
+                        if (prestamo.estatus === "AUTORIZADO") {
+                            if (prestamo.id_usuario == getCookie('id_usuario')) {
+                                var botones = `
+                                    <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
+                                        <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                    </button>`;
+                                    /*<button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
+                                        <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                    </button> */
+                            }
+                            else{
+                                var botones = '-';
+                            }
+                            
+                            var fila = `
+                                <tr>
+                                    <td>${prestamo.nombre_usuario}</td>                                    
+                                    <td>${prestamo.valida}<br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
+                                    <td>${prestamo.fecha_inc_prestamo}</td>
+                                    <td>${prestamo.fecha_fin_prestamo}</td>
+                                    <td>${prestamo.notas_jefe}</td>
+                                    <td>${prestamo.tipo_uso}</td>
+                                    <td>${prestamo.detalle_tipo_uso}</td>
+                                    <td>${prestamo.motivo_us}</td>
+                                    <td>${botones}</td>
+                                </tr>`;
+                            tablaAutorizados.append(fila);
+                        }
+                    });
             },
             error: function () {
                 Swal.fire({
@@ -744,17 +649,25 @@
                 tablaDevolucion.empty(); // Limpiar la tabla antes de agregar nuevas filas
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "EN CURSO") {
-                        var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalFinalizar(${prestamo.id_prestamo}, '${prestamo.placa}')">
-                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                            </button>`;
+                        if (prestamo.id_usuario == getCookie('id_usuario')) {
+                            var botones = `
+                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
+                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                </button>`;
+                        
+                        } else {
+                            var botones = '-';
+                        }
                         var fila = `
                             <tr>
-                                <td>${prestamo.fecha_inc_prestamo}</td>    
-                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.nombre_usuario}</td>                                    
+                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
+                                <td>${prestamo.fecha_inc_prestamo}</td>
+                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.notas_jefe}</td>
                                 <td>${prestamo.tipo_uso}</td>
                                 <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.motivo_us}</td>
                                 <td>${botones}</td>
                             </tr>`;
                         tablaDevolucion.append(fila);
@@ -782,16 +695,27 @@
             success: function (respuesta) {
                 var tablaTerminados = $("#tablaTerminados tbody");
                 tablaTerminados.empty(); // Limpiar la tabla antes de agregar nuevas filas
-                respuesta.forEach(function (prestamo) {                    
+                respuesta.forEach(function (prestamo) {
+                    if (prestamo.estatus === "FINALIZADO" || prestamo.estatus === "CANCELADO") {
+                        if (prestamo.estatus === "FINALIZADO") {
+                            estatus = `<span class="badge bg-success">Terminado</span>`;
+                        }else{
+                            estatus = `<span class="badge bg-danger">Cancelado</span>`;
+                        }
                         var fila = `
                             <tr>
-                                <td>${prestamo.fecha_inc_prestamo}</td>    
-                                <td>${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.nombre_usuario}</td>                                    
+                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
+                                <td>${prestamo.fecha_inc_prestamo}</td>
+                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.notas_jefe}</td>
                                 <td>${prestamo.tipo_uso}</td>
                                 <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.motivo_us}</td>
+                                <td>${estatus}</td>                                
                             </tr>`;
                         tablaTerminados.append(fila);
+                    }
                     
                 });
             },
@@ -805,12 +729,12 @@
             }
         });
     }
-    //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
+    //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS DE QUIEN DEBE AUTORIZAR  
     function infoVehiculos() {
         $.ajax({
             type: "POST",
             url: "acciones_siniestro",
-            data: { accion: "consultarInventarioGeneral" },
+            data: { accion: "consultarInventarioAutoriza" },
             dataType: "json",
             success: function (respuesta) {
                 var select = $("#id_vehiculo");
@@ -825,7 +749,7 @@
                         default:
                             color = "background-color:rgb(186, 201, 255);";
                     }
-                    var option = `<option value="${vehiculo.id_vehiculo},${vehiculo.tipo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
+                    var option = `<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
                     select.append(option);
                 });
             },
@@ -901,7 +825,7 @@
                         $("#id_vehiculo").prop("disabled", false);
                     }
 
-                    $("#id_vehiculo").val(prestamo.id_vehiculo+",EXTERNO");
+                    $("#id_vehiculo").val(prestamo.id_vehiculo);
 
                     $("#tipoP").val(tipo);
                     const fechaHora = prestamo.fecha_inc_prestamo.replace(" ", "T");
@@ -990,8 +914,7 @@
                     cargarPrestamos();
                     cargarPrestamosAutorizados();
                     cargarPrestamosDevolucion();
-                    cargarPrestamosTerminados();
-                    cargarPrestamosOtraArea();
+                    cargarPrestamosTerminados();                    
                     cerrarModal("modalPrestamo");
                     document.getElementById("formModalPrestamo").reset();
                 } 
@@ -1082,8 +1005,7 @@
                         cargarPrestamos();
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
-                        cargarPrestamosTerminados();
-                        cargarPrestamosOtraArea();
+                        cargarPrestamosTerminados();                        
                         cerrarModal("modalInicioPrestamo");
                         document.getElementById("formInicioPrestamo").reset();
                     });
@@ -1203,8 +1125,7 @@
                         cargarPrestamos();
                         cargarPrestamosAutorizados();
                         cargarPrestamosDevolucion();
-                        cargarPrestamosTerminados();
-                        cargarPrestamosOtraArea();
+                        cargarPrestamosTerminados();                        
                         cerrarModal("modalFinalizarPrestamo");
                         document.getElementById("formFinalizarPrestamo").reset();
                     });

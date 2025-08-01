@@ -720,6 +720,8 @@
         
         function verPlaca() {            
             var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
+            var IDvehiculoAsignado = document.getElementById("vehiculoAsignado").value;
+            var accion = "tomaKm";
             if (vehiculoAsignado) {
                 // Tomar solo el primer valor antes del guion "-"
                 var primerValor = vehiculoAsignado.split('-')[1].trim();
@@ -727,6 +729,22 @@
                 // Asignar el valor al input oculto
                 document.getElementById("placaElegida").value = primerValor;
             }
+            
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                method: 'POST',
+                async: false,
+                dataType: 'json',
+                data: { accion, IDvehiculoAsignado },
+                success: function (Registros) {                    
+                        // Asignar el valor real de kmMax si existe
+                    if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
+                        $('#kmActual').val(Registros[0].kmMax);
+                    }
+                    
+                }
+            });
+
         }
         function verPlacaCheckOut() {
             var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;

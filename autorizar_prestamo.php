@@ -705,9 +705,9 @@
                         var fila = `
                             <tr>
                                 <td>${prestamo.nombre_usuario}</td>                                    
-                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
-                                <td>${prestamo.fecha_inc_prestamo}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
+                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo}</td>
+                                <td>${prestamo.fecha_inc_prestamo} <br>Km: ${prestamo.kmInicio} </td>
+                                <td>${prestamo.fecha_fin_prestamo} <br>Km: ${prestamo.km}</td>
                                 <td>${prestamo.notas_jefe}</td>
                                 <td>${prestamo.tipo_uso}</td>
                                 <td>${prestamo.detalle_tipo_uso}</td>

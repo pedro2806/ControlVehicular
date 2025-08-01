@@ -94,6 +94,27 @@ if ($accion == 'CargarVehiculos'){
     exit;
 }
 
+if ($accion == 'tomaKm'){
+    
+    $IDvehiculoAsignado = isset($_POST['IDvehiculoAsignado']) ? $_POST['IDvehiculoAsignado'] : null;
+    
+    // Consultar los vehículos activos del usuario actual
+    $sql = "SELECT MAX(km_actual) as kmMax FROM actividad_vehiculo WHERE id_vehiculo = $IDvehiculoAsignado";
+            
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows > 0) {
+        $vehiculos = [];
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+        echo json_encode($vehiculos);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'No se encontraron vehículos activos.']);
+    }
+    exit;
+}
+
 if($accion == 'CapturaCheckIn'){
     // Insertar los datos en la base de datos
     $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas, ruta, costoOv)

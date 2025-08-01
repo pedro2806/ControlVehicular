@@ -395,7 +395,8 @@ if ($accion == "consultarPrestamosTerminados") {
                                 prest.estatus, prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
                                 IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
                                 inv.usuario AS valida, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km,
+                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS kmInicio
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario

@@ -140,7 +140,7 @@ if ($accion == "consultarMantenimientos") {
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
     $sqlAutoriza = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = $folioOC
+            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = '$folioOC'
             WHERE id_mantenimiento = $id_mantenimiento";
     $resultAutoriza = $conn->query($sqlAutoriza);
     echo json_encode(["success" => true]);

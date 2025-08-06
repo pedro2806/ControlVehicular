@@ -112,7 +112,7 @@
                             </div>
                             <div class="col-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Costo OC/RC:</label>
+                                    <label class="form-label">Costo (USD):</label>
                                     <input type="text" class="form-control" id="costo" name="costo" required>
                                 </div>
                             </div>

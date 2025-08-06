@@ -277,15 +277,49 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 success: function(data) {
                     if (data.status === 'success') {
                         var eventos = [];
+                        // Filtros de ejemplo: por estatus y por placa
+                        // Agregar campos de filtro a la vista si no existen
+                        if ($('#filtroEstatus').length === 0) {
+                            $('#calendarioActividadesPlaneadas').before(
+                                '<div class="row mb-3">' +
+                                    '<div class="col-md-4">' +
+                                        '<label for="filtroEstatus" class="form-label">Filtrar por estatus:</label>' +
+                                        '<select id="filtroEstatus" class="form-select">' +
+                                            '<option value="">Todos</option>' +
+                                            '<option value="PENDIENTE">Pendiente</option>' +                                            
+                                            '<option value="AUTORIZADO">Autorizado</option>' +
+                                            '<option value="DENEGADO">Cancelado</option>' +
+                                        '</select>' +
+                                    '</div>' +
+                                    '<div class="col-md-4">' +
+                                        '<label for="filtroPlaca" class="form-label">Filtrar por placa:</label>' +
+                                        '<input type="text" id="filtroPlaca" class="form-control" placeholder="Placa">' +
+                                    '</div>' +
+                                    '<div class="col-md-4 d-flex align-items-end">' +
+                                        '<button id="btnFiltrar" class="btn btn-primary w-100">Filtrar</button>' +
+                                    '</div>' +
+                                '</div>'
+                            );
+                            // Evento para recargar el calendario al filtrar
+                            $('#btnFiltrar').on('click', function() {
+                                mostrarCalendarioActividadesPlaneadas();
+                            });
+                        }
+                        var filtroEstatus = $('#filtroEstatus').val();
+                        var filtroPlaca = $('#filtroPlaca').val();
+
                         $.each(data.actividades, function(index, actividad) {
+                            // Aplicar filtros si están definidos
+                            if ((filtroEstatus && actividad.estatus !== filtroEstatus) ||
+                                (filtroPlaca && actividad.placa !== filtroPlaca)) {
+                                return; // Saltar si no cumple el filtro
+                            }
+
                             // Definir color según el estatus
                             var colorEvento = '';
                             switch (actividad.estatus) {
                                 case 'PENDIENTE':
                                     colorEvento = '#ffc107'; // Amarillo
-                                    break;
-                                case 'PENDIENTEAREA':
-                                    colorEvento = '#ff9800'; // Naranja
                                     break;
                                 case 'AUTORIZADO':
                                     colorEvento = '#28a745'; // Verde

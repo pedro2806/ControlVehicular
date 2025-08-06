@@ -58,8 +58,8 @@
                             <table id="tablaMantenimientos" name= "tablaMantenimientos" class="table table-striped table-bordered table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Vehiculo</th>
-                                        <th>Placa</th>                                        
+                                        <th>Solicita</th>
+                                        <th>Vehiculo</th>                                        
                                         <th>Fecha Registro</th>
                                         <th>Kilometraje</th>
                                         <th>Tipo de Mantenimiento</th>
@@ -103,9 +103,19 @@
                             <label class="form-label">Fecha Programada:</label>
                             <input type="date" class="form-control" id="fecha_programada" name="fecha_programada" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Folio MESS-OC:</label>
-                            <input type="text" class="form-control" id="folioOC" name="folioOC" required>
+                        <div class="row">                        
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Folio MESS-OC/RC:</label>
+                                    <input type="text" class="form-control" id="folioOC" name="folioOC" required>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Costo OC/RC:</label>
+                                    <input type="text" class="form-control" id="costo" name="costo" required>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="comentario" class="form-label">Comentario:</label>
@@ -192,9 +202,9 @@
                     }
 
 
-                    table.row.add([                                    
-                        mantenimiento.modelo,
-                        mantenimiento.placa,       
+                    table.row.add([
+                        mantenimiento.nombre_usuario,
+                        mantenimiento.modelo+ " " + mantenimiento.placa + " " + mantenimiento.color,                        
                         mantenimiento.fecha_registro,
                         mantenimiento.kilometraje,
                         mantenimiento.tipo_mantenimiento,
@@ -274,6 +284,7 @@
         var comentario = $("#comentario").val();
         var fecha_programada = $("#fecha_programada").val();
         var folioOC = $("#folioOC").val();
+        var costo = $("#costo").val();
 
         // Validar que la fecha programada no esté vacía si el campo está visible y habilitado
         if ($("#fecha_programada").is(":visible") && !$("#fecha_programada").prop("disabled") && fecha_programada === "") {
@@ -289,7 +300,7 @@
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento",
-            data: { accion, id_mantenimiento, comentario, fecha_programada, folioOC},
+            data: { accion, id_mantenimiento, comentario, fecha_programada, folioOC, costo },
             success: function (respuesta) {
                 Swal.fire({
                     icon: "success",

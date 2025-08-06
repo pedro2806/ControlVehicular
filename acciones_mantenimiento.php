@@ -28,6 +28,8 @@ $foto = $_POST["rutaImagen"];
 $placa = $_POST["placa"];
 $foto = $_POST["rutaImagen"];
 $folioOC = $_POST["folioOC"];
+$costo = $_POST["costo"] ?? null; // Nuevo campo para el costo del mantenimiento
+
 /*---------------------------------------------*/
 $id_mantenimiento = $_POST["id_mantenimiento"];
 $notas = $_POST['comentario'];
@@ -113,17 +115,19 @@ if ($accion == "consultarMantenimientos") {
     
     if($rol == '2'){
         $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
-                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                        INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
                         WHERE mant.VoBo_jefe = '$estatus'
                         ORDER BY mant.fecha_registro DESC";
     } else {        
     
         $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
-                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                        INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
                         WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
                         ORDER BY mant.fecha_registro DESC";
     }
@@ -140,7 +144,7 @@ if ($accion == "consultarMantenimientos") {
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
     $sqlAutoriza = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = '$folioOC'
+            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = '$folioOC', costo = '$costo'
             WHERE id_mantenimiento = $id_mantenimiento";
     $resultAutoriza = $conn->query($sqlAutoriza);
     echo json_encode(["success" => true]);

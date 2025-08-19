@@ -220,14 +220,14 @@
                     }).then(() => {
                         $("#formRegistroPrestamo")[0].reset();
                         // Ejecutar correoPrestamo.php antes de redirigir
-                        /*$.ajax({
+                        $.ajax({
                             type: "POST",
                             url: "correoPrestamo.php",
                             data: { },
                             complete: function() {
                                 window.location.replace("autorizar_prestamo");
                             }
-                        });*/
+                        });
                         window.location.replace("autorizar_prestamo");
                     });
                 },

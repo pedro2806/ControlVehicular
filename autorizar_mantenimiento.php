@@ -107,7 +107,7 @@
                             <div class="col-6">
                                 <div class="mb-3">
                                     <label class="form-label">Folio MESS-OC/RC:</label>
-                                    <input type="text" class="form-control" id="folioOC" name="folioOC" required>
+                                    <input type="text" placeholder="" class="form-control" id="folioOC" name="folioOC" required>
                                 </div>
                             </div>
                             <div class="col-6">

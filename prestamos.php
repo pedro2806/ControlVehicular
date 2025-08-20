@@ -48,7 +48,7 @@
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">                                
                                 <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
                                 <label>Seleccionar Vehículo:</label>
-                                <select id="id_vehiculo" name="id_vehiculo" class="form-select" required>
+                                <select id="id_vehiculo" name="id_vehiculo" class="form-select select2" required>
                                     <option value="">Seleccione...</option>                                
                                 </select>
                             </div>
@@ -132,7 +132,12 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos(); 
@@ -144,6 +149,11 @@
             $("#fecha").val(fecha); // Establecer la fecha actual
             $("#hora").val(hora); // Establecer la hora actual
 
+            // Inicializa Select2 en el campo de vehículos
+            $('#id_vehiculo').select2({
+                placeholder: "Seleccione...",
+                width: '100%'
+            });
         });
 
         //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS

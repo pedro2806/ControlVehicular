@@ -20,6 +20,7 @@ if (empty($id_usuario) || empty($nombredelusuario) || empty($noEmpleado) || empt
     $nr = mysqli_num_rows($res2);
 
     while ($row2 = mysqli_fetch_array($res2)){
+        $id_usuario = $row2["id"];
         $nombreEmpleado = $row2["nombre"];
         $noEmpleado = $row2["noEmpleado"];
         $antiguedad = $row2["antiguedad"];
@@ -28,7 +29,24 @@ if (empty($id_usuario) || empty($nombredelusuario) || empty($noEmpleado) || empt
     }
 
     if($nr == 1){
-        setcookie('Lantiguedad', $antiguedad, time() + 604800, "/ControlVehicular", "", false, true);
+        if (!isset($_COOKIE['antiguedad']) || $_COOKIE['antiguedad'] != $antiguedad) {
+            setcookie('antiguedad', $antiguedad, time() + 604800, "/ControlVehicular", "", false, true);
+        }
+        if (!isset($_COOKIE['nombredelusuario']) || $_COOKIE['nombredelusuario'] != $nombreEmpleado) {
+            setcookie('nombredelusuario', $nombreEmpleado, time() + 604800, "/ControlVehicular", "", false, true);
+        }
+        if (!isset($_COOKIE['noEmpleado']) || $_COOKIE['noEmpleado'] != $noEmpleado) {
+            setcookie('noEmpleado', $noEmpleado, time() + 604800, "/ControlVehicular", "", false, true);
+        }
+        if (!isset($_COOKIE['diasD']) || $_COOKIE['diasD'] != $diasD) {
+            setcookie('diasD', $diasD, time() + 604800, "/ControlVehicular", "", false, true);
+        }
+        if (!isset($_COOKIE['rol']) || $_COOKIE['rol'] != $rol) {
+            setcookie('rol', $rol, time() + 604800, "/ControlVehicular", "", false, true);
+        }
+        if (!isset($_COOKIE['id_usuario']) || $_COOKIE['id_usuario'] != $id_usuario) {
+            setcookie('id_usuario', $id_usuario, time() + 604800, "/ControlVehicular", "", false, true);
+        }
 
         session_start();
         $_SESSION['nombredelusuario'] = $nombreEmpleado;

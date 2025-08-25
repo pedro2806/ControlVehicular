@@ -57,7 +57,7 @@ if ($accion == "RegistrarPrestamo") {
 
 //Consulta de Prestamos
 if ($accion == "consultarPrestamos") {
-    if ($rol == 3) {
+    if ($rol == 3 || $rol == 2) {
         // ROL 3 es jefe de área
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
@@ -121,7 +121,7 @@ if ($accion == "consultarPrestamosDetalle") {
 
 //Consulta de Prestamos Otra Area
 if ($accion == "consultarPrestamosOtraArea") {
-    if ($rol == 3) {
+    if ($rol == 3 || $rol == 2) {
         // ROL 3 es jefe de área
         $sqlConsulta ="WITH CombinedPrestamos AS (
     -- Primera parte

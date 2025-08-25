@@ -171,7 +171,7 @@ if ($accion == "consultarInventario") {
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
     $rol = $_COOKIE['rol'];
-    if ($rol == '3' || $rol == '4') { // 3: Gerente, 4: Administrador
+    if ($rol == '3' || $rol == '4'  || $rol == '2') { // 3: Gerente, 4: Administrador
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
                             WHERE id_usuario = $id_usuario  OR inv.id_usuario = $id_usuario

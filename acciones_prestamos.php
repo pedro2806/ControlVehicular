@@ -270,7 +270,7 @@ if ($accion == "prestamosAutorizados") {
 
 //Consulta Prestamos EN CURSO
 if ($accion == "consultarPrestamosEnCurso") {
-        if ($rol == 3) {
+        if ($rol == 3 || $rol == 2) {
         // ROL 3 es jefe de área
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
@@ -369,7 +369,7 @@ if ($accion == "denegarPrestamo") {
 
 //Consulta de PRESTAMOS TERMINADOS
 if ($accion == "consultarPrestamosTerminados") {
-    if ($rol == 3) {
+    if ($rol == 3 || $rol == 2) {
         // ROL 3 es jefe de área
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         (SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS fecha_inc_prestamo, 

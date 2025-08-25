@@ -227,7 +227,7 @@ LEFT JOIN Duplicated d ON cp.id_prestamo = d.id_prestamo";
 
 //Consulta Actualizar Prestamo
 if ($accion == "prestamosAutorizados") {
-    if ($rol == 3) {
+    if ($rol == 3 || $rol == 2) {
         // ROL 3 es jefe de área
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,

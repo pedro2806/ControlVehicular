@@ -2,7 +2,7 @@
 <head>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-	<title>MESS - Mmodulo de incidencias</title>
+	<title>MESS</title>
 	<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="http://www.datatables.net/rss.xml">
 	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
 	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.3.2/css/buttons.dataTables.min.css">
@@ -19,13 +19,13 @@
 	
 $(document).ready(function() {
     //document.cookie = "antiguedad='.$antiguedad.';expires=" + new Date(Date.now() + 9600000).toUTCString() + ";SameSite=Lax;";
-    document.cookie = "antiguedad =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    document.cookie = "diasD =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    document.cookie = "noEmpleado =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    document.cookie = "nombredelusuario =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    document.cookie = "rol =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+    document.cookie = "antiguedad =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
+    document.cookie = "diasD =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
+    document.cookie = "noEmpleado =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
+    document.cookie = "nombredelusuario =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
+    document.cookie = "rol =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
 
-    window.location.assign("index")        
+    window.location.assign("../loginMaster/inicio")        
 } );
 
 	</script>

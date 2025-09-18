@@ -17,17 +17,31 @@
 	<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/buttons/2.3.2/js/buttons.print.min.js"></script>
 	<script type="text/javascript" class="init">
 	
-$(document).ready(function() {
-    //document.cookie = "antiguedad='.$antiguedad.';expires=" + new Date(Date.now() + 9600000).toUTCString() + ";SameSite=Lax;";
-    document.cookie = "antiguedad =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
-    document.cookie = "diasD =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
-    document.cookie = "noEmpleado =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
-    document.cookie = "nombredelusuario =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
-    document.cookie = "rol =00; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/ControlVehicular;";
+		$(document).ready(function() {
+			//document.cookie = "antiguedad='.$antiguedad.';expires=" + new Date(Date.now() + 9600000).toUTCString() + ";SameSite=Lax;";
+			document.cookie = "antiguedad =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+			document.cookie = "diasD =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+			document.cookie = "noEmpleado =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+			document.cookie = "nombredelusuario =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+			document.cookie = "rol =00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
 
-    window.location.assign("../loginMaster/inicio")        
-} );
+			let cookieSesion = getCookie("SesionLogin");
+					//alert("Cerrando sesi贸n..." + cookieSesion);
+			if (cookieSesion === "LoginMaster") {
+				document.cookie = "SesionLogin=00; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+				window.location.assign("../loginMaster/inicio");
+			} else {
+				window.location.assign("https://www.messbook.com.mx/ControlVehicular/");
+			}
+		});
 
+		//Funcion para leer cookies
+		function getCookie(name) {
+			let value = "; " + document.cookie;
+			let parts = value.split("; " + name + "=");
+			if (parts.length === 2) return parts.pop().split(";").shift();
+			return null; // Si no encuentra la cookie, retorna null
+		}
 	</script>
 
 </head>

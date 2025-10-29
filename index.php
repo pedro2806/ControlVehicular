@@ -108,15 +108,31 @@
                     $noEmpleado = $row2["noEmpleado"];
                     $id_usuario = $row2["id_usuario"];
                     $rol = $row2["rol"];
+                    $gps = $row2["gps"];
                 }
             }
             
             if($nr == 1)
-            {            
+            {
+
+                if ($gps == "1") {                    
+                    echo '<script>document.cookie = "gps=activo; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                } else {                    
+                    echo '<script>document.cookie = "gps=inactivo; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                }
+
                 echo '<script>document.cookie = "id_usuario='.$id_usuario.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "nombredelusuario='.$nombreEmpleado.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "noEmpleado='.$noEmpleado.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "rol='.$rol.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                
+                if($_GET['status'] == '1')
+                {
+                    echo '<script>document.cookie = "navSesion=appMovil; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                }else{
+                    echo '<script>document.cookie = "navSesion=Navegador; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
+                }
+
                 echo '<script>window.location.assign("inicio")</script>';
             }
             else if ($nr  ==  0)

@@ -138,7 +138,10 @@ try {
 
     // Envío de correo
     if (!empty($jefe)) {
-        $Arraycorreos = explode(",", $jefe); // $jefe ya puede contener multiples correos si la DB los devuelve así.
+        $correos = $jefe;         
+        $correos .= ',rafael@mess.com.mx'; // Correo adicional fijo
+
+        $Arraycorreos = explode(",", $correos); // $jefe ya puede contener multiples correos si la DB los devuelve así.
 
         foreach ($Arraycorreos as $correo) {
             $correo = trim($correo);

@@ -3,7 +3,7 @@
     include 'conn.php';
     if($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null){
         echo '<script>window.location.assign("index")</script>';http://localhost/incidencias/saladejuntas/inicio
-    }
+    }    
 ?>
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
@@ -51,15 +51,42 @@
 
     <hr class="sidebar-divider">
     <!-- Menú CheckIn -->
-    <li class="nav-item btn-success active">
-        <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
-            <i class="far fa-fw fa-check-square"></i>
-            <span>
-                <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
-            </span>
-        </a>
-    </li>
 
+    <?php if ($_COOKIE['navSesion'] == 'Navegador'){ 
+        if ($_COOKIE['gps'] == 'activo'){
+            ?>
+                <li class="nav-item btn-success active">
+                    <a class="nav-link">
+                        <i class="far fa-fw fa-check-square"></i>
+                        <span>
+                            <span style="color:white; font-size: 1rem;">CheckIn desde la app</span>
+                        </span>
+                    </a>
+                </li>
+            <?php
+        }
+        else{ ?>
+        <li class="nav-item btn-success active">
+            <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
+                <i class="far fa-fw fa-check-square"></i>
+                <span>
+                    <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
+                </span>
+            </a>
+        </li>
+    <?php }}
+    else{
+        ?>
+        <li class="nav-item btn-success active">
+            <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
+                <i class="far fa-fw fa-check-square"></i>
+                <span>
+                    <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
+                </span>
+            </a>
+        </li>
+    <?php
+    }?>
     <!-- Menú CheckIn -->
     <li class="nav-item">
         <a class="nav-link" href="verActividades">

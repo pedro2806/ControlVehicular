@@ -16,7 +16,7 @@ $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
     $nr = mysqli_num_rows($res2);
 echo $Qempresas;
     while ($row2 = mysqli_fetch_array($res2)){
-        $id_usuario = $row2["id"];
+        $id_usuario = $row2["id_usuario"];
         $nombreEmpleado = $row2["nombre"];
         $noEmpleado = $row2["noEmpleado"];
         $antiguedad = $row2["antiguedad"];

@@ -14,7 +14,7 @@ $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
     $Qempresas  =  "SELECT  *, TIMESTAMPDIFF(YEAR,fechaIngreso,CURDATE()) AS antiguedad, rol FROM usuarios WHERE usuario  = '".$usuario."' AND estatus = 1";
     $res2 =  mysqli_query( $conn, $Qempresas ) or die (mysqli_error($conn));
     $nr = mysqli_num_rows($res2);
-echo $Qempresas;
+//echo $Qempresas;
     while ($row2 = mysqli_fetch_array($res2)){
         $id_usuario = $row2["id_usuario"];
         $nombreEmpleado = $row2["nombre"];

@@ -99,10 +99,15 @@ if ($accion == 'tomaKm'){
     $IDvehiculoAsignado = isset($_POST['IDvehiculoAsignado']) ? $_POST['IDvehiculoAsignado'] : null;
     
     // Consultar los vehículos activos del usuario actual
-    $sql = "SELECT MAX(km_actual) as kmMax FROM actividad_vehiculo WHERE id_vehiculo = $IDvehiculoAsignado";
+    $sql = //"SELECT MAX(km_actual) as kmMax, gasolina_actual FROM actividad_vehiculo WHERE id_vehiculo = $IDvehiculoAsignado";
+            "SELECT gasolina_actual, km_actual AS kmMax
+            FROM actividad_vehiculo
+            WHERE id_vehiculo = $IDvehiculoAsignado
+            ORDER BY km_actual DESC
+            LIMIT 1";
             
     $result = $conn->query($sql);
-    
+
     if ($result->num_rows > 0) {
         $vehiculos = [];
         while ($row = $result->fetch_assoc()) {
@@ -246,10 +251,42 @@ if($accion == 'ActividadesPendientes'){
 
 if($accion == 'Actividades'){
     // Consultar las actividades del usuario actual
-    $sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
+    /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
         FROM actividad_vehiculo av
         INNER JOIN inventario i ON av.id_vehiculo = i.id_vehiculo        
         WHERE av.id_usuario = '".$_COOKIE['id_usuario']."'";
+    $result = $conn->query($sql);*/
+    $sql = "SELECT 
+                i.id_usuario,
+                i.id_vehiculo,
+                i.id_actividad AS actividad_inicio,
+                f.id_actividad AS actividad_fin,
+                i.km_actual AS km_inicio,
+                f.km_actual AS km_final,
+                f.km_actual - i.km_actual AS km_recorridos,
+                i.fecha_actividad AS Fecha_Inicio,
+                f.fecha_actividad AS Fecha_Fin,
+                inv.placa, inv.marca, inv.modelo,
+                inv.usuario,
+                f.notas AS notasF, 
+                i.notas AS notasI,
+                f.ot
+            FROM actividad_vehiculo i
+            JOIN actividad_vehiculo f
+                ON i.id_vehiculo = f.id_vehiculo
+                AND i.id_usuario = f.id_usuario 
+                AND f.tipo_actividad = 'FINALIZACION'
+                AND f.fecha_actividad = (
+                    SELECT MIN(fecha_actividad)
+                    FROM actividad_vehiculo
+                    WHERE tipo_actividad = 'FINALIZACION'
+                    AND id_vehiculo = i.id_vehiculo
+                    AND id_usuario = i.id_usuario
+                    AND fecha_actividad > i.fecha_actividad
+                )
+            INNER JOIN inventario inv ON i.id_vehiculo = inv.id_vehiculo
+            WHERE i.tipo_actividad = 'INICIO'
+                AND inv.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = '".$_COOKIE['id_usuario']."')";
     $result = $conn->query($sql);
 
     if ($result && $result->num_rows > 0) {

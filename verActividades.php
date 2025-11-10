@@ -54,16 +54,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <table id="tablaVerActividades" class="table table-striped table-bordered">
                                     <thead>
                                         <tr>
-                                            <th>Placa</th>
-                                            <th>Modelo</th>
-                                            <th>Marca</th>
+                                            <th>Vehiculo</th>
                                             <th>Usuario</th>
-                                            <th>Actividad</th>
-                                            <th>Fecha</th>
-                                            <th>Descripción</th>                                            
+                                            <th>OT</th>
+                                            <th>Fecha Inicio</th>
+                                            <th>Km Inicio</th>
+                                            <th>Fecha Fin</th>
+                                            <th>Km Fin</th>
+                                            <th>Km Recorridos</th>
+                                            <th>Notas</th>                                            
                                         </tr>
                                     </thead>
-                                    <tbody>                                    
+                                    <tbody> 
+                                        <button class="btn btn-outline-primary" onclick="descargarTabla()">Descargar XLSX</button><hr>
                                     </tbody>
                                 </table>
                             </div>
@@ -125,6 +128,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <!-- Popper.js -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <!-- Librería XLSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script type="text/javascript">
         $(document).ready(function() {
@@ -167,13 +172,15 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         table.clear();
                         $.each(data.actividades, function(index, actividad) {
                             table.row.add([
-                                actividad.placa,
-                                actividad.modelo,
-                                actividad.marca,                                
+                                actividad.placa + ' - ' + actividad.modelo + ' - ' + actividad.marca,
                                 actividad.usuario,
-                                actividad.tipo_actividad,
-                                actividad.fecha_actividad,
-                                actividad.notas
+                                actividad.ot,
+                                actividad.Fecha_Inicio,
+                                actividad.km_inicio,
+                                actividad.Fecha_Fin,
+                                actividad.km_final,
+                                actividad.km_recorridos,
+                                'Nota Inicio: ' + actividad.notasI + '<br> Nota Fin: ' + actividad.notasF
                             ]).draw(false);
                         });
                     } else {
@@ -392,7 +399,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             }
         }
 
-
         function verCalendario(tipo) {
             if (tipo === 'planeadas') {
                 $('#divPlaneadas').show();
@@ -404,6 +410,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 mostrarCalendarioActividades();
             }
         }
+
+        // Función para descargar la tabla como XLSX
+        function descargarTabla() {
+            let tabla = document.getElementById("tablaVerActividades");
+            let wb = XLSX.utils.table_to_book(tabla, { sheet: "Actividades" });
+            XLSX.writeFile(wb, "Actividades_Vehiculo.xlsx");
+        }
     </script>
 </body>
-</html>
+</html> 

@@ -740,6 +740,7 @@
                         // Asignar el valor real de kmMax si existe
                     if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
                         $('#kmActual').val(Registros[0].kmMax);
+                        $('#gasActual').val(Registros[0].gasolina_actual); 
                     }
                     
                 }

@@ -127,7 +127,7 @@
                     <form id="formCapturaKm">
                         <div class="mb-2">
                             <label for="vehiculoAsignado" class="form-label">Vehículo Asignado</label>
-                            <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" onchange="verPlaca()" required>
+                            <select class="form-select" id="vehiculoAsignado" name="vehiculoAsignado" onchange="verPlaca('vehiculoAsignado', 'kmActual')" required>
                                 <option value="">Seleccione un vehículo</option>                                
                             </select>                            
                         </div>
@@ -156,7 +156,7 @@
                                 <input type="number" class="form-control" id="kmActual" name="kmActual" min="0" required>
                             </div>
                             <div class="col-4 col-md-4">
-                                <label for="kmActual" class="form-label">Gas. Actual</label>                                
+                                <label for="gasActual" class="form-label">Gas. Actual</label>                                
                                 <select class = "form-select" id = "gasActual" name = "gasActual">
                                     <option value = "">Seleccione...</option>
                                     <option value = "SD">Sin Datos</option>
@@ -326,35 +326,87 @@
         </div>
     </div>
 
+    <!-- MODAL PARA CAPTURAR GASOLINA -->
+    <div class="modal fade" id="capturaGasModal" tabindex="-1" aria-labelledby="capturaGasModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="capturaGasModalLabel">Captura de Gasolina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCapturaGas">
+                        <div class="mb-2">
+                            <label for="vehiculoAsignadoGas" class="form-label">Vehículo Asignado</label>
+                            <select class="form-select" id="vehiculoAsignadoGas" name="vehiculoAsignadoGas" onchange="verPlaca('vehiculoAsignadoGas', 'kmActualGas', 'saldo')" required>
+                                <option value="">Seleccione un vehículo</option>                                
+                            </select>                           
+                        </div>
+                        <div class="mb-2 row g-2">    
+                            <div class="col-4 col-md-4">
+                                <label for="monto" class="form-label">Monto</label>
+                                <input type="text" class="form-control" id="monto" name="monto" placeholder="$00.00" required>
+                            </div>
+                        
+                            <div class="col-4 col-md-4">
+                                <label for="pagos" class="form-label">Pagos</label>
+                                <input type="text" class="form-control" id="pagos" name="pagos" placeholder="$00.00" onblur="calcularSaldo()" required>
+                            </div>
+
+                            <div class="col-4 col-md-4">
+                                <label for="saldo" class="form-label">Saldo</label>
+                                <input type="number" class="form-control" id="saldo" name="saldo" placeholder="$00.00" required>
+                            </div>
+                        </div>
+                        <div class="mb-2 row g-2">
+                            <div class="col-4 col-md-6">
+                                <label for="fechaCarga" class="form-label">Fecha de Carga</label>
+                                <input type="datetime-local" class="form-control" id="fechaCarga" name="fechaCarga" value= "" required>
+                            </div>
+                            <div class="col-4 col-md-6">
+                                <label for="kmActualGas" class="form-label">Km Actual</label>
+                                <input type="number" class="form-control" id="kmActualGas" name="kmActualGas" min="0" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="registrarGas()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </nav>
 <!-- End of Topbar -->
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script  type="text/javascript">
-        $(document).ready(function () {
-            // Obtener coordenadas del usuario
-            obtenerCoordenadas();   
-        });
+<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+<script  type="text/javascript">
+    $(document).ready(function () {
+        // Obtener coordenadas del usuario
+        obtenerCoordenadas();   
+    });
 
-        // Función para obtener las coordenadas del usuario
-        function obtenerCoordenadas() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        const lat = position.coords.latitude.toFixed(6); 
-                        const lon = position.coords.longitude.toFixed(6); 
-                        $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
-                    },
-                    function (error) {
-                        //console.error("Error al obtener la ubicación: ", error);                        
-                    }
-                );
-            } else {
-                //console.error("Geolocalización no es soportada por este navegador.");
-            }
+    // Función para obtener las coordenadas del usuario
+    function obtenerCoordenadas() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude.toFixed(6); 
+                    const lon = position.coords.longitude.toFixed(6); 
+                    $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
+                },
+                function (error) {
+                    //console.error("Error al obtener la ubicación: ", error);                        
+                }
+            );
+        } else {
+            //console.error("Geolocalización no es soportada por este navegador.");
         }
-        
-        // Función para cargar y mostrar actividades pendientes en el modal
-        // Sobrescribe la función para mostrar actividades en tabla
+    }
+    
+    // Función para cargar y mostrar actividades pendientes en el modal
+    // Sobrescribe la función para mostrar actividades en tabla
     function mostrarActividadesPendientes() {
         $('#actividadesPendientesModal').modal('show');
         $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center"><span class="spinner-border" role="status" aria-hidden="true"></span> Cargando actividades...</td></tr>');
@@ -407,153 +459,77 @@
     }
 
     function guardarCheckIn() {
-            // Obtener los valores de los campos del formulario
-            var vehiculoAsignado = $('#vehiculoAsignado').val();
-            var otRelacionada = $('#otRelacionada').val();
-            var kmActual = $('#kmActual').val();
-            var patronRelacionado = $('#patronRelacionado').val();
-            var notasCheckin = $('#notasCheckin').val();
-            var gasActual = $('#gasActual').val();            
-            var placaElegida = $('#placaElegida').val();
-            var tipoServicio = $('#tipoServicio').val();
-            var coordenadas = $('#coordenadasCheck').val();
-            var ruta = $('#ruta').val();
-            var costoOv = $('#costoOv').val();
-            
-            // Validar que el tipo de servicio sea válido               
-            // Validar que los campos no estén vacíos
-            if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio) {
-                $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
-                return;
-            }
-
-            
-            var pidPrestamoVal = $('#PidPrestamo').val();            
-                var partes = pidPrestamoVal.split(',');
-                var idVehiculo = partes[0];
-                var idPrestamo = partes[1];
-            if (idVehiculo == vehiculoAsignado) {
-                $('#PidPrestamo').val(idPrestamo);
-            }
-            else{
-                $('#PidPrestamo').val('');
-            }
-            
-            var formData = new FormData();
-            formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
-            formData.append('accion', 'CapturaCheckIn');
-            formData.append('vehiculoAsignado', vehiculoAsignado);
-            formData.append('otRelacionada', otRelacionada);
-            formData.append('kmActual', kmActual);
-            formData.append('patronRelacionado', patronRelacionado);
-            formData.append('notasCheckin', notasCheckin);
-            formData.append('gasActual', gasActual);
-            formData.append('tipoServicio', tipoServicio);
-            formData.append('placa', placaElegida);
-            formData.append('coordenadas', coordenadas);
-            formData.append('ruta', ruta);
-            formData.append('costoOv', costoOv);
-
-            // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
-            var archivos = document.querySelectorAll('input[name="imgCheckin[]"]');
-            archivos.forEach(function(input) {
-                if (input.files.length > 0) {
-                    for (var i = 0; i < input.files.length; i++) {
-                        formData.append('imgCheckin[]', input.files[i]);
-                    }
-                }
-            });
-            
-
-            // Mostrar mensaje de procesando y ocultar el modal mientras se procesa la solicitud
-            Swal.fire({
-                title: "Procesando...",
-                text: "Por favor espera mientras se guarda la información.",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            $('#capturaKmModal').modal('hide');
-
-            $.ajax({
-                url: 'acciones_kilometraje.php',
-                method: 'POST',
-                dataType: 'json',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (resp) {
-                    Swal.fire({
-                        title: "¡Guardado!",
-                        text: "Kilometraje registrado correctamente.",
-                        icon: "success",
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).then(function () {
-                        $('#formCapturaKm')[0].reset();
-                        $('#msgKm').text('');
-                    });
-                    window.location.replace("autorizar_prestamo");
-                },
-                error: function () {
-                    Swal.close();
-                    $('#msgKm').text('Error al guardar el kilometraje, vuelva a intentarlo. Si el problema persiste, contacte al administrador.');
-                    $('#capturaKmModal').modal('show');
-                }
-            });
-        }
-
-        // Función para capturar el check-out
-        function CapturaCheckOut() {
-
-            var id_prestamo = $('#PidPrestamo').val();
-            var vehiculoAsignado = $('#PidVehiculo').val();
-            var otRelacionada = $('#Pot').val();
-            var kmActual = $('#kmActualNuevo').val();
-            var patronRelacionado = $('#Ppatron').val();
-            var notasCheckin = $('#notasCheckinNuevo').val();
-            var gasActual = $('#gasActualNuevo').val();                        
-            var tipoServicio = $('#PtipoActividad').val();
-            var coordenadas = $('#coordenadasCheck').val();
-            var placaElegida = $('#placaElegida').val();
-            var ruta = $('#rutaNuevo').val();
-            var costoOv = $('#costoOvNuevo').val();
-
-            // Validar que los campos no estén vacíos
-            if (!vehiculoAsignado || !kmActual || !gasActual) {
+        // Obtener los valores de los campos del formulario
+        var vehiculoAsignado = $('#vehiculoAsignado').val();
+        var otRelacionada = $('#otRelacionada').val();
+        var kmActual = $('#kmActual').val();
+        var patronRelacionado = $('#patronRelacionado').val();
+        var notasCheckin = $('#notasCheckin').val();
+        var gasActual = $('#gasActual').val();            
+        var placaElegida = $('#placaElegida').val();
+        var tipoServicio = $('#tipoServicio').val();
+        var coordenadas = $('#coordenadasCheck').val();
+        var ruta = $('#ruta').val();
+        var costoOv = $('#costoOv').val();
+        
+        // Validar que el tipo de servicio sea válido               
+        // Validar que los campos no estén vacíos
+        if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio) {
             $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
             return;
-            }
+        }
 
-            var formData = new FormData();
-            formData.append('accion', 'CapturaCheckOut');
-            formData.append('id_prestamo', id_prestamo);
-            formData.append('vehiculoAsignado', vehiculoAsignado);
-            formData.append('otRelacionada', otRelacionada);
-            formData.append('kmActual', kmActual);
-            formData.append('patronRelacionado', patronRelacionado);
-            formData.append('notasCheckin', notasCheckin);
-            formData.append('gasActual', gasActual);
-            formData.append('tipoServicio', tipoServicio);
-            formData.append('coordenadas', coordenadas);
-            formData.append('placa', placaElegida);
-            formData.append('finalizarPrestamo', $('#finalizarPrestamo').is(':checked') ? 'Si' : 'No');
-            formData.append('ruta', ruta);
-            formData.append('costoOv', costoOv);
-            // Adjuntar la imagen del check-in si existe
-            // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
-            var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
-            archivos.forEach(function(input) {
-                if (input.files.length > 0) {
-                    for (var i = 0; i < input.files.length; i++) {
-                        formData.append('imgCheckinNuevo[]', input.files[i]);
-                    }
+        
+        var pidPrestamoVal = $('#PidPrestamo').val();            
+            var partes = pidPrestamoVal.split(',');
+            var idVehiculo = partes[0];
+            var idPrestamo = partes[1];
+        if (idVehiculo == vehiculoAsignado) {
+            $('#PidPrestamo').val(idPrestamo);
+        }
+        else{
+            $('#PidPrestamo').val('');
+        }
+        
+        var formData = new FormData();
+        formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
+        formData.append('accion', 'CapturaCheckIn');
+        formData.append('vehiculoAsignado', vehiculoAsignado);
+        formData.append('otRelacionada', otRelacionada);
+        formData.append('kmActual', kmActual);
+        formData.append('patronRelacionado', patronRelacionado);
+        formData.append('notasCheckin', notasCheckin);
+        formData.append('gasActual', gasActual);
+        formData.append('tipoServicio', tipoServicio);
+        formData.append('placa', placaElegida);
+        formData.append('coordenadas', coordenadas);
+        formData.append('ruta', ruta);
+        formData.append('costoOv', costoOv);
+
+        // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
+        var archivos = document.querySelectorAll('input[name="imgCheckin[]"]');
+        archivos.forEach(function(input) {
+            if (input.files.length > 0) {
+                for (var i = 0; i < input.files.length; i++) {
+                    formData.append('imgCheckin[]', input.files[i]);
                 }
-            });
+            }
+        });
+        
 
-            $.ajax({
+        // Mostrar mensaje de procesando y ocultar el modal mientras se procesa la solicitud
+        Swal.fire({
+            title: "Procesando...",
+            text: "Por favor espera mientras se guarda la información.",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        $('#capturaKmModal').modal('hide');
+
+        $.ajax({
             url: 'acciones_kilometraje.php',
             method: 'POST',
             dataType: 'json',
@@ -562,280 +538,401 @@
             contentType: false,
             success: function (resp) {
                 Swal.fire({
-                title: "¡Guardado!",
-                text: "Kilometraje registrado correctamente.",
-                icon: "success",
-                timer: 2000,
-                timerProgressBar: true
+                    title: "¡Guardado!",
+                    text: "Kilometraje registrado correctamente.",
+                    icon: "success",
+                    timer: 2000,
+                    timerProgressBar: true
                 }).then(function () {
-                $('#formCapturaKm')[0].reset();
-                $('#actividadesPendientesModal').modal('hide');                
-                $('#msgKm').text('');
+                    $('#formCapturaKm')[0].reset();
+                    $('#msgKm').text('');
                 });
                 window.location.replace("autorizar_prestamo");
             },
             error: function () {
-                $('#msgKm').text('Error al guardar el kilometraje.');
+                Swal.close();
+                $('#msgKm').text('Error al guardar el kilometraje, vuelva a intentarlo. Si el problema persiste, contacte al administrador.');
+                $('#capturaKmModal').modal('show');
             }
-            });
-            
-        }
-        
-        // Función para agregar otro input de archivo, hasta un máximo de 4
-        function agregarInputImagen() {
-            // Contenedor donde están los inputs de imagen
-            var contenedor = document.getElementById('contenedorImgCheckin');
-            // Contar cuántos inputs hay actualmente
-            var inputs = contenedor.querySelectorAll('input[type="file"]');
-            if (inputs.length < 3) {
-                // Crear un nuevo input
-                var nuevoInput = document.createElement('input');
-                nuevoInput.type = 'file';
-                nuevoInput.className = 'form-control mt-1';
-                nuevoInput.name = 'imgCheckin[]';
-                nuevoInput.accept = '.jpg,.jpeg,.png';
-                contenedor.appendChild(nuevoInput);
-            } else {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Límite alcanzado',
-                    text: 'Solo puedes subir hasta 4 imágenes.'
-                });
-            }
-        }
-        // Función para agregar otro input de archivo, hasta un máximo de 4
-        function agregarInputImagenOut() {
-            // Contenedor donde están los inputs de imagen
-            var contenedor = document.getElementById('contenedorImgCheckout');
-            // Contar cuántos inputs hay actualmente
-            var inputs = contenedor.querySelectorAll('input[name="imgCheckinNuevo[]"]');
-            if (inputs.length < 3) {
-                // Crear un nuevo input
-                var nuevoInput = document.createElement('input');
-                nuevoInput.type = 'file';
-                nuevoInput.className = 'form-control mt-1';
-                nuevoInput.name = 'imgCheckinNuevo[]';
-                nuevoInput.accept = '.jpg,.jpeg,.png';
-                contenedor.appendChild(nuevoInput);
-            } else {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Límite alcanzado',
-                    text: 'Solo puedes subir hasta 4 imágenes.'
-                });
-            }
+        });
+    }
+
+    // Función para capturar el check-out
+    function CapturaCheckOut() {
+
+        var id_prestamo = $('#PidPrestamo').val();
+        var vehiculoAsignado = $('#PidVehiculo').val();
+        var otRelacionada = $('#Pot').val();
+        var kmActual = $('#kmActualNuevo').val();
+        var patronRelacionado = $('#Ppatron').val();
+        var notasCheckin = $('#notasCheckinNuevo').val();
+        var gasActual = $('#gasActualNuevo').val();                        
+        var tipoServicio = $('#PtipoActividad').val();
+        var coordenadas = $('#coordenadasCheck').val();
+        var placaElegida = $('#placaElegida').val();
+        var ruta = $('#rutaNuevo').val();
+        var costoOv = $('#costoOvNuevo').val();
+
+        // Validar que los campos no estén vacíos
+        if (!vehiculoAsignado || !kmActual || !gasActual) {
+        $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
+        return;
         }
 
-        // Cargar vehículos al select
-        function cargarVehiculos() {
-            $.ajax({
-                url: 'acciones_kilometraje.php',
-                method: 'POST',
-                dataType: 'json',
-                data: { accion: 'CargarVehiculos' },
-                success: function (data) {
-                    var select = $('#vehiculoAsignado');
-                    select.empty();
-                    if (data && data.length > 0) {
-                        select.append('<option value="">Seleccione un vehículo</option>');
-                        $.each(data, function (index, vehiculo) {                            
-                            // Asignar id prestamo al input oculto solo si no es vacío o nulo
-                            if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
-                                $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
-                                select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
-                            }
-                            else{
-                                select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
-                            }
-                        });
-                        
-                    } else {
-                        select.append('<option value="">No hay vehículos disponibles</option>');
-                    }
-                },
-                error: function () {
-                    console.error('Error al cargar los vehículos');
+        var formData = new FormData();
+        formData.append('accion', 'CapturaCheckOut');
+        formData.append('id_prestamo', id_prestamo);
+        formData.append('vehiculoAsignado', vehiculoAsignado);
+        formData.append('otRelacionada', otRelacionada);
+        formData.append('kmActual', kmActual);
+        formData.append('patronRelacionado', patronRelacionado);
+        formData.append('notasCheckin', notasCheckin);
+        formData.append('gasActual', gasActual);
+        formData.append('tipoServicio', tipoServicio);
+        formData.append('coordenadas', coordenadas);
+        formData.append('placa', placaElegida);
+        formData.append('finalizarPrestamo', $('#finalizarPrestamo').is(':checked') ? 'Si' : 'No');
+        formData.append('ruta', ruta);
+        formData.append('costoOv', costoOv);
+        // Adjuntar la imagen del check-in si existe
+        // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
+        var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
+        archivos.forEach(function(input) {
+            if (input.files.length > 0) {
+                for (var i = 0; i < input.files.length; i++) {
+                    formData.append('imgCheckinNuevo[]', input.files[i]);
                 }
-            });
-        }
-
-        //valida actividades pendientes
-        function validarActividadesPendientes() {
-            
-            $.ajax({
-                url: 'acciones_kilometraje.php',
-                method: 'POST',
-                dataType: 'json',
-                data: { accion: 'ActividadesPendientes' },
-                success: function (data) {
-                    if (data.length > 0) {
-                        Swal.fire({
-                            title: "¡Atención!",
-                            text: "Tienes actividades pendientes de inicio.",
-                            icon: "warning",
-                            confirmButtonText: "Ver Actividades"
-                        }).then(function () {
-                            $('#actividadesPendientesModal').modal('show'); // Mostrar el modal de captura de km
-                            mostrarActividadesPendientes(); // Cargar vehículos al select
-                        });
-                    }
-                    else{
-                        cargarVehiculos(); // Cargar vehículos al select si no hay actividades pendientes
-                        $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
-                    }
-                },
-                error: function () {
-                    cargarVehiculos();
-                    $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
-                    console.error('Error al verificar actividades pendientes');
-                }
-            });
-        }
-
-        function cambiaLabelTServicio() {
-            var tipoServicio = document.getElementById("tipoServicio").value;
-            var labelTServicio = document.getElementById("labelTServicio");
-            if (tipoServicio === "OV") {
-                labelTServicio.innerHTML = "OV Relacionada";                
-                document.getElementById("otRelacionada").placeholder = "Ej. 0000-2025";
-                $('#labelpatronRelacionado').text('Patron');
-                document.getElementById("patronRelacionado").type = "show";
-            } else if (tipoServicio === "OT") {
-                labelTServicio.innerHTML = "OT Relacionada";
-                document.getElementById("otRelacionada").placeholder = "Ej. XX25-00X-000";
-                $('#labelpatronRelacionado').text('Patron');
-                document.getElementById("patronRelacionado").type = "show";
-            } else if (tipoServicio === "Proyecto") {
-                labelTServicio.innerHTML = "Proyecto Relacionado";
-                document.getElementById("otRelacionada").placeholder = "0000";
-                $('#labelpatronRelacionado').text('');
-                document.getElementById("patronRelacionado").type = "hidden";
-            } else {
-                labelTServicio.innerHTML = "Detalle"; // Valor por defecto
-                document.getElementById("otRelacionada").placeholder = "Si aplica, OV/OT/Proyecto";
-                $('#labelpatronRelacionado').text('');
-                document.getElementById("patronRelacionado").type = "hidden";
-            }
-        }
-        
-        function verPlaca() {            
-            var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
-            var IDvehiculoAsignado = document.getElementById("vehiculoAsignado").value;
-            var accion = "tomaKm";
-            if (vehiculoAsignado) {
-                // Tomar solo el primer valor antes del guion "-"
-                var primerValor = vehiculoAsignado.split('-')[1].trim();
-                primerValor = primerValor.replace("Seleccione un vehículo", "");
-                // Asignar el valor al input oculto
-                document.getElementById("placaElegida").value = primerValor;
-            }
-            
-            $.ajax({
-                url: 'acciones_kilometraje.php',
-                method: 'POST',
-                async: false,
-                dataType: 'json',
-                data: { accion, IDvehiculoAsignado },
-                success: function (Registros) {                    
-                        // Asignar el valor real de kmMax si existe
-                    if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
-                        $('#kmActual').val(Registros[0].kmMax);
-                        $('#gasActual').val(Registros[0].gasolina_actual); 
-                    }
-                    
-                }
-            });
-
-        }
-        function verPlacaCheckOut() {
-            var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
-            if (vehiculoAsignado) {
-                // Tomar solo el primer valor antes del guion "-"
-                var primerValor = vehiculoAsignado.split('-')[0].trim();
-                primerValor = primerValor.replace("Seleccione un vehículo", "");
-                // Asignar el valor al input oculto
-                document.getElementById("placaElegida").value = primerValor;
-            }
-        }
-
-        // Función para mostrar/ocultar contraseñas
-        document.getElementById('showPassword').addEventListener('change', function () {
-            var passwordField = document.getElementById('nuevapass');
-            var confirmPasswordField = document.getElementById('confirmapass');
-
-            if (this.checked) {
-                // Mostrar contraseñas (tipo 'text')
-                passwordField.type = 'text';
-                confirmPasswordField.type = 'text';
-            } else {
-                // Ocultar contraseñas (tipo 'password')
-                passwordField.type = 'password';
-                confirmPasswordField.type = 'password';
             }
         });
 
-        //Funcion para validar las contraseñas
-        function validarContrasenas() {
-            var password = $('#nuevapass').val()
-            var confirmPassword = $('#confirmapass').val()
-            var error = document.getElementById("error");
-
-            // Si las contraseñas no coinciden
-            if (password !== confirmPassword) {
-                $('#msgPassword').text("Las constraseñas no coinciden.");
-            } else {
-                Confirmar();
-            }
+        $.ajax({
+        url: 'acciones_kilometraje.php',
+        method: 'POST',
+        dataType: 'json',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (resp) {
+            Swal.fire({
+            title: "¡Guardado!",
+            text: "Kilometraje registrado correctamente.",
+            icon: "success",
+            timer: 2000,
+            timerProgressBar: true
+            }).then(function () {
+            $('#formCapturaKm')[0].reset();
+            $('#actividadesPendientesModal').modal('hide');                
+            $('#msgKm').text('');
+            });
+            window.location.replace("autorizar_prestamo");
+        },
+        error: function () {
+            $('#msgKm').text('Error al guardar el kilometraje.');
         }
-
-        //Funcion para Enviar los datos
-        function Confirmar() {
-            var password = $('#nuevapass').val();
-            var noEmpleado = $('#noEmpleado').val();
-            var accion = "CambioPassword";
-
-            $.ajax({
-                url: 'acciones_contrasena.php',
-                method: 'POST',
-                async: false,
-                dataType: 'json',
-                data: { accion, password, noEmpleado },
-                success: function (Registros) {
-                    Swal.fire({
-                        title: "Confirmado!",
-                        text: "Contraseña cambiada!",
-                        icon: "success",
-                        timer: 2000,
-                        timerProgressBar: true
-                    }).then(function () {
-                        // Limpiar los campos después de cerrar la alerta
-                        $('#nuevapass').val('');
-                        $('#confirmapass').val('');
-                        $('#staticBackdrop').modal('hide');
-                    });
-                }, error: function (jqXHR, textStatus, errorThrown) {
-                    console.error('Error al aplicar el cambio', error);
-                }
+        });
+        
+    }
+    
+    // Función para agregar otro input de archivo, hasta un máximo de 4
+    function agregarInputImagen() {
+        // Contenedor donde están los inputs de imagen
+        var contenedor = document.getElementById('contenedorImgCheckin');
+        // Contar cuántos inputs hay actualmente
+        var inputs = contenedor.querySelectorAll('input[type="file"]');
+        if (inputs.length < 3) {
+            // Crear un nuevo input
+            var nuevoInput = document.createElement('input');
+            nuevoInput.type = 'file';
+            nuevoInput.className = 'form-control mt-1';
+            nuevoInput.name = 'imgCheckin[]';
+            nuevoInput.accept = '.jpg,.jpeg,.png';
+            contenedor.appendChild(nuevoInput);
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Límite alcanzado',
+                text: 'Solo puedes subir hasta 4 imágenes.'
             });
         }
+    }
 
-        //Funcion para leer cookies
-        function getCookie(name) {
-            let value = "; " + document.cookie;
-            let parts = value.split("; " + name + "=");
-            if (parts.length === 2) return parts.pop().split(";").shift();
-            return null; // Si no encuentra la cookie, retorna null
+    // Función para agregar otro input de archivo, hasta un máximo de 4
+    function agregarInputImagenOut() {
+        // Contenedor donde están los inputs de imagen
+        var contenedor = document.getElementById('contenedorImgCheckout');
+        // Contar cuántos inputs hay actualmente
+        var inputs = contenedor.querySelectorAll('input[name="imgCheckinNuevo[]"]');
+        if (inputs.length < 3) {
+            // Crear un nuevo input
+            var nuevoInput = document.createElement('input');
+            nuevoInput.type = 'file';
+            nuevoInput.className = 'form-control mt-1';
+            nuevoInput.name = 'imgCheckinNuevo[]';
+            nuevoInput.accept = '.jpg,.jpeg,.png';
+            contenedor.appendChild(nuevoInput);
+        } else {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Límite alcanzado',
+                text: 'Solo puedes subir hasta 4 imágenes.'
+            });
         }
-        // Asignar el valor de la cookie al input
-        window.onload = function () {
-            var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
+    }
 
-            // Verificar si la cookie existe y asignar el valor al input
-            if (cookieValue) {
-                document.getElementById("noEmpleado").value = cookieValue;
+    // Cargar vehículos al select
+    function cargarVehiculos(selectVehiculo) {
+        $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            dataType: 'json',
+            data: { accion: 'CargarVehiculos' },
+            success: function (data) {
+                var select = $('#' + selectVehiculo);
+                select.empty();
+                if (data && data.length > 0) {
+                    select.append('<option value="">Seleccione un vehículo</option>');
+                    $.each(data, function (index, vehiculo) {                            
+                        // Asignar id prestamo al input oculto solo si no es vacío o nulo
+                        if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
+                            $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
+                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
+                        }
+                        else{
+                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                        }
+                    });
+                    
+                } else {
+                    select.append('<option value="">No hay vehículos disponibles</option>');
+                }
+            },
+            error: function () {
+                console.error('Error al cargar los vehículos');
             }
-        };
+        });
+    }
 
+    //valida actividades pendientes
+    function validarActividadesPendientes() {
         
-    </script>
+        $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            dataType: 'json',
+            data: { accion: 'ActividadesPendientes' },
+            success: function (data) {
+                if (data.length > 0) {
+                    Swal.fire({
+                        title: "¡Atención!",
+                        text: "Tienes actividades pendientes de inicio.",
+                        icon: "warning",
+                        confirmButtonText: "Ver Actividades"
+                    }).then(function () {
+                        $('#actividadesPendientesModal').modal('show'); // Mostrar el modal de captura de km
+                        mostrarActividadesPendientes(); // Cargar vehículos al select
+                    });
+                }
+                else{
+                    cargarVehiculos('vehiculoAsignado'); // Cargar vehículos al select si no hay actividades pendientes
+                    $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
+                }
+            },
+            error: function () {
+                cargarVehiculos('vehiculoAsignado');
+                $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
+                console.error('Error al verificar actividades pendientes');
+            }
+        });
+    }
+
+    function cambiaLabelTServicio() {
+        var tipoServicio = document.getElementById("tipoServicio").value;
+        var labelTServicio = document.getElementById("labelTServicio");
+        if (tipoServicio === "OV") {
+            labelTServicio.innerHTML = "OV Relacionada";                
+            document.getElementById("otRelacionada").placeholder = "Ej. 0000-2025";
+            $('#labelpatronRelacionado').text('Patron');
+            document.getElementById("patronRelacionado").type = "show";
+        } else if (tipoServicio === "OT") {
+            labelTServicio.innerHTML = "OT Relacionada";
+            document.getElementById("otRelacionada").placeholder = "Ej. XX25-00X-000";
+            $('#labelpatronRelacionado').text('Patron');
+            document.getElementById("patronRelacionado").type = "show";
+        } else if (tipoServicio === "Proyecto") {
+            labelTServicio.innerHTML = "Proyecto Relacionado";
+            document.getElementById("otRelacionada").placeholder = "0000";
+            $('#labelpatronRelacionado').text('');
+            document.getElementById("patronRelacionado").type = "hidden";
+        } else {
+            labelTServicio.innerHTML = "Detalle"; // Valor por defecto
+            document.getElementById("otRelacionada").placeholder = "Si aplica, OV/OT/Proyecto";
+            $('#labelpatronRelacionado').text('');
+            document.getElementById("patronRelacionado").type = "hidden";
+        }
+    }
+    
+    function verPlaca(selectVehiculo, inputKm, saldo) {            
+        var vehiculoAsignado = document.getElementById(selectVehiculo).textContent;
+        var IDvehiculoAsignado = document.getElementById(selectVehiculo).value;
+        var accion = "tomaKm";
+        if (vehiculoAsignado) {
+            // Tomar solo el primer valor antes del guion "-"
+            var primerValor = vehiculoAsignado.split('-')[1].trim();
+            primerValor = primerValor.replace("Seleccione un vehículo", "");
+            // Asignar el valor al input oculto
+            document.getElementById("placaElegida").value = primerValor;
+        }
+        
+        $.ajax({
+            url: 'acciones_kilometraje.php',
+            method: 'POST',
+            async: false,
+            dataType: 'json',
+            data: { accion, IDvehiculoAsignado },
+            success: function (Registros) {                    
+                    // Asignar el valor real de kmMax si existe
+                if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
+                    $('#' + inputKm).val(Registros[0].kmMax);
+                    $('#gasActual').val(Registros[0].gasolina_actual);
+                    $('#monto').val(Registros[0].saldo);
+                }
+            }
+        });
+    }
+
+    function verPlacaCheckOut() {
+        var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
+        if (vehiculoAsignado) {
+            // Tomar solo el primer valor antes del guion "-"
+            var primerValor = vehiculoAsignado.split('-')[0].trim();
+            primerValor = primerValor.replace("Seleccione un vehículo", "");
+            // Asignar el valor al input oculto
+            document.getElementById("placaElegida").value = primerValor;
+        }
+    }
+
+    //Función para registrar gasolina
+    function registrarGas(){
+        var accion = "registraGas";
+        var id_vehiculo = $('#vehiculoAsignadoGas').val();
+        var monto = $('#monto').val();
+        var pagos = $('#pagos').val();
+        var saldo = $('#saldo').val();
+        var fecha_carga = $('#fechaCarga').val();
+        var km_actual = $('#kmActualGas').val();
+
+        $.ajax({
+            url: 'acciones_gas.php',
+            method: 'POST',
+            async: false,
+            dataType: 'json',
+            data: { accion, id_vehiculo, monto, pagos, saldo, fecha_carga, km_actual },
+            success: function (Registros) {                    
+                Swal.fire({
+                    title: "¡Guardado!",
+                    text: "Carga de gasolina registrada correctamente.",
+                    icon: "success",
+                    timer: 1000,
+                    timerProgressBar: true
+                }).then(function () {
+                    $('#formCapturaGas')[0].reset();
+                    $('#capturaGasModal').modal('hide');
+                });
+            }, error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error al registrar la carga de gasolina', error);
+            }
+        });
+    }
+
+    //FUNCION PARA CALCULAR SALDO
+    function calcularSaldo(){
+        var monto = parseFloat($('#monto').val().replace(/[^0-9.-]+/g,""));
+        var pagos = parseFloat($('#pagos').val().replace(/[^0-9.-]+/g,""));
+        if (isNaN(monto)) monto = 0;
+        if (isNaN(pagos)) pagos = 0;
+        var saldo = monto - pagos;
+        $('#saldo').val(saldo.toFixed(2));
+    }
+
+    // Función para mostrar/ocultar contraseñas
+    document.getElementById('showPassword').addEventListener('change', function () {
+        var passwordField = document.getElementById('nuevapass');
+        var confirmPasswordField = document.getElementById('confirmapass');
+
+        if (this.checked) {
+            // Mostrar contraseñas (tipo 'text')
+            passwordField.type = 'text';
+            confirmPasswordField.type = 'text';
+        } else {
+            // Ocultar contraseñas (tipo 'password')
+            passwordField.type = 'password';
+            confirmPasswordField.type = 'password';
+        }
+    });
+
+    //Funcion para validar las contraseñas
+    function validarContrasenas() {
+        var password = $('#nuevapass').val()
+        var confirmPassword = $('#confirmapass').val()
+        var error = document.getElementById("error");
+
+        // Si las contraseñas no coinciden
+        if (password !== confirmPassword) {
+            $('#msgPassword').text("Las constraseñas no coinciden.");
+        } else {
+            Confirmar();
+        }
+    }
+
+    //Funcion para Enviar los datos de contraseña
+    function Confirmar() {
+        var password = $('#nuevapass').val();
+        var noEmpleado = $('#noEmpleado').val();
+        var accion = "CambioPassword";
+
+        $.ajax({
+            url: 'acciones_contrasena.php',
+            method: 'POST',
+            async: false,
+            dataType: 'json',
+            data: { accion, password, noEmpleado },
+            success: function (Registros) {
+                Swal.fire({
+                    title: "Confirmado!",
+                    text: "Contraseña cambiada!",
+                    icon: "success",
+                    timer: 2000,
+                    timerProgressBar: true
+                }).then(function () {
+                    // Limpiar los campos después de cerrar la alerta
+                    $('#nuevapass').val('');
+                    $('#confirmapass').val('');
+                    $('#staticBackdrop').modal('hide');
+                });
+            }, error: function (jqXHR, textStatus, errorThrown) {
+                console.error('Error al aplicar el cambio', error);
+            }
+        });
+    }
+
+    //Funcion para leer cookies
+    function getCookie(name) {
+        let value = "; " + document.cookie;
+        let parts = value.split("; " + name + "=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null; // Si no encuentra la cookie, retorna null
+    }
+    // Asignar el valor de la cookie al input
+    window.onload = function () {
+        //Obtener fecha y hora actual
+        const ahora = new Date();
+        document.getElementById("fechaCarga").value = ahora.toISOString().slice(0,16);
+        
+        var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
+        // Verificar si la cookie existe y asignar el valor al input
+        if (cookieValue) {
+            document.getElementById("noEmpleado").value = cookieValue;
+        }
+    };        
+</script>
 

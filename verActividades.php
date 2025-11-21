@@ -48,6 +48,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     </div>
                     <!-- Content Row -->
                     <div class="row">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                            <li class="nav-item">                                
+                                <button class="nav-link active btn-outline-primary" onclick="verTabla('tablaVerActividades')" type="button">Vehiculos</button>
+                            </li>
+                            <li class="nav-item">                                
+                                <!--<button class="nav-link active btn-outline-success" onclick="verTabla('tablaGas')" type="button">Cargas de Gasolina</button>-->
+                            </li>
+                            <li>
+                                <button class="btn btn-outline-primary" onclick="descargarTabla()">Descargar XLSX</button>
+                            </li>
+                        </ul><br>
                         <!-- Tabla de Vehiculos -->
                         <div class="tab-pane fade show active" id="pendientes">
                             <div class="table-responsive">
@@ -66,13 +77,34 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                         </tr>
                                     </thead>
                                     <tbody> 
-                                        <button class="btn btn-outline-primary" onclick="descargarTabla()">Descargar XLSX</button><hr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+                        <!-- Tabla Carga de Gas -->
+                        <div class="tab-pane fade show active" id="gas">
+                            <div class="table-responsive">
+                                <table id="tablaGas" class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Vehiculo</th>
+                                            <th>Usuario</th>
+                                            <th>Monto</th>
+                                            <th>Pagos</th>
+                                            <th>Saldo</th>
+                                            <th>Km Actual</th>
+                                            <th>Fecha Carga</th>
+                                            <th>Fecha Registro</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+                    <hr><br>
+                    <!-- Calendario de Actividades -->
                     <div class="row">
+                        <h3>Calendario de Actividades</h3>
                         <ul class="nav nav-tabs" id="myTab" role="tablist">
                             <li class="nav-item">                                
                                 <button class="nav-link active btn-outline-warning" onclick="verCalendario('planeadas')" type="button">Planeadas</button>
@@ -81,8 +113,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <button class="nav-link active btn-outline-success" onclick="verCalendario('checks')"type="button">Checks</button>
                             </li>                            
                         </ul><br>
-                    </div>
-                        
                         <!-- PLANEADAS -->
                         <div id="divPlaneadas">
                             <div class="alert alert-warning" role="alert">
@@ -97,9 +127,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </div>
                             <div id="calendarioActividades" name="calendarioActividades"></div>
                         </div>
-                        
-                    
-                </div>
+                    </div>
                 <!-- /.container-fluid -->
             </div>
             <footer class="sticky-footer bg-white">
@@ -136,7 +164,31 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('#tablaVerActividades').DataTable({
                 destroy: true,
                 paging: true,
-                pageLength: 10,
+                pageLength: 5,
+                lengthMenu: [5, 10, 20, 50],
+                ordering: true,
+                searching: true,
+                info: true,
+                language: {
+                    lengthMenu: "Mostrar _MENU_ registros por página",
+                    zeroRecords: "No se encontraron resultados",
+                    info: "Mostrando página _PAGE_ de _PAGES_",
+                    infoEmpty: "No hay registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)",
+                    search: "Buscar:",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "Siguiente",
+                        previous: "Anterior"
+                    }
+                }
+            });
+            $('#tablaGas').DataTable({
+                destroy: true,
+                paging: true,
+                pageLength: 5, 
+                lengthMenu: [5, 10, 20, 50],
                 ordering: true,
                 searching: true,
                 info: true,
@@ -156,10 +208,15 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 }
             });
             cargarActividades();
+            cargarGas();
             mostrarCalendarioActividadesPlaneadas();
             $('#divChecks').hide();
-        });
+            $('#tablaGas').hide();
+            $('#tablaGas_wrapper').hide();
 
+        });
+        
+        // Función para cargar las actividades en la tabla
         function cargarActividades() {
             $.ajax({
                 url: 'acciones_kilometraje.php',
@@ -193,6 +250,35 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 },
                 error: function(xhr, status, error) {
                     console.error('Error al cargar actividades:', error);
+                }
+            });
+        }
+
+        //Función para cargar recargas de gas
+        function cargarGas() {
+            $.ajax({
+                url: 'acciones_gas.php',
+                type: 'POST',
+                data: { accion: 'obtenerRegistrosGas' },
+                dataType: 'json',
+                success: function(data) {
+                    var table = $('#tablaGas').DataTable();
+                    table.clear();
+                    $.each(data, function(index, carga) {
+                        table.row.add([
+                            carga.Vehiculo,
+                            carga.usuario,
+                            carga.monto,
+                            carga.pagos,
+                            carga.saldo,
+                            carga.km_actual,
+                            carga.fecha_carga,
+                            carga.fecha_registro
+                        ]).draw(false);
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al cargar registros de gas:', error);
                 }
             });
         }
@@ -399,6 +485,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             }
         }
 
+        // Función para mostrar el calendario según la pestaña seleccionada
         function verCalendario(tipo) {
             if (tipo === 'planeadas') {
                 $('#divPlaneadas').show();
@@ -411,11 +498,48 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             }
         }
 
-        // Función para descargar la tabla como XLSX
+        //funcion para mostrar la tabla segun la pestaña seleccionada
+        function verTabla(tipo) {
+            if (tipo === 'tablaVerActividades') {
+                $('#tablaVerActividades').show();
+                $('#tablaGas').hide();
+                $('#tablaGas_wrapper').hide();
+                $('#tablaVerActividades_wrapper').show();
+            } else if (tipo === 'tablaGas') {
+                $('#tablaVerActividades').hide();
+                $('#tablaGas').show();
+                $('#tablaVerActividades_wrapper').hide();
+                $('#tablaGas_wrapper').show();
+            }
+        }
+
+        // Función para descargar ambas tablas (Actividades y Gas) en un solo XLSX con dos hojas
         function descargarTabla() {
-            let tabla = document.getElementById("tablaVerActividades");
-            let wb = XLSX.utils.table_to_book(tabla, { sheet: "Actividades" });
-            XLSX.writeFile(wb, "Actividades_Vehiculo.xlsx");
+            var tablaActividades = document.getElementById('tablaVerActividades');
+            var tablaGas = document.getElementById('tablaGas');
+
+            if (!tablaActividades) {
+                console.error('No se encontró la tabla de actividades');
+                return;
+            }
+            if (!tablaGas) {
+                console.error('No se encontró la tabla de gas');
+                return;
+            }
+
+            // Crear libro vacío
+            var wb = XLSX.utils.book_new();
+
+            // Convertir cada tabla en hoja
+            var wsActividades = XLSX.utils.table_to_sheet(tablaActividades, { sheet: 'Actividades' });
+            var wsGas = XLSX.utils.table_to_sheet(tablaGas, { sheet: 'Gas' });
+
+            // Agregar hojas al libro
+            XLSX.utils.book_append_sheet(wb, wsActividades, 'Actividades');
+            XLSX.utils.book_append_sheet(wb, wsGas, 'Gas');
+
+            // Guardar archivo
+            XLSX.writeFile(wb, 'Actividades_y_Gas.xlsx');
         }
     </script>
 </body>

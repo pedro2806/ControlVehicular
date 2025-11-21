@@ -87,6 +87,15 @@
         </li>
     <?php
     }?>
+
+    <!-- Menú Gasolina 
+    <li class="nav-item">
+        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
+            <i class="fas fa-fw fa-gas-pump"></i>
+            <span>Registrar Gasolina</span>
+        </a>
+    </li>-->
+
     <!-- Menú CheckIn -->
     <li class="nav-item">
         <a class="nav-link" href="verActividades">
@@ -164,15 +173,11 @@
         </li>
     <?php endif; ?>
 
-
-    
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
-
     <!-- Sidebar Toggler (Sidebar) -->
     <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>
     </div>
-
 </ul>
 <!-- End of Sidebar -->

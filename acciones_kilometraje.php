@@ -99,11 +99,16 @@ if ($accion == 'tomaKm'){
     $IDvehiculoAsignado = isset($_POST['IDvehiculoAsignado']) ? $_POST['IDvehiculoAsignado'] : null;
     
     // Consultar los vehículos activos del usuario actual
-    $sql = //"SELECT MAX(km_actual) as kmMax, gasolina_actual FROM actividad_vehiculo WHERE id_vehiculo = $IDvehiculoAsignado";
-            "SELECT gasolina_actual, km_actual AS kmMax
-            FROM actividad_vehiculo
-            WHERE id_vehiculo = $IDvehiculoAsignado
-            ORDER BY km_actual DESC
+    $sql = "SELECT av.gasolina_actual, av.km_actual AS kmMax, cg.saldo
+            FROM actividad_vehiculo av 
+            INNER JOIN carga_gasolina cg ON av.id_vehiculo = cg.id_vehiculo
+            WHERE av.id_vehiculo = $IDvehiculoAsignado 
+                AND cg.id = (
+                    SELECT MAX(id)
+                    FROM carga_gasolina
+                    WHERE id_vehiculo = $IDvehiculoAsignado
+                )
+            ORDER BY av.km_actual DESC
             LIMIT 1";
             
     $result = $conn->query($sql);
@@ -375,6 +380,7 @@ if($accion == 'ActividadesCalendario'){
     }
     exit;
 }
+
 if($accion == 'ActividadesCalendarioPlaneadas'){
     // Consultar las actividades planeadas del usuario actual
     $sql = "SELECT p.fecha_inc_prestamo, p.fecha_fin_prestamo, p.motivo_us, p.detalle_tipo_uso, p.estatus, u.nombre,

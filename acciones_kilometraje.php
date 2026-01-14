@@ -94,6 +94,31 @@ if ($accion == 'CargarVehiculos'){
     exit;
 }
 
+if ($accion == 'CargarVehiculosPTenencia'){
+    $sql = "SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo
+            FROM inventario inv
+            INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
+            WHERE p.id_usuario = '".$_COOKIE['id_usuario']."'
+            UNION
+            SELECT id_vehiculo, placa, marca, modelo
+            FROM inventario
+            WHERE id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";
+    
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows > 0) {
+        $vehiculos = [];
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+        echo json_encode(['success' => true, 'vehiculos' => $vehiculos]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No se encontraron vehículos asignados.']);
+    }
+    exit;
+}
+
+
 if ($accion == 'tomaKm'){
     
     $IDvehiculoAsignado = isset($_POST['IDvehiculoAsignado']) ? $_POST['IDvehiculoAsignado'] : null;

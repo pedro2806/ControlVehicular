@@ -67,23 +67,25 @@ if ($accion == "consultarPrestamos") {
                         CASE
                             WHEN inv.id_usuario = $id_usuario THEN 'mio'
                             ELSE 'otro'
-                        END AS propiedad_vehiculo
+                        END AS propiedad_vehiculo, prest.fecha_registro
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                 OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario)
-                AND prest.estatus = 'PENDIENTE'";
+                AND prest.estatus = 'PENDIENTE'
+                ORDER BY prest.id_prestamo DESC";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                                 prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                                 prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
                                 IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
-                                inv.usuario AS valida
+                                inv.usuario AS valida, prest.fecha_registro
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario
-                        AND prest.estatus = 'PENDIENTE'";
+                        AND prest.estatus = 'PENDIENTE'
+                        ORDER BY prest.id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;
@@ -233,17 +235,18 @@ if ($accion == "prestamosAutorizados") {
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
                         IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
-                        inv.usuario AS valida,
+                        inv.usuario AS valida, 
                         CASE
                             WHEN inv.id_usuario = $id_usuario THEN 'mio'
                             ELSE 'otro'
                         END AS propiedad_vehiculo, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km, prest.fecha_registro
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                 OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario)
-                AND prest.estatus = 'AUTORIZADO'";
+                AND prest.estatus = 'AUTORIZADO'
+                ORDER BY prest.id_prestamo DESC";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
@@ -251,11 +254,12 @@ if ($accion == "prestamosAutorizados") {
                                 prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
                                 IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
                                 inv.usuario AS valida, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km, prest.fecha_registro
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario
-                        AND prest.estatus = 'AUTORIZADO'";
+                        AND prest.estatus = 'AUTORIZADO'
+                        ORDER BY prest.id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;
@@ -281,12 +285,13 @@ if ($accion == "consultarPrestamosEnCurso") {
                             WHEN inv.id_usuario = $id_usuario THEN 'mio'
                             ELSE 'otro'
                         END AS propiedad_vehiculo, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km, prest.fecha_registro
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                 OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario)
-                AND prest.estatus = 'EN CURSO'";
+                AND prest.estatus = 'EN CURSO'
+                ORDER BY prest.id_prestamo DESC";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
@@ -294,11 +299,12 @@ if ($accion == "consultarPrestamosEnCurso") {
                                 prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
                                 IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
                                 inv.usuario AS valida, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km, prest.fecha_registro
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario
-                        AND prest.estatus = 'EN CURSO'";
+                        AND prest.estatus = 'EN CURSO'
+                        ORDER BY prest.id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;
@@ -381,12 +387,13 @@ if ($accion == "consultarPrestamosTerminados") {
                             WHEN inv.id_usuario = $id_usuario THEN 'mio'
                             ELSE 'otro'
                         END AS propiedad_vehiculo, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km
+                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km, prest.fecha_registro
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                 OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario)
-                AND prest.estatus IN ('FINALIZADO', 'CANCELADO')";
+                AND prest.estatus IN ('FINALIZADO', 'CANCELADO')
+                ORDER BY prest.id_prestamo DESC";
     } elseif ($rol == 1) {
         // ROL 1 es usuario
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
@@ -396,11 +403,12 @@ if ($accion == "consultarPrestamosTerminados") {
                                 IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario  LIMIT 1), 'S/R') AS nombre_usuario,
                                 inv.usuario AS valida, prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
                                 (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km,
-                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS kmInicio
+                                (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS kmInicio, prest.fecha_registro
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario
-                        AND prest.estatus IN ('FINALIZADO', 'CANCELADO')";
+                        AND prest.estatus IN ('FINALIZADO', 'CANCELADO')
+                        ORDER BY prest.id_prestamo DESC";
     } else {
         echo json_encode(["success" => false, "message" => "Rol no autorizado."]);
         exit;

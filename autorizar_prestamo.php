@@ -538,40 +538,39 @@
             data: { accion: "consultarPrestamos" },
             dataType: "json",
             success: function (respuesta) {
-                var tablaPendientes = $("#tablaPrestamos tbody");
-                tablaPendientes.empty();
+                var table = $("#tablaPrestamos").DataTable();
+                table.clear().draw();
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTE") {
-                        if (prestamo.propiedad_vehiculo == 'mio') { // Solo mostrar si es de tipo 1 o si el rol es 3
-                        var botones = `
-                            <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)">
-                                <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
-                                <ion-icon name="close-outline" class="fs-6"></ion-icon>
-                            </button>`;
+                        var botones;
+                        if (prestamo.propiedad_vehiculo == 'mio') {
+                            botones = `
+                                <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)">
+                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
+                                    <ion-icon name="close-outline" class="fs-6"></ion-icon>
+                                </button>`;
+                        } else {
+                            botones = `<span class="text-muted">Valida ${prestamo.valida}</span>`;
                         }
-                        else {
-                            var botones = `<span class="text-muted">Valida ${prestamo.valida}</span>`;
-                        }
-                        var fila = `
-                            <tr>
-                                <td>${prestamo.nombre_usuario}</td>
-                                <td>${prestamo.valida}<br>${prestamo.modelo}-${prestamo.placa}</td>
-                                <td>${prestamo.fecha_inc_prestamo}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.motivo_us}</td>
-                                <td>${botones}</td>
-                            </tr>`;
-                        tablaPendientes.append(fila);
+                        table.row.add([
+                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.valida + "<br>" + prestamo.modelo + "-" + prestamo.placa,
+                            prestamo.fecha_inc_prestamo,
+                            prestamo.fecha_fin_prestamo,
+                            prestamo.tipo_uso,
+                            prestamo.detalle_tipo_uso,
+                            prestamo.motivo_us,
+                            botones
+                        ]);
                     }
                 });
+                table.draw();
                 if (rol != 3) {
-                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").hide(); // Ocultar columna "Acción"
+                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").hide();
                 } else {
-                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").show(); // Mostrar columna "Acción"
+                    $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").show();
                 }
             },
             error: function () {
@@ -592,39 +591,38 @@
             url: "acciones_prestamos",
             data: { accion: "prestamosAutorizados" },
             dataType: "json",
-            success: function (respuesta) {
-                var tablaAutorizados = $("#tablaAutorizados tbody");
-                tablaAutorizados.empty(); // Limpiar la tabla antes de agregar nuevas filas
-                respuesta.forEach(function (prestamo) {
-                        if (prestamo.estatus === "AUTORIZADO") {
-                            if (prestamo.id_usuario == getCookie('id_usuario')) {
-                                var botones = `
-                                    <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
-                                        <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                    </button>`;
-                                    /*<button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
-                                        <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                    </button> */
-                            }
-                            else{
-                                var botones = '-';
-                            }
-                            
-                            var fila = `
-                                <tr>
-                                    <td>${prestamo.nombre_usuario}</td>                                    
-                                    <td>${prestamo.valida}<br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
-                                    <td>${prestamo.fecha_inc_prestamo}</td>
-                                    <td>${prestamo.fecha_fin_prestamo}</td>
-                                    <td>${prestamo.notas_jefe}</td>
-                                    <td>${prestamo.tipo_uso}</td>
-                                    <td>${prestamo.detalle_tipo_uso}</td>
-                                    <td>${prestamo.motivo_us}</td>
-                                    <td>${botones}</td>
-                                </tr>`;
-                            tablaAutorizados.append(fila);
+            success: function (data) {
+                var table = $("#tablaAutorizados").closest('table').DataTable();
+                table.clear().draw();
+                data.forEach(function(prestamo) {
+                    //respuesta.forEach(function (prestamo) {
+                    if (prestamo.estatus === "AUTORIZADO") {
+                        if (prestamo.id_usuario == getCookie('id_usuario')) {
+                            var botones = `
+                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
+                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                </button>`;
+                                /*<button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
+                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                </button> */
                         }
-                    });
+                        else{
+                            var botones = '-';
+                        }
+                        table.row.add([
+                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
+                            prestamo.fecha_inc_prestamo,
+                            prestamo.fecha_fin_prestamo,
+                            prestamo.notas_jefe,
+                            prestamo.tipo_uso,
+                            prestamo.detalle_tipo_uso,
+                            prestamo.motivo_us,
+                            botones
+                        ]);
+                    }
+                    table.draw();
+                });
             },
             error: function () {
                 Swal.fire({
@@ -644,35 +642,33 @@
             url: "acciones_prestamos",
             data: { accion: "consultarPrestamosEnCurso" }, // Cambia la acción según sea necesario
             dataType: "json",
-            success: function (respuesta) {
-                var tablaDevolucion = $("#tablaDevolucion tbody");
-                tablaDevolucion.empty(); // Limpiar la tabla antes de agregar nuevas filas
-                respuesta.forEach(function (prestamo) {
+            success: function (data) {
+                var table = $("#tablaDevolucion").DataTable();
+                table.clear().draw();
+                data.forEach(function(prestamo) {
                     if (prestamo.estatus === "EN CURSO") {
                         if (prestamo.id_usuario == getCookie('id_usuario')) {
                             var botones = `
                                 <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
                                     <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                                 </button>`;
-                        
                         } else {
                             var botones = '-';
                         }
-                        var fila = `
-                            <tr>
-                                <td>${prestamo.nombre_usuario}</td>                                    
-                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo} <br>Km: ${prestamo.km}</td>
-                                <td>${prestamo.fecha_inc_prestamo}</td>
-                                <td>${prestamo.fecha_fin_prestamo}</td>
-                                <td>${prestamo.notas_jefe}</td>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.motivo_us}</td>
-                                <td>${botones}</td>
-                            </tr>`;
-                        tablaDevolucion.append(fila);
+                        table.row.add([
+                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
+                            prestamo.fecha_inc_prestamo,
+                            prestamo.fecha_fin_prestamo,
+                            prestamo.notas_jefe,
+                            prestamo.tipo_uso,
+                            prestamo.detalle_tipo_uso,
+                            prestamo.motivo_us,
+                            botones
+                        ]);
                     }
                 });
+                table.draw();
             },
             error: function () {
                 Swal.fire({
@@ -693,31 +689,30 @@
             data: { accion: "consultarPrestamosTerminados" }, // Cambia la acción según sea necesario
             dataType: "json",
             success: function (respuesta) {
-                var tablaTerminados = $("#tablaTerminados tbody");
-                tablaTerminados.empty(); // Limpiar la tabla antes de agregar nuevas filas
+                var table = $("#tablaTerminados").DataTable();
+                table.clear().draw();
                 respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "FINALIZADO" || prestamo.estatus === "CANCELADO") {
+                        var estatus;
                         if (prestamo.estatus === "FINALIZADO") {
                             estatus = `<span class="badge bg-success">Terminado</span>`;
-                        }else{
+                        } else {
                             estatus = `<span class="badge bg-danger">Cancelado</span>`;
                         }
-                        var fila = `
-                            <tr>
-                                <td>${prestamo.nombre_usuario}</td>                                    
-                                <td>${prestamo.valida} <br> ${prestamo.placa} - ${prestamo.modelo}</td>
-                                <td>${prestamo.fecha_inc_prestamo} <br>Km: ${prestamo.kmInicio} </td>
-                                <td>${prestamo.fecha_fin_prestamo} <br>Km: ${prestamo.km}</td>
-                                <td>${prestamo.notas_jefe}</td>
-                                <td>${prestamo.tipo_uso}</td>
-                                <td>${prestamo.detalle_tipo_uso}</td>
-                                <td>${prestamo.motivo_us}</td>
-                                <td>${estatus}</td>                                
-                            </tr>`;
-                        tablaTerminados.append(fila);
+                        table.row.add([
+                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.valida + " <br> " + prestamo.placa + " - " + prestamo.modelo,
+                            prestamo.fecha_inc_prestamo + " <br>Km: " + prestamo.kmInicio,
+                            prestamo.fecha_fin_prestamo + " <br>Km: " + prestamo.km,
+                            prestamo.notas_jefe,
+                            prestamo.tipo_uso,
+                            prestamo.detalle_tipo_uso,
+                            prestamo.motivo_us,
+                            estatus
+                        ]);
                     }
-                    
                 });
+                table.draw();
             },
             error: function () {
                 Swal.fire({

@@ -591,13 +591,17 @@
                                 <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
                                     <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
                                 </button>`;
-                                /*<button class="btn btn-outline-success" onclick="abrirModalInicio(${prestamo.id_prestamo}, '${prestamo.placa}', '${prestamo.fecha_entrega}', ${prestamo.id_vehiculo}, '${prestamo.detalle_tipo_uso}', '${prestamo.tipo_uso}')">
-                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                </button> */
+                                
                         }
                         else{
                             var botones = '-';
                         }
+                        /*if(prestamo.propiedad_vehiculo == 'mio'){
+                            botones += `
+                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
+                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
+                                </button>`;
+                        }*/
                         table.row.add([
                             "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
                             prestamo.nombre_usuario,

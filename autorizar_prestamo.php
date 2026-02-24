@@ -67,6 +67,7 @@
                                 <table id="tablaPrestamos" class="table table-striped table-bordered">
                                     <thead class="table-warning">
                                         <tr>
+                                            <th>Fecha Solicitud</th>
                                             <th>Solicita</th>
                                             <th>Valida Vehiculo</th>
                                             <th>Inicio Préstamo</th>    
@@ -89,6 +90,7 @@
                                 <table id="tablaAutorizados" class="table table-striped table-bordered">
                                     <thead class="table-success">
                                         <tr>
+                                            <th>Fecha Solicitud</th>
                                             <th>Solicita</th>                                            
                                             <th>Valida Vehiculo</th>
                                             <th>Inicio Préstamo</th>    
@@ -112,6 +114,7 @@
                                 <table id="tablaDevolucion" class="table table-striped table-bordered">
                                     <thead class="table-primary">
                                         <tr>
+                                            <th>Fecha Solicitud</th>
                                             <th>Solicita</th>                                            
                                             <th>Valida Vehiculo</th>
                                             <th>Inicio Préstamo</th>    
@@ -135,6 +138,7 @@
                                 <table id="tablaTerminados" class="table table-striped table-bordered">
                                     <thead class="table-danger">
                                         <tr>
+                                            <th>Fecha Solicitud</th>
                                             <th>Solicita</th>                                            
                                             <th>Valida Vehiculo</th>
                                             <th>Inicio Préstamo</th>    
@@ -395,7 +399,7 @@
         $("#tablaPrestamos").DataTable({
             destroy: true,
             paging: true,
-            ordering: true,
+            ordering: false,
             searching: true,
             info: true,
             language: {
@@ -416,16 +420,12 @@
                     previous: "Anterior"
                 },
                 lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
-                }
             }
         });
         $("#tablaAutorizados").DataTable({
             destroy: true,
             paging: true,
-            ordering: true,
+            ordering: false,
             searching: true,
             info: true,
             language: {
@@ -446,16 +446,12 @@
                     previous: "Anterior"
                 },
                 lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
-                }
             }
         });
         $("#tablaDevolucion").DataTable({
             destroy: true,
             paging: true,
-            ordering: true,
+            ordering: false,
             searching: true,
             info: true,
             language: {
@@ -476,19 +472,15 @@
                     previous: "Anterior"
                 },
                 lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
-                }
             }
         });
         $("#tablaTerminados").DataTable({
             destroy: true,
             paging: true,
-            ordering: true,
+            ordering: false,
             searching: true,
             info: true,
-        language: {
+            language: {
                 decimal: ",",
                 thousands: ".",
                 processing: "Procesando...",
@@ -506,10 +498,6 @@
                     previous: "Anterior"
                 },
                 lengthMenu: "Mostrar _MENU_ registros",
-                aria: {
-                    sortAscending: ": activar para ordenar la columna de manera ascendente",
-                    sortDescending: ": activar para ordenar la columna de manera descendente"
-                }
             }
         });
         // Establecer la fecha y hora actuales en los campos correspondientes
@@ -555,7 +543,8 @@
                             botones = `<span class="text-muted">Valida ${prestamo.valida}</span>`;
                         }
                         table.row.add([
-                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.nombre_usuario,
                             prestamo.valida + "<br>" + prestamo.modelo + "-" + prestamo.placa,
                             prestamo.fecha_inc_prestamo,
                             prestamo.fecha_fin_prestamo,
@@ -610,7 +599,8 @@
                             var botones = '-';
                         }
                         table.row.add([
-                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.nombre_usuario,
                             prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
                             prestamo.fecha_inc_prestamo,
                             prestamo.fecha_fin_prestamo,
@@ -656,7 +646,8 @@
                             var botones = '-';
                         }
                         table.row.add([
-                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.nombre_usuario,
                             prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
                             prestamo.fecha_inc_prestamo,
                             prestamo.fecha_fin_prestamo,
@@ -700,7 +691,8 @@
                             estatus = `<span class="badge bg-danger">Cancelado</span>`;
                         }
                         table.row.add([
-                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
+                            prestamo.nombre_usuario,
                             prestamo.valida + " <br> " + prestamo.placa + " - " + prestamo.modelo,
                             prestamo.fecha_inc_prestamo + " <br>Km: " + prestamo.kmInicio,
                             prestamo.fecha_fin_prestamo + " <br>Km: " + prestamo.km,

@@ -85,7 +85,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         <footer class="sticky-footer bg-white">
             <div class="container my-auto">
                 <div class="copyright text-center my-auto">
-                    <span>© MESS 2025</span>
+                    <span>© MESS <?php echo date("Y"); ?></span>
                 </div>
             </div>
         </footer>

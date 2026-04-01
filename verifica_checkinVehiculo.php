@@ -91,6 +91,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                     </div>
 
+                    <div class="row mb-2">
+                        <div class="col-12 text-end">
+                            <button id="btnSeleccionarOtro" type="button" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="seleccionarOtroVehiculo()">
+                                Seleccionar otro vehiculo
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="row" name="DivChecksVehiculo" id="DivChecksVehiculo">
                         <div class="col-xl-12 col-lg-12 col-md-1 col-sm-12 col-12">
                             <table id="TChecksVehiculo" name="TChecksVehiculo" class="table table-striped table-bordered">
@@ -120,7 +128,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; MESS 2025</span>
+                        <span>Copyright &copy; MESS <?php echo date("Y"); ?></span>
                     </div>
                 </div>
             </footer>
@@ -158,10 +166,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         $('#TVehiculosAsignados').DataTable({
             destroy: true, // Permitir reinicializar la tabla
-            paging: false, // Quitar paginado
-            ordering: false, // Quitar orden
-            searching: false, // Quitar buscador
-            info: false, // Quitar leyendas a pie de tabla
+            paging: true, // Quitar paginado
+            ordering: true, // Quitar orden
+            searching: true, // Quitar buscador
+            info: true, // Quitar leyendas a pie de tabla
             language: {
             decimal: ",",
             thousands: ".",
@@ -236,6 +244,20 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#placa').text(Registro.placa); // Asignar valor a la etiqueta de placa
         verChecks(Registro.idCoche); // Llamar a la función verChecks con el idCoche del registro seleccionado
         $('#DivVehiculosAsignados').hide(); // Ocultar la tabla de vehículos asignados
+        $('#btnSeleccionarOtro').show();
+    }
+
+    function seleccionarOtroVehiculo() {
+        $('#DivVehiculosAsignados').show();
+        $('#btnSeleccionarOtro').hide();
+        $('#marca').text('');
+        $('#modelo').text('');
+        $('#color').text('');
+        $('#placa').text('');
+
+        var checksTable = $('#TChecksVehiculo').DataTable();
+        checksTable.clear().draw();
+        $('#contenedorTarjetas').html('');
     }
 
     function verChecks(idCoche) { // Función para mostrar los checks del vehículo seleccionado

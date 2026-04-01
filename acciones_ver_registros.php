@@ -19,10 +19,10 @@ $estatus = $_POST["estatus"];
 // Consulta para obtener los vehículos del inventario
 if ($_POST['accion'] == 'ver_inventario') {
     $id_usuario_cookie = intval($_COOKIE['id_usuario']);
-    $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuarios.nombre as usuario, color
-            FROM inventario 
-            INNER JOIN usuarios ON inventario.id_usuario = usuarios.id_usuario     
-            WHERE inventario.id_usuario = $id_usuario OR inventario.id_us_asignado = $id_usuario"; 
+        $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuarios.nombre as usuario, color
+                FROM inventario 
+                INNER JOIN usuarios ON inventario.id_usuario = usuarios.id_usuario     
+                WHERE inventario.id_usuario = $id_usuario OR inventario.id_us_asignado = $id_usuario"; 
             
     $result = $conn->query($sql);
 

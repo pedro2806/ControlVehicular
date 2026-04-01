@@ -88,13 +88,13 @@
     <?php
     }?>
 
-    <!-- Menú Gasolina 
+    <!-- Menú Gasolina -->
     <li class="nav-item">
         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
             <i class="fas fa-fw fa-gas-pump"></i>
             <span>Registrar Gasolina</span>
         </a>
-    </li>-->
+    </li>
 
     <!-- Menú CheckIn -->
     <li class="nav-item">
@@ -148,6 +148,7 @@
             </div>            
         </div>
     </li>
+    
     <!-- Menú CheckList -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
@@ -161,6 +162,14 @@
             </div>            
         </div>
     
+    </li>
+
+    <!-- SALIR -->
+    <li class = "nav-item">
+        <a class = "nav-link" href = "#" data-toggle = "modal" data-target = "#logoutModalN">
+            <i class = "fas fa-sign-out-alt text-gray-100"></i>
+            Salir
+        </a>
     </li>
 
     <?php if ($_COOKIE['noEmpleado'] == '19' || $_COOKIE['noEmpleado'] == '183' || $_COOKIE['noEmpleado'] == '276' || $_COOKIE['noEmpleado'] == '191'): ?>

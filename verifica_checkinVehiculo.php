@@ -72,7 +72,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                     </div>                    
                     
-                    <div class="row alert alert-primary">                                                
+                    <div class="row alert alert-primary" id="DivInfoVehiculo" style="display: none;">                                                
                         <div class="col-lg-3 col-md-3 col-sm-3 col-3">
                             <label for="marca"><b>Marca:</b></label>
                             <label id="marca" name="marca"></label>
@@ -220,9 +220,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     var table = $('#TVehiculosAsignados').DataTable();
                     
                     table.clear().draw();                            
-                    registros.forEach(function(Registro) { 
+                    registros.forEach(function(Registro) {
+                        // Determinar icono según si tiene checklist
+                        var iconoEstatus = Registro.tieneChecklist 
+                            ? '<i class="fas fa-check-circle" style="color: green; margin-right: 8px;"></i>' 
+                            : '<i class="fas fa-circle" style="color: #FFC107; margin-right: 8px;"></i>';
+                        
                         table.row.add([                                    
-                            '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
+                            iconoEstatus + '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                             '<b> ' + Registro.modelo + ' </b>',
                             '<b> ' + Registro.color + ' </b>',
                             '<b> ' + Registro.anio + ' </b>',
@@ -244,11 +249,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#placa').text(Registro.placa); // Asignar valor a la etiqueta de placa
         verChecks(Registro.idCoche); // Llamar a la función verChecks con el idCoche del registro seleccionado
         $('#DivVehiculosAsignados').hide(); // Ocultar la tabla de vehículos asignados
+        $('#DivInfoVehiculo').show();
         $('#btnSeleccionarOtro').show();
     }
 
     function seleccionarOtroVehiculo() {
         $('#DivVehiculosAsignados').show();
+        $('#DivInfoVehiculo').hide();
         $('#btnSeleccionarOtro').hide();
         $('#marca').text('');
         $('#modelo').text('');

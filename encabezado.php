@@ -38,10 +38,6 @@
             <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                    Cambiar Contraseña
-                </button>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModalN">
                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
@@ -50,49 +46,6 @@
             </div>
         </li>
     </ul>
-
-    <!-- MODAL PARA CAMBIO DE CONTRASEÑA-->
-    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="staticBackdropLabel">Cambiar Contraseña</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <label>Contraseña Nueva:</label>
-                            <input id="nuevapass" name="nuevapass" class="form-control" type="password" required>
-                        </div>
-                        <div class="col-sm-6">
-                            <label>Confirmar Contraseña:</label>
-                            <input id="confirmapass" name="confirmapass" class="form-control" type="password" required>
-                            <label id="msgPassword" name="msgPassword"></label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-1"></div>
-                        <div class="col-sm-6">
-                            <input class="form-check-input" type="checkbox" id="showPassword">
-                            <label class="form-check-label" for="showPassword">
-                                Ver Contraseña
-                            </label>
-                            </input>
-                        </div>
-                        <div class="col-sm-1">
-                            <input type="hidden" id="noEmpleado" name="noEmpleado">
-                            </input>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary" OnClick="validarContrasenas()">Confirmar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Logout Modal-->
     <div class="modal fade" id="logoutModalN" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -152,11 +105,11 @@
                         </div>
                         <div class="mb-2 row g-2">
                             <div class="col-4 col-md-4">
-                                <label for="kmActual" class="form-label">Km Actual</label>
+                                <label id="KmActual" for="kmActual" class="form-label">Km Actual</label>
                                 <input type="number" class="form-control" id="kmActual" name="kmActual" min="0" required>
                             </div>
                             <div class="col-4 col-md-4">
-                                <label for="gasActual" class="form-label">Gas. Actual</label>                                
+                                <label id="GasActual" for="gasActual" class="form-label">Gas. Actual</label>                                
                                 <select class = "form-select" id = "gasActual" name = "gasActual">
                                     <option value = "">Seleccione...</option>
                                     <option value = "SD">Sin Datos</option>
@@ -177,7 +130,7 @@
                         </div>
                         <div class="mb-2 row g-2">
                             <div class="col-12 col-md-12">
-                                <label for="kmActual" class="form-label">Notas</label>
+                                <label id="Notas" for="notasCheckin" class="form-label">Notas</label>
                                 <textarea name="notasCheckin" id="notasCheckin" class="form-control" rows="2" cols="5"></textarea>
                             </div>
                         </div>
@@ -187,7 +140,7 @@
                         ?>
                             <div class="mb-2 row g-2">
                                 <div class="col-6 col-md-6">
-                                    <label for="Ruta" class="form-label">Ruta</label>
+                                    <label id="Ruta" for="ruta" class="form-label">Ruta</label>
                                     <select class="form-select" id="ruta" name="ruta" required>
                                         <option value="">Seleccione una ruta</option>
                                         <option value="Ruta 1">Ruta 1</option>
@@ -197,14 +150,14 @@
                                     </select>
                                 </div>
                                 <div class="col-6 col-md-6">
-                                    <label for="kmActual" class="form-label">Costo Ovs.</label>
+                                    <label id="CostoOvs" for="costoOv" class="form-label">Costo Ovs.</label>
                                     <input type="text" class="form-control" id="costoOv" name="costoOv">
                                 </div>
                             </div>
                     <?php endif; ?>
                         <div class="mb-2 row g-2">
                             <div class="col-12 col-md-12">
-                                <label for="kmActual" class="form-label">Img.</label>
+                                <label id="Img" for="imgCheckin" class="form-label">Img.</label>
                                 <input type="file" class="form-control" id="imgCheckin" name="imgCheckin[]" accept=".jpg,.jpeg,.png">
                                 <div id="contenedorImgCheckin"></div>
                                 <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="agregarInputImagen()">Agregar otra imagen</button>
@@ -277,7 +230,7 @@
                                     ?>
                                         <div class="mb-2 row g-2">
                                             <div class="col-6 col-md-6">
-                                                <label for="Ruta" class="form-label">Ruta</label>
+                                                <label id="ruta" for="ruta" class="form-label">Ruta</label>
                                                 <select class="form-select" id="rutaNuevo" name="rutaNuevo" required>
                                                     <option value="">Seleccione una ruta</option>
                                                     <option value="Ruta 1">Ruta 1</option>
@@ -293,7 +246,7 @@
                                         </div>
                                 <?php endif; ?>
                                 <div class="row g-2 mt-2">
-                                    <div class="col-12 col-md-12 alert alert-primary me-0" id="divFinalizarPrestamo" name=="divFinalizarPrestamo">
+                                    <div class="col-12 col-md-12 alert alert-primary me-0" id="divFinalizarPrestamo" name="divFinalizarPrestamo">
                                         <div class="form-check form-switch d-flex align-items-center mb-2" style="font-size: 1.1em;">
                                             <input class="form-check-input me-4" type="checkbox" id="finalizarPrestamo" name="finalizarPrestamo" style="width:2.5em; height:1.5em;">
                                             <label class="form-check-label fw-bold text-primary" for="finalizarPrestamo" style="margin-left: 1.5em;">                                                
@@ -364,7 +317,7 @@
                                 <input type="datetime-local" class="form-control" id="fechaCarga" name="fechaCarga" value= "" required>
                             </div>
                             <div class="col-4 col-md-6">
-                                <label for="kmActualGas" class="form-label">Km Actual</label>
+                                <label id="kmActual" for="kmActual" class="form-label">Km Actual</label>
                                 <input type="number" class="form-control" id="kmActualGas" name="kmActualGas" min="0" required>
                             </div>
                         </div>
@@ -695,16 +648,16 @@
                         // Asignar id prestamo al input oculto solo si no es vacío o nulo
                         if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
                             $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
-                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;">PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
+                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;" selected>PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
                         }
                         else{
                             select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
                         }
                     });
-                    
                 } else {
                     select.append('<option value="">No hay vehículos disponibles</option>');
                 }
+                verPlaca('vehiculoAsignado', 'kmActual');
             },
             error: function () {
                 console.error('Error al cargar los vehículos');
@@ -854,67 +807,6 @@
         $('#saldo').val(saldo.toFixed(2));
     }
 
-    // Función para mostrar/ocultar contraseñas
-    document.getElementById('showPassword').addEventListener('change', function () {
-        var passwordField = document.getElementById('nuevapass');
-        var confirmPasswordField = document.getElementById('confirmapass');
-
-        if (this.checked) {
-            // Mostrar contraseñas (tipo 'text')
-            passwordField.type = 'text';
-            confirmPasswordField.type = 'text';
-        } else {
-            // Ocultar contraseñas (tipo 'password')
-            passwordField.type = 'password';
-            confirmPasswordField.type = 'password';
-        }
-    });
-
-    //Funcion para validar las contraseñas
-    function validarContrasenas() {
-        var password = $('#nuevapass').val()
-        var confirmPassword = $('#confirmapass').val()
-        var error = document.getElementById("error");
-
-        // Si las contraseñas no coinciden
-        if (password !== confirmPassword) {
-            $('#msgPassword').text("Las constraseñas no coinciden.");
-        } else {
-            Confirmar();
-        }
-    }
-
-    //Funcion para Enviar los datos de contraseña
-    function Confirmar() {
-        var password = $('#nuevapass').val();
-        var noEmpleado = $('#noEmpleado').val();
-        var accion = "CambioPassword";
-
-        $.ajax({
-            url: 'acciones_contrasena.php',
-            method: 'POST',
-            async: false,
-            dataType: 'json',
-            data: { accion, password, noEmpleado },
-            success: function (Registros) {
-                Swal.fire({
-                    title: "Confirmado!",
-                    text: "Contraseña cambiada!",
-                    icon: "success",
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then(function () {
-                    // Limpiar los campos después de cerrar la alerta
-                    $('#nuevapass').val('');
-                    $('#confirmapass').val('');
-                    $('#staticBackdrop').modal('hide');
-                });
-            }, error: function (jqXHR, textStatus, errorThrown) {
-                console.error('Error al aplicar el cambio', error);
-            }
-        });
-    }
-
     //Funcion para leer cookies
     function getCookie(name) {
         let value = "; " + document.cookie;
@@ -926,12 +818,18 @@
     window.onload = function () {
         //Obtener fecha y hora actual
         const ahora = new Date();
-        document.getElementById("fechaCarga").value = ahora.toISOString().slice(0,16);
+        var fechaCargaInput = document.getElementById("fechaCarga");
+        if (fechaCargaInput) {
+            fechaCargaInput.value = ahora.toISOString().slice(0,16);
+        }
         
         var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
         // Verificar si la cookie existe y asignar el valor al input
         if (cookieValue) {
-            document.getElementById("noEmpleado").value = cookieValue;
+            var noEmpleadoInput = document.getElementById("noEmpleado");
+            if (noEmpleadoInput) {
+                noEmpleadoInput.value = cookieValue;
+            }
         }
     };        
 </script>

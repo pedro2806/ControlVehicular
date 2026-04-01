@@ -59,7 +59,7 @@ if ($stmt = $conn->prepare($sql_jefe)) {
 }
 
 // Para depuración, sobrescribe el jefe si es necesario
-//$jefe = 'pedro.martinez@mess.com.mx'; // Mantener esto para pruebas
+$jefe = 'pedro.martinez@mess.com.mx'; // Mantener esto para pruebas
 
 
 // Codificación de caracteres: Asegúrate de que $solicitaNombre ya esté en UTF-8

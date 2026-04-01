@@ -50,12 +50,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     <div class="row">
                         <ul class="nav nav-tabs" id="myTab" role="tablist">
                             <li class="nav-item">                                
-                                <button class="nav-link active btn-outline-primary" onclick="verTabla('tablaVerActividades')" type="button">Vehiculos</button>
+                                <button class="btn active btn-outline-primary" onclick="verTabla('tablaVerActividades')" type="button">Vehiculos</button>
                             </li>
                             <li class="nav-item">                                
-                                <!--<button class="nav-link active btn-outline-success" onclick="verTabla('tablaGas')" type="button">Cargas de Gasolina</button>-->
+                                <button class="btn btn-outline-success" onclick="verTabla('tablaGas')" type="button">Cargas de Gasolina</button>
                             </li>
-                            <li>
+                            <li class="nav-item">
                                 <button class="btn btn-outline-primary" onclick="descargarTabla()">Descargar XLSX</button>
                             </li>
                         </ul><br>
@@ -107,10 +107,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <h3>Calendario de Actividades</h3>
                         <ul class="nav nav-tabs" id="myTab" role="tablist">
                             <li class="nav-item">                                
-                                <button class="nav-link active btn-outline-warning" onclick="verCalendario('planeadas')" type="button">Planeadas</button>
+                                <button class="btn active btn-outline-warning" onclick="verCalendario('planeadas')" type="button">Planeadas</button>
                             </li>
                             <li class="nav-item">                                
-                                <button class="nav-link active btn-outline-success" onclick="verCalendario('checks')"type="button">Checks</button>
+                                <button class="btn btn-outline-success" onclick="verCalendario('checks')"type="button">Checks</button>
                             </li>                            
                         </ul><br>
                         <!-- PLANEADAS -->
@@ -133,7 +133,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; MESS 2025</span>
+                        <span>Copyright &copy; MESS <?php echo date("Y"); ?></span>
                     </div>
                 </div>
             </footer>
@@ -506,7 +506,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 $('#tablaGas_wrapper').hide();
                 $('#tablaVerActividades_wrapper').show();
             } else if (tipo === 'tablaGas') {
-                $('#tablaVerActividades').hide();
+                $('#tablaVerActividades').show();
                 $('#tablaGas').show();
                 $('#tablaVerActividades_wrapper').hide();
                 $('#tablaGas_wrapper').show();

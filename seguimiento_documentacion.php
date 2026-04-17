@@ -24,6 +24,30 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+    <style>
+        /* Estilo para la imagen miniatura */
+        .img-zoomable {
+            max-height: 80px;
+            max-width: 120px;
+            transition: all 0.3s ease;
+            cursor: zoom-in;
+        }
+
+        /* Clase que se aplica al hacer clic */
+        .img-zoomable.zoomed {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            max-width: 90vw;
+            max-height: 90vh;
+            z-index: 10000;
+            cursor: zoom-out;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            background: white;
+        }
+    </style>
 </head>
 <body id="page-top">
     <!-- Page Wrapper -->
@@ -39,26 +63,24 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     <!-- Content Row -->
                     <div class="row">
                         <div class="col-xl-12 col-lg-12">
-                            <h1 class="h3 mb-0 text-black-800">Historial de Documentación</h1>
+                            <h1 class="h3 mb-0 text-black-800">Documentación</h1>
                             <br>
                             <!-- CONTENEDOR INFO AUTO --> 
-                            <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                            <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-                            <div class="card shadow mb-4">
-                                <!-- Tabla de Vehículos -->
-                                <div class="card-body">
-                                    <div class="table-responsive" style="overflow-x: auto;">
-                                        <table class="table table-bordered" id="TablaInventario" width="100%" cellspacing="0">
-                                            <thead></thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                            <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div>                             
+                            <div class="card shadow mb-4">                                
                                 <!-- Tabla de Registros -->
                                 <div class="card-body">
-                                    <div class="table-responsive" style="overflow-x: auto; display: none;">
+                                    <div class="table-responsive">
                                         <table class="table table-bordered" id="TablaRegistrosDocumentacion" width="100%" cellspacing="0">
-                                            <thead></thead>
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>Vehículo</th>
+                                                    <th>Fecha de Registro</th>
+                                                    <th>Usuario</th>
+                                                    <th>Contacto</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
                                             <tbody></tbody>
                                         </table>
                                     </div>
@@ -95,55 +117,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <script type="text/javascript">
         $(document).ready(function() {
-            // Inicializar DataTables
-            var TablaInventario = $('#TablaInventario').DataTable({
-                data: [],
-                columns: [
-                    { title: "Placa" },
-                    { title: "Modelo" },
-                    { title: "Color" },
-                    { title: "Año" },
-                    { title: "Asignado" },
-                    { title: "Acciones" }
-                ],
-                paging: true,
-                pageLength: 10,
-                ordering: true,
-                searching: true,
-                info: true,
-                language: {
-                    decimal: ",",
-                    thousands: ".",
-                    processing: "Procesando...",
-                    loadingRecords: "Cargando...",
-                    zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "Siguiente",
-                        previous: "Anterior"
-                    },
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    aria: {
-                        sortAscending: ": activar para ordenar la columna de manera ascendente",
-                        sortDescending: ": activar para ordenar la columna de manera descendente"
-                    }
-                }
-            });
+            // Inicializar DataTables            
             var TablaRegistrosDocumentacion = $('#TablaRegistrosDocumentacion').DataTable({
                 data: [],
-                columns: [
-                    { title: "Fecha de Registro" },
-                    { title: "Usuario" },
-                    { title: "Contacto" },
-                    { title: "Acciones" }
-                ],
-                paging: true,
+                paging: false,
                 pageLength: 5,
                 ordering: true,
                 searching: true,
@@ -171,46 +148,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         sortDescending: ": activar para ordenar la columna de manera descendente"
                     }
                 }
-            });
-            cargarVehiculos(TablaInventario);
+            });            
+            documentacionXvehiculo();
         });
-
-        // Cargar Vehículos
-        function cargarVehiculos(TablaInventario) {
-            $.ajax({
-                type: "POST",
-                url: 'acciones_ver_registros',
-                data: {accion: 'ver_inventario'},
-                dataType: "json",
-                success: function(respuesta) {
-                    TablaInventario.clear(); 
-                    respuesta.forEach(function (vehiculo) {
-                        var fila = [
-                            `<i class="fas fa-car"></i> ${vehiculo.placa}`,
-                            `${vehiculo.modelo} - ${vehiculo.marca}`,
-                            `${vehiculo.color}`,
-                            `${vehiculo.anio}`,
-                            `${vehiculo.usuario}`,
-                            `<center>
-                                <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </center>`
-                        ];
-                        TablaInventario.row.add(fila);
-                    });
-                    TablaInventario.draw();
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo cargar la información de los vehículos.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            });
-        }
 
         // Seleccionar Vehículo
         function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
@@ -223,17 +163,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <span>Color:<span style="font-weight: normal;">${color}</span>
                     </div>
                 `).show();
-            $("#id_vehiculo").val(id_vehiculo);
-            $("#btnCambiarVehiculo").show();
-            $("#TablaInventario").closest(".table-responsive").hide();
+            $("#id_vehiculo").val(id_vehiculo);            
             $("#TablaRegistrosDocumentacion").closest(".table-responsive").show();
             documentacionXvehiculo(id_vehiculo);
         }
         // Cambiar de Vehículo
         function cambiarVehiculo() {
-            $("#placaSeleccionada").hide();
-            $("#btnCambiarVehiculo").hide();
-            $("#TablaInventario").closest(".table-responsive").show();
+            $("#placaSeleccionada").hide();            
             $("#TablaRegistrosDocumentacion").closest(".table-responsive").hide();
         }
 
@@ -250,6 +186,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
                     respuesta.forEach(function(documento) {
                         var fila = [
+                            `<b>${documento.placa + ' - ' + documento.modelo || 'N/A'}</b>`,
                             `${documento.fecha_registro || ''}`,
                             `${documento.usuario || ''}`,
                             `${documento.contacto || ''}`,
@@ -285,76 +222,104 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 { nombre: "Verificación Vigente", archivo: documento.verificacion_vigente }
             ];
 
-            let docsHtml = docs.map(doc =>
-                doc.archivo && doc.archivo !== 'S/R'
-                    ? `<tr>
-                        <td><strong>${doc.nombre}:</strong></td>
-                        <td>                            
-                            ${
-                                (function() {
-                                    const ext = doc.archivo.split('.').pop().toLowerCase();
-                                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
-                                        return `<img src="${doc.archivo}" alt="${doc.nombre}" style="max-height:100px;max-width:150px;cursor:zoom-in;" class="img-thumbnail"
-                                            onclick="
-                                                if (!this.classList.contains('zoomed')) {
-                                                    this.style.maxWidth='60%';
-                                                    this.style.maxHeight='60%';
-                                                    this.style.zIndex=9999;
-                                                    this.style.position='fixed';
-                                                    this.style.top='50%';
-                                                    this.style.left='50%';
-                                                    this.style.transform='translate(-50%,-50%)';
-                                                    this.style.background='#fff';
-                                                    this.style.boxShadow='0 0 20px rgba(0,0,0,0.5)';
-                                                    this.style.cursor='zoom-out';
-                                                    this.classList.add('zoomed');
-                                                } else {
-                                                    this.removeAttribute('style');
-                                                    this.className='img-thumbnail';
-                                                    this.classList.remove('zoomed');
-                                                }
-                                            "
-                                        />`;
-                                    } else if (ext === 'pdf') {
-                                        return `<a href="${doc.archivo}" target="_blank" class="btn btn-outline-danger btn-sm">
-                                                    <i class="fas fa-file-pdf"></i> Ver PDF
-                                                </a>`;
-                                    } else {
-                                        return `<a href="${doc.archivo}" target="_blank" class="btn btn-outline-secondary btn-sm">
-                                                    <i class="fas fa-file"></i> Ver Archivo
-                                                </a>`;
-                                    }
-                                })()
-                            }
+            let docsHtml = docs.map(doc => {
+                const tieneArchivo = doc.archivo && doc.archivo !== 'S/R';
+                
+                // Extraer extensión de forma limpia
+                const ext = tieneArchivo ? doc.archivo.split('.').pop().toLowerCase() : '';
+                
+                let contenidoCelda = 'S/R';
+
+                if (tieneArchivo) {
+                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                        // Usamos una clase CSS para el zoom en lugar de estilos inline masivos
+                        contenidoCelda = `
+                            <div class="img-container">
+                                <img src="${doc.archivo}" 
+                                    alt="${doc.nombre}" 
+                                    class="img-thumbnail img-zoomable" 
+                                    onclick="toggleZoom(this)">
+                            </div>`;
+                    } else {
+                        // Botones estilizados con iconos de FontAwesome
+                        const esPdf = ext === 'pdf';
+                        const btnClass = esPdf ? 'btn-outline-danger' : 'btn-outline-primary';
+                        const iconClass = esPdf ? 'fa-file-pdf' : 'fa-file-download';
+                        
+                        contenidoCelda = `
+                            <a href="${doc.archivo}" target="_blank" class="btn ${btnClass} btn-sm shadow-sm">
+                                <i class="fas ${iconClass} me-1"></i> Ver ${ext.toUpperCase()}
+                            </a>`;
+                    }
+                }
+
+                return `
+                    <tr>
+                        <td class="align-middle text-secondary" style="width: 40%;">
+                            <small class="fw-bold text-uppercase">${doc.nombre}:</small>
                         </td>
-                    </tr>`
-                    : `<tr>
-                        <td><strong>${doc.nombre}:</strong></td>
-                        <td>S/R</td>
-                    </tr>`
-            ).join('');
+                        <td class="align-middle">
+                            ${contenidoCelda}
+                        </td>
+                    </tr>`;
+            }).join('');
 
             if (!docsHtml) {
                 docsHtml = `<tr><td colspan="2" class="text-center">No hay documentos disponibles.</td></tr>`;
             }
 
             var tarjeta = `
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-black">Detalle de Documentación</h6>
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                        <i class="fas fa-file-alt text-primary me-2"></i>
+                        <h6 class="m-0 font-weight-bold text-dark">Detalle de Documentación</h6>
                     </div>
+                    
                     <div class="card-body">
-                        <div class="row mb-1">
-                            <div class="col-md-6">
-                                <p><strong>Fecha de Registro:</strong> ${documento.fecha_registro || 'N/A'}</p>
-                                <p><strong>Usuario:</strong> ${documento.usuario || 'N/A'}</p>
-                                <p><strong>Contacto:</strong> ${documento.contacto || 'N/A'}</p>
-                            </div>                        
-                            <div class="col-md-6">
+                        <div class="row g-4">
+                            <div class="col-md-4 border-end">
+                                <div class="d-flex flex-column gap-3">
+                                    <div class="info-item mb-4">
+                                        <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">VEHÍCULO</small>
+                                        <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
+                                            <i class="fas fa-car fa-lg me-2 text-secondary"></i>${documento.placa + ' - ' + documento.modelo || 'N/A'}
+                                        </span>
+                                    </div>
+
+                                    <div class="info-item mb-4">
+                                        <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">FECHA DE REGISTRO</small>
+                                        <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
+                                            <i class="far fa-calendar-alt fa-lg me-2 text-secondary"></i>${documento.fecha_registro || 'N/A'}
+                                        </span>
+                                    </div>
+
+                                    <div class="info-item mb-4">
+                                        <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">USUARIO RESPONSABLE</small>
+                                        <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
+                                            <i class="fas fa-user-circle fa-lg me-2 text-secondary"></i>${documento.usuario || 'N/A'}
+                                        </span>
+                                    </div>
+
+                                    <div class="info-item mb-4">
+                                        <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">CONTACTO</small>
+                                        <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
+                                            <i class="fas fa-address-book fa-lg me-2 text-secondary"></i>${documento.contacto || 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="py-2 small text-muted" style="font-size: 0.75rem;">DOCUMENTO</th>
+                                                <th class="py-2 small text-muted text-end" style="font-size: 0.75rem;"></th>
+                                            </tr>
+                                        </thead>
                                         <tbody>
-                                            ${docsHtml}
+                                            ${docsHtml || '<tr><td colspan="2" class="text-center text-muted">No hay documentos</td></tr>'}
                                         </tbody>
                                     </table>
                                 </div>
@@ -362,9 +327,20 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                     </div>
                 </div>
-            `;
+                `;
 
             $('#detalleDocumentacionContainer').html(tarjeta);
+        }
+
+        function toggleZoom(elemento) {
+            elemento.classList.toggle('zoomed');
+            
+            // Opcional: Bloquear el scroll del body cuando hay zoom
+            if (elemento.classList.contains('zoomed')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = 'auto';
+            }
         }
     </script>
 </body>

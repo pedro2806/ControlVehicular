@@ -153,8 +153,9 @@
             <span>Check List</span>
         </a>
         <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-parent="#accordionSidebar">
+        
             <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="checkVehiculo">Registrar Check List</a>
+                <a class="collapse-item" href="checkVehiculo">Registrar / Actualizar</a>
                 <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check List</a>
             </div>            
         </div>

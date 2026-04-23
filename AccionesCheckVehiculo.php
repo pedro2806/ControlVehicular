@@ -6,7 +6,7 @@ $id_usuario = $_COOKIE['id_usuario'];
 $no_empleado = intval($_POST['cookieNoEmpleado'] ?? ($_COOKIE['noEmpleado'] ?? 0));
 
 if ($opcion == "llenaTVehiculosAsignados") {
-    if ($no_empleado == 100 || $no_empleado == 523) {
+    if ($no_empleado == 100 || $no_empleado == 71 || $no_empleado == 523) {
     $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, COUNT(c.id_checklist) as countChecklists
         FROM inventario i
         LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
@@ -363,11 +363,6 @@ if ($opcion == 'checklist_documentacion') {
 }
 
 //////// FUNCIONES Y  VARIABLES PARA GUARDAR CHECKLIST ////////////
-
-    /*$placa = (!isset($_POST['placa']) || $_POST['placa'] === null || $_POST['placa'] === '') ? '' : $_POST['placa'];
-    $id_coche = $_POST['id_coche'] ?? null; 
-    $motivo = $_POST['motivo'] ?? null;*/
-
     // Helper function to get POST value or 'S/R' if null/empty
     function getPostOrSR($key) {
         return (isset($_POST[$key]) && $_POST[$key] !== null && $_POST[$key] !== '') ? $_POST[$key] : 'S/R';
@@ -428,8 +423,6 @@ if ($opcion == 'checklist_documentacion') {
     $si_no_Refrendo = getPostOrSR('si_no_Refrendo');
     $observaciones_Refrendo = getPostOrSR('observaciones_Refrendo');
 
-
-    
     $si_no_Seguro = $_POST['si_no_Seguro'] ?? null;
     $vencimiento_Seguro = $_POST['vencimiento_Seguro'] ?? null;
     $no_tarjeta_Seguro = $_POST['no_tarjeta_Seguro'] ?? null;
@@ -455,6 +448,7 @@ if ($opcion == 'checklist_documentacion') {
     $no_tarjeta_TarjetaIAVE = $_POST['no_tarjeta_TarjetaIAVE'] ?? null;
     $observaciones_TarjetaIAVE = $_POST['observaciones_TarjetaIAVE'] ?? null;
     $id_revisor = '0'; // Default value, can be updated later
+    $estatus = isset($_POST['estatus']) ? $_POST['estatus'] : 'completo';
     $opcion = $_POST['opcion'] ?? null;
     
     // Handle uploaded images
@@ -477,9 +471,30 @@ if ($opcion == 'checklist_documentacion') {
     $foto_TarjetaIAVE = isset($_FILES['foto_TarjetaIAVE']) ? file_get_contents($_FILES['foto_TarjetaIAVE']['tmp_name']) : null;
 
 if ($opcion == 'guardarCheckIn') {
+    // Si se guarda como completo, eliminar borradores previos del mismo vehículo
+    if ($estatus === 'completo') {
+        $resBorradores = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador'");
+        while ($rowBorrador = mysqli_fetch_assoc($resBorradores)) {
+            $borId = $rowBorrador['id_checklist'];
+            mysqli_query($conn, "DELETE FROM checklist_asientos WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_espejos_ventanas WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_estereos_aire WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_faros WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_golpes_exterior WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_graficas WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_limpiaparabrisas WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_limpieza WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_llantas WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_placas WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_puertas_llave WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist_documentacion WHERE id_checklist='$borId'");
+            mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$borId'");
+        }
+    }
+
     // Insert into checklist table
-    $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo) 
-        VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo')";        
+    $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
+        VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
     $resultadoChecklist = mysqli_query($conn, $sql);
     
     if (!$resultadoChecklist) {
@@ -601,7 +616,51 @@ if ($opcion == 'guardarCheckIn') {
     echo json_encode(array("success" => "Checklist and related data inserted successfully."));
 }
 
+if ($opcion == 'cargarBorrador') {
+    $id_coche_borrador = $_POST['id_coche'] ?? null;
 
+    $resBorrador = mysqli_query($conn, "SELECT id_checklist, motivo FROM checklist WHERE id_vehiculo='$id_coche_borrador' AND estatus='borrador' ORDER BY fecha DESC LIMIT 1");
+
+    if (!$resBorrador || mysqli_num_rows($resBorrador) == 0) {
+        echo json_encode(['found' => false]);
+        exit;
+    }
+
+    $rowMain = mysqli_fetch_assoc($resBorrador);
+    $id_checklist_borrador = $rowMain['id_checklist'];
+    $data = ['found' => true, 'motivo' => $rowMain['motivo']];
+
+    $seccionesFisicas = [
+        'asientos'        => 'checklist_asientos',
+        'espejos'         => 'checklist_espejos_ventanas',
+        'estereos'        => 'checklist_estereos_aire',
+        'faros'           => 'checklist_faros',
+        'golpes'          => 'checklist_golpes_exterior',
+        'graficas'        => 'checklist_graficas',
+        'limpiaparabrisas'=> 'checklist_limpiaparabrisas',
+        'limpieza'        => 'checklist_limpieza',
+        'llantas'         => 'checklist_llantas',
+        'placas'          => 'checklist_placas',
+        'puertas'         => 'checklist_puertas_llave',
+    ];
+
+    foreach ($seccionesFisicas as $key => $tabla) {
+        $r = mysqli_query($conn, "SELECT * FROM $tabla WHERE id_checklist='$id_checklist_borrador' LIMIT 1");
+        if ($r && mysqli_num_rows($r) > 0) {
+            $data[$key] = mysqli_fetch_assoc($r);
+        }
+    }
+
+    $rDocs = mysqli_query($conn, "SELECT * FROM checklist_documentacion WHERE id_checklist='$id_checklist_borrador'");
+    $docs = [];
+    while ($rowDoc = mysqli_fetch_assoc($rDocs)) {
+        $docs[$rowDoc['t_documento']] = $rowDoc;
+    }
+    $data['documentacion'] = $docs;
+
+    echo json_encode($data);
+    exit;
+}
 
 function obtenerRutaImagen($placa, $tipo, $archivo) {
     if ($archivo && $archivo['error'] == UPLOAD_ERR_OK) {

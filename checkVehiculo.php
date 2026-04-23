@@ -66,14 +66,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     </div>
                     <div class="row" name="DivBtnVehiculosAsignados" id="DivBtnVehiculosAsignados" style="display: none;">
                         <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="MostrarDivVehiculosAsignados()">Cambiar de vehículo</button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="MostrarDivVehiculosAsignados()">Cambiar de vehículo</button>
                         </div>
                         <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" id = "btnguardarCheck2" name = "btnguardarCheck2" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
                             <input type="hidden" id="id_coche" name="id_coche">
-
                         </div>
-                    
                     
                         <div class="row">                                                
                             <div class="col-lg-3 col-md-3 col-sm-3 col-3">
@@ -315,7 +314,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>  
                         <div class="row">
                             <div class="col-md-12 mt-3">
-                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-outline-success btn-sm" onclick="guardarCheckIn()">Guardar</button>                            
+                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
                             </div>
                         </div>
                         </div>
@@ -402,7 +402,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 table.row.add([                                    
                                     '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                                     '<b> ' + Registro.modelo + ' </b>',
-                                    '<center><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
+                                    '<center><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
                                 ]).draw(false);
                             });
                         },
@@ -429,6 +429,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#carta_resguardo').prop('checked', false);            
         $('#foto_inspeccion').val('');
         OcultaDivVehiculosAsignados(); // Ocultar el div de vehículos asignados
+        verificarBorrador(Registro.idCoche);
     }
 
     function validarFormulario() {
@@ -501,11 +502,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
             // Agregar opción al FormData
             formData.append('opcion', 'guardarCheckIn');
-
+            formData.append('estatus', 'completo');
 
             // Deshabilitar botones para evitar múltiples envíos
             $('#btnguardarCheck').prop('disabled', true);
             $('#btnguardarCheck2').prop('disabled', true);
+            $('#btnGuardarAvance').prop('disabled', true);
+            $('#btnGuardarAvance2').prop('disabled', true);
             
             // Mostrar mensaje de procesamiento
             Swal.fire({
@@ -542,7 +545,217 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
             
         }
-                
+
+        function guardarAvance() {
+            let formData = new FormData();
+
+            $('input[type="text"], input[type="date"], input[type="input"], input[type="hidden"]').each(function () {
+                formData.append($(this).attr('name'), $(this).val());
+            });
+            $('input[type="checkbox"]').each(function () {
+                formData.append($(this).attr('name'), $(this).is(':checked') ? 1 : 0);
+            });
+            $('select').each(function () {
+                formData.append($(this).attr('name'), $(this).val());
+            });
+            $('label').each(function () {
+                if ($(this).attr('name')) {
+                    formData.append($(this).attr('name'), $(this).text());
+                }
+            });
+            $('textarea').each(function () {
+                formData.append($(this).attr('name'), $(this).val());
+            });
+            $('input[type="file"]').each(function () {
+                if ($(this)[0].files.length > 0) {
+                    formData.append($(this).attr('name'), $(this)[0].files[0]);
+                }
+            });
+
+            formData.append('opcion', 'guardarCheckIn');
+            formData.append('estatus', 'borrador');
+
+            $('#btnguardarCheck').prop('disabled', true);
+            $('#btnguardarCheck2').prop('disabled', true);
+            $('#btnGuardarAvance').prop('disabled', true);
+            $('#btnGuardarAvance2').prop('disabled', true);
+
+            Swal.fire({
+                title: "Guardando avance...",
+                text: "Se está guardando tu progreso.",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            $.ajax({
+                url: 'AccionesCheckVehiculo.php',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire("Avance guardado", "Tu progreso fue guardado. Puedes continuar el registro más tarde.", "success").then(function() {
+                            $('#btnguardarCheck').prop('disabled', false);
+                            $('#btnguardarCheck2').prop('disabled', false);
+                            $('#btnGuardarAvance').prop('disabled', false);
+                            $('#btnGuardarAvance2').prop('disabled', false);
+                        });
+                    } else {
+                        Swal.fire("Error", "Hubo un problema al guardar el avance.", "error");
+                        $('#btnguardarCheck').prop('disabled', false);
+                        $('#btnguardarCheck2').prop('disabled', false);
+                        $('#btnGuardarAvance').prop('disabled', false);
+                        $('#btnGuardarAvance2').prop('disabled', false);
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    Swal.fire("Error", "No se pudo completar la solicitud.", "error");
+                    $('#btnguardarCheck').prop('disabled', false);
+                    $('#btnguardarCheck2').prop('disabled', false);
+                    $('#btnGuardarAvance').prop('disabled', false);
+                    $('#btnGuardarAvance2').prop('disabled', false);
+                }
+            });
+        }
+
+        function verificarBorrador(id_coche) {
+            $.ajax({
+                url: 'AccionesCheckVehiculo.php',
+                method: 'POST',
+                dataType: 'json',
+                data: { opcion: 'cargarBorrador', id_coche: id_coche },
+                success: function(response) {
+                    if (response.found) {
+                        Swal.fire({
+                            title: 'Avance guardado encontrado',
+                            text: 'Existe un registro incompleto para este vehículo. ¿Deseas cargar el avance anterior?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, cargar',
+                            cancelButtonText: 'No, empezar de nuevo'
+                        }).then(function(result) {
+                            if (result.isConfirmed) {
+                                cargarDatosBorrador(response);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        function cargarDatosBorrador(data) {
+            function setVal(name, val) {
+                var v = (val && val !== 'S/R') ? val : '';
+                $('[name="' + name + '"]').val(v);
+            }
+            function setCheck(name, val) {
+                $('input[name="' + name + '"]').prop('checked', val == 1 || val === '1');
+            }
+
+            if (data.motivo && data.motivo !== 'S/R') $('textarea[name="motivo"]').val(data.motivo);
+
+            if (data.asientos) {
+                setCheck('si_no_Asientos', data.asientos.si_no);
+                setCheck('buenEstado_Asientos', data.asientos.buen_estado);
+                setVal('observaciones_Asientos', data.asientos.observaciones);
+            }
+            if (data.espejos) {
+                setCheck('si_no_Espejos', data.espejos.si_no);
+                setCheck('buenEstado_Espejos', data.espejos.buen_estado);
+                setVal('observaciones_Espejos', data.espejos.observaciones);
+            }
+            if (data.estereos) {
+                setCheck('si_no_AireAcondicionado', data.estereos.si_no);
+                setCheck('buenEstado_AireAcondicionado', data.estereos.buen_estado);
+                setVal('observaciones_AireAcondicionado', data.estereos.observaciones);
+                setVal('CEAireAcondicionado', data.estereos.cd_estereo);
+            }
+            if (data.faros) {
+                setCheck('si_no_Faros', data.faros.si_no);
+                setCheck('buenEstado_Faros', data.faros.buen_estado);
+                setVal('observaciones_Faros', data.faros.observaciones);
+            }
+            if (data.golpes) {
+                setCheck('si_no_Exterior', data.golpes.si_no);
+                setCheck('buenEstado_Exterior', data.golpes.buen_estado);
+                setVal('observaciones_Exterior', data.golpes.observaciones);
+            }
+            if (data.graficas) {
+                setCheck('si_no_Graficas', data.graficas.si_no);
+                setCheck('buenEstado_Graficas', data.graficas.buen_estado);
+                setVal('observaciones_Graficas', data.graficas.observaciones);
+            }
+            if (data.limpiaparabrisas) {
+                setCheck('si_no_Limpiaparabrisas', data.limpiaparabrisas.si_no);
+                setCheck('buenEstado_Limpiaparabrisas', data.limpiaparabrisas.buen_estado);
+                setVal('observaciones_Limpiaparabrisas', data.limpiaparabrisas.observaciones);
+            }
+            if (data.limpieza) {
+                setCheck('si_no_Limpieza', data.limpieza.si_no);
+                setCheck('buenEstado_Limpieza', data.limpieza.buen_estado);
+                setVal('observaciones_Limpieza', data.limpieza.observaciones);
+            }
+            if (data.llantas) {
+                setCheck('buenEstado_Llantas', data.llantas.buen_estado);
+                setVal('CE_Llantas', data.llantas.no_rin);
+                setVal('medidas_Llantas', data.llantas.medidas);
+                setVal('observaciones_Llantas', data.llantas.observaciones);
+            }
+            if (data.placas) {
+                setCheck('si_no_Placas', data.placas.si_no);
+                setCheck('buenEstado_Placas', data.placas.buen_estado);
+                setVal('observaciones_Placas', data.placas.observaciones);
+            }
+            if (data.puertas) {
+                setCheck('buenEstado_PuertasLlave', data.puertas.buen_estado);
+                setVal('duplicado_PuertasLlave', data.puertas.duplicado_llaves);
+                setVal('observaciones_PuertasLlave', data.puertas.observaciones);
+            }
+
+            var docs = data.documentacion || {};
+            if (docs['Tarjeta de Circulacion']) {
+                setCheck('si_no_tarjetaC', docs['Tarjeta de Circulacion'].si_no);
+                setVal('observaciones_tarjetaC', docs['Tarjeta de Circulacion'].observaciones);
+            }
+            if (docs['Refrendo']) {
+                setCheck('si_no_Refrendo', docs['Refrendo'].si_no);
+                setVal('observaciones_Refrendo', docs['Refrendo'].observaciones);
+            }
+            if (docs['Seguro de Auto']) {
+                setCheck('si_no_Seguro', docs['Seguro de Auto'].si_no);
+                setVal('vencimiento_Seguro', docs['Seguro de Auto'].vencimiento);
+                setVal('no_tarjeta_Seguro', docs['Seguro de Auto'].no_tarjeta);
+                setVal('observaciones_Seguro', docs['Seguro de Auto'].observaciones);
+            }
+            if (docs['Verificacion']) {
+                setCheck('si_no_Verificacion', docs['Verificacion'].si_no);
+                setVal('vencimiento_Verificacion', docs['Verificacion'].vencimiento);
+                setVal('observaciones_Verificacion', docs['Verificacion'].observaciones);
+            }
+            if (docs['Licencia de Manejo']) {
+                setCheck('si_no_Licencia', docs['Licencia de Manejo'].si_no);
+                setVal('vencimiento_Licencia', docs['Licencia de Manejo'].vencimiento);
+                setVal('observaciones_Licencia', docs['Licencia de Manejo'].observaciones);
+            }
+            if (docs['Tarjeta Efecticard']) {
+                setCheck('si_no_TarjetaEfe', docs['Tarjeta Efecticard'].si_no);
+                setVal('vencimiento_TarjetaEfe', docs['Tarjeta Efecticard'].vencimiento);
+                setVal('no_tarjeta_TarjetaEfe', docs['Tarjeta Efecticard'].no_tarjeta);
+                setVal('observaciones_TarjetaEfe', docs['Tarjeta Efecticard'].observaciones);
+            }
+            if (docs['Tarjeta IAVE']) {
+                setCheck('si_no_TarjetaIAVE', docs['Tarjeta IAVE'].si_no);
+                setVal('vencimiento_TarjetaIAVE', docs['Tarjeta IAVE'].vencimiento);
+                setVal('no_tarjeta_TarjetaIAVE', docs['Tarjeta IAVE'].no_tarjeta);
+                setVal('observaciones_TarjetaIAVE', docs['Tarjeta IAVE'].observaciones);
+            }
+        }
+
         // Función para obtener el valor de una cookie por su nombre
         function getCookie(name) {
             var value = "; " + document.cookie;

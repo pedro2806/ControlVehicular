@@ -2,7 +2,7 @@
     
     include 'conn.php';
     if($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null){
-        echo '<script>window.location.assign("index")</script>';http://localhost/incidencias/saladejuntas/inicio
+        echo '<script>window.location.assign("index")</script>';
     }    
 ?>
 <!-- Sidebar -->
@@ -11,16 +11,13 @@
     <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="inicio">
         <div class="sidebar-brand-icon rotate-n-1">
-            <img class="sidebar-card-illustration mb-2" src="img/MESS_07_CuboMess_2.png" width="40">
+            <img class="sidebar-card-illustration mb-0" src="img/MESS_07_CuboMess_2.png" width="40">
         </div>
     </a>
 
-    <!-- Divider -->
-    <hr class="sidebar-divider my-0">
-
     <!-- Nav Item - Dashboard -->
     <li class="nav-item active">
-        <a class="nav-link" href="inicio">
+        <a class="nav-link py-2" href="inicio">
             <i class="fas fa-fw fa-home"></i>
             <span>Inicio</span>
         </a>
@@ -36,14 +33,14 @@
     -->
     <!-- Menú Siniestro -->
     <li class="nav-item btn-warning active">
-        <a class="nav-link" href="siniestros" style="font-size: 1.3rem;">
+        <a class="nav-link py-2" href="siniestros" style="font-size: 1rem;">
             <i class="fas fa-fw fa-car-crash"></i>
             <span style="font-size: 1.1rem;">Siniestro</span>
         </a>
     </li>
 
     <li class="nav-item">
-        <a class="nav-link" href="seguimiento_siniestro">
+        <a class="nav-link py-2" href="seguimiento_siniestro">
             <i class="fas fa-fw fa-car-crash"></i>
             <span>Hist. Siniestros</span>
         </a>
@@ -56,7 +53,7 @@
         if ($_COOKIE['gps'] == 'activo'){
             ?>
                 <li class="nav-item btn-success active">
-                    <a class="nav-link">
+                    <a class="nav-link py-2">
                         <i class="far fa-fw fa-check-square"></i>
                         <span>
                             <span style="color:white; font-size: 1rem;">CheckIn desde la app</span>
@@ -67,7 +64,7 @@
         }
         else{ ?>
         <li class="nav-item btn-success active">
-            <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
+            <a class="nav-link py-2" href="#" onclick="validarActividadesPendientes()">
                 <i class="far fa-fw fa-check-square"></i>
                 <span>
                     <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
@@ -78,7 +75,7 @@
     else{
         ?>
         <li class="nav-item btn-success active">
-            <a class="nav-link" href="#" onclick="validarActividadesPendientes()">
+            <a class="nav-link py-2" href="#" onclick="validarActividadesPendientes()">
                 <i class="far fa-fw fa-check-square"></i>
                 <span>
                     <span style="color:blue; font-size: 1rem;">CheckIn</span> / <span style="color:white; font-size: 1rem;">CheckOut</span>
@@ -90,7 +87,7 @@
 
     <!-- Menú Gasolina -->
     <li class="nav-item">
-        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
+        <a class="nav-link py-2" href="#" data-bs-toggle="modal" data-bs-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
             <i class="fas fa-fw fa-gas-pump"></i>
             <span>Registrar Gasolina</span>
         </a>
@@ -106,12 +103,12 @@
 
     <!-- Menú Mantenimiento -->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="true" aria-controls="collapseMantenimiento">
+        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="true" aria-controls="collapseMantenimiento">
             <i class="fas fa-fw fa-tools"></i>
             <span>Mantenimiento</span>
         </a>
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
-            <div class="bg-white py-1 collapse-inner rounded">
+            <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
                 <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
                 <?php if (isset($_COOKIE['rol']) && $_COOKIE['rol'] == 2): ?>
@@ -123,12 +120,12 @@
 
     <!-- Menú Documentación -->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseDocumentacion" aria-expanded="true" aria-controls="collapseDocumentacion">
+        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseDocumentacion" aria-expanded="true" aria-controls="collapseDocumentacion">
             <i class="fas fa-fw fa-file-alt"></i>
             <span>Documentación</span>
         </a>
         <div id="collapseDocumentacion" class="collapse" aria-labelledby="headingDocumentacion" data-parent="#accordionSidebar">
-            <div class="bg-white py-1 collapse-inner rounded">
+            <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="documentacion">Registrar Documentación</a>
                 <a class="collapse-item" href="seguimiento_documentacion">Ver Documentación</a>
             </div>            
@@ -137,12 +134,12 @@
 
     <!-- Menú Préstamos -->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePrestamos" aria-expanded="true" aria-controls="collapsePrestamos">
+        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapsePrestamos" aria-expanded="true" aria-controls="collapsePrestamos">
             <i class="fas fa-fw fa-car"></i>
             <span>Préstamos</span>
         </a>
         <div id="collapsePrestamos" class="collapse" aria-labelledby="headingPrestamos" data-parent="#accordionSidebar">
-            <div class="bg-white py-1 collapse-inner rounded">
+            <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="prestamos">Solicitar Préstamo</a>
                 <a class="collapse-item" href="autorizar_prestamo">Seguimiento Préstamos</a>
             </div>            
@@ -151,12 +148,13 @@
     
     <!-- Menú CheckList -->
     <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
+        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
             <i class="fas fa-fw fa-book"></i>
             <span>Check List</span>
         </a>
         <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-parent="#accordionSidebar">
-            <div class="bg-white py-1 collapse-inner rounded">
+        
+            <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="checkVehiculo">Registrar / Actualizar</a>
                 <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check List</a>
             </div>            
@@ -166,7 +164,7 @@
 
     <!-- SALIR -->
     <li class = "nav-item">
-        <a class = "nav-link" href = "#" data-toggle = "modal" data-target = "#logoutModalN">
+        <a class = "nav-link py-2" href = "#" data-toggle = "modal" data-target = "#logoutModalN">
             <i class = "fas fa-sign-out-alt text-gray-100"></i>
             Salir
         </a>
@@ -175,7 +173,7 @@
     <?php if ($_COOKIE['noEmpleado'] == '19' || $_COOKIE['noEmpleado'] == '183' || $_COOKIE['noEmpleado'] == '276' || $_COOKIE['noEmpleado'] == '191'): ?>
         <!-- Menú Mapa GPS Tracking -->
         <li class="nav-item">
-            <a class="nav-link" href="mapa_gps">
+            <a class="nav-link py-2" href="mapa_gps">
                 <i class="fas fa-fw fa-map"></i>
                 <span>Mapa GPS</span>
             </a>

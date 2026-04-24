@@ -471,38 +471,44 @@ if ($opcion == 'checklist_documentacion') {
     $foto_TarjetaIAVE = isset($_FILES['foto_TarjetaIAVE']) ? file_get_contents($_FILES['foto_TarjetaIAVE']['tmp_name']) : null;
 
 if ($opcion == 'guardarCheckIn') {
-    // Si se guarda como completo, eliminar borradores previos del mismo vehículo
-    if ($estatus === 'completo') {
-        $resBorradores = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador'");
-        while ($rowBorrador = mysqli_fetch_assoc($resBorradores)) {
-            $borId = $rowBorrador['id_checklist'];
-            mysqli_query($conn, "DELETE FROM checklist_asientos WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_espejos_ventanas WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_estereos_aire WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_faros WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_golpes_exterior WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_graficas WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_limpiaparabrisas WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_limpieza WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_llantas WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_placas WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_puertas_llave WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist_documentacion WHERE id_checklist='$borId'");
-            mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$borId'");
+    // Buscar borrador existente del vehículo (más reciente)
+    $resBorrador = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador' ORDER BY fecha DESC LIMIT 1");
+
+    if ($resBorrador && mysqli_num_rows($resBorrador) > 0) {
+        $rowBorrador = mysqli_fetch_assoc($resBorrador);
+        $id_checklist = $rowBorrador['id_checklist'];
+        if (!mysqli_query($conn, "UPDATE checklist SET fecha=NOW(), motivo='$motivo', estatus='$estatus' WHERE id_checklist='$id_checklist'")) {
+            die(json_encode(array("error" => "Failed to update checklist: " . mysqli_error($conn))));
         }
+        // Al completar, eliminar borradores huérfanos (el actual ya cambió a 'completo')
+        if ($estatus === 'completo') {
+            $resHuerfanos = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador'");
+            while ($rowH = mysqli_fetch_assoc($resHuerfanos)) {
+                $hId = $rowH['id_checklist'];
+                mysqli_query($conn, "DELETE FROM checklist_asientos WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_espejos_ventanas WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_estereos_aire WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_faros WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_golpes_exterior WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_graficas WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_limpiaparabrisas WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_limpieza WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_llantas WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_placas WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_puertas_llave WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist_documentacion WHERE id_checklist='$hId'");
+                mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$hId'");
+            }
+        }
+    } else {
+        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
+            VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
+        $resultadoChecklist = mysqli_query($conn, $sql);
+        if (!$resultadoChecklist) {
+            die(json_encode(array("error" => "Failed to insert checklist: " . mysqli_error($conn))));
+        }
+        $id_checklist = mysqli_insert_id($conn);
     }
-
-    // Insert into checklist table
-    $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
-        VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
-    $resultadoChecklist = mysqli_query($conn, $sql);
-    
-    if (!$resultadoChecklist) {
-        die(json_encode(array("error" => "Failed to insert checklist: " . mysqli_error($conn))));
-    }
-
-    // Use the inserted id_checklist for subsequent inserts
-    $id_checklist = mysqli_insert_id($conn);
 
     // Insert into checklist_asientos
     $resultadoAsientos = insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_Asientos, $buenEstado_Asientos, $placa);
@@ -669,6 +675,30 @@ function obtenerRutaImagen($placa, $tipo, $archivo) {
     return "S-R.jpg";
 }
 
+function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
+    $archivo = $_FILES[$fileKey] ?? null;
+    if ($archivo && $archivo['error'] == UPLOAD_ERR_OK) {
+        $ext = pathinfo($archivo['name'], PATHINFO_EXTENSION);
+        $nombre = "{$placa}_{$tipo}_" . date("Ymd_His") . ".{$ext}";
+        $dir = "img_control_vehicular/{$placa}/checklist/{$subdir}";
+        return [
+            'ruta'   => "{$dir}/{$nombre}",
+            'dir'    => $dir,
+            'nombre' => $nombre,
+            'tmp'    => $archivo['tmp_name'],
+            'subir'  => true
+        ];
+    }
+    $rutaExistente = !empty($_POST["ruta_{$fileKey}"]) ? $_POST["ruta_{$fileKey}"] : null;
+    return [
+        'ruta'   => $rutaExistente ?? '',
+        'dir'    => null,
+        'nombre' => null,
+        'tmp'    => null,
+        'subir'  => false
+    ];
+}
+
 function subirImagenAsientos($rutaChecklist, $rutaImagen, $tempFilePath) {
     if (!is_dir($rutaChecklist)) {
         mkdir($rutaChecklist, 0775, true);
@@ -709,316 +739,293 @@ function reducirPesoImagen($origen, $destino, $calidad = 75) {
 }
 
 
-//FUNCIONES PARA INSERT DE LOS APARTADOS DEL CHECKLIST
+//FUNCIONES PARA UPSERT DE LOS APARTADOS DEL CHECKLIST
 function insertChecklistGraficas($conn, $id_checklist, $si_no_Graficas, $observaciones_Graficas, $foto_graficas, $placa, $buenEstado_Graficas) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Graficas", $_FILES['foto_Graficas'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/graficas/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_graficas (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_Graficas', '$observaciones_Graficas', '$rutaChecklist', '$buenEstado_Graficas')";
-    
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Graficas'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/graficas";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Graficas']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Graficas', $placa, 'checklist_Graficas', 'graficas');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_graficas WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_graficas SET si_no='$si_no_Graficas', observaciones='$observaciones_Graficas', foto=$fotoSql, buen_estado='$buenEstado_Graficas' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_graficas (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_Graficas', '$observaciones_Graficas', $fotoSql, '$buenEstado_Graficas')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistAsientos($conn, $id_checklist, $si_no_asientos, $observaciones_Asientos, $buenEstado_Asientos, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Asientos", $_FILES['foto_Asientos'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/asientos/" . $rutaImagen;
-    
-    $sql = "INSERT INTO checklist_asientos (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_asientos', '$observaciones_Asientos', '$rutaChecklist', '$buenEstado_Asientos')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Asientos'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/asientos";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Asientos']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Asientos', $placa, 'checklist_Asientos', 'asientos');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_asientos WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_asientos SET si_no='$si_no_asientos', observaciones='$observaciones_Asientos', foto=$fotoSql, buen_estado='$buenEstado_Asientos' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_asientos (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_asientos', '$observaciones_Asientos', $fotoSql, '$buenEstado_Asientos')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistEspejosVentanas($conn, $id_checklist, $si_no_espejos, $observaciones_Espejos, $placa, $buenEstado_Espejos) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Espejos", $_FILES['foto_Espejos'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/espejos/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_espejos_ventanas (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_espejos', '$observaciones_Espejos', '$rutaChecklist', '$buenEstado_Espejos')";
-    
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Espejos'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/espejos";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Espejos']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Espejos', $placa, 'checklist_Espejos', 'espejos');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_espejos_ventanas WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_espejos_ventanas SET si_no='$si_no_espejos', observaciones='$observaciones_Espejos', foto=$fotoSql, buen_estado='$buenEstado_Espejos' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_espejos_ventanas (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_espejos', '$observaciones_Espejos', $fotoSql, '$buenEstado_Espejos')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistEstereosAire($conn, $id_checklist, $CEAireAcondicionado, $si_no_AireAcondicionado, $observaciones_AireAcondicionado, $foto_estereos, $placa, $buenEstado_AireAcondicionado) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Estereos", $_FILES['foto_AireAcondicionado'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/estereos/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_estereos_aire (id_checklist, cd_estereo, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$CEAireAcondicionado', '$si_no_AireAcondicionado', '$observaciones_AireAcondicionado', '$rutaChecklist', '$buenEstado_AireAcondicionado')";
-    
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_AireAcondicionado'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/estereos";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_AireAcondicionado']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_AireAcondicionado', $placa, 'checklist_Estereos', 'estereos');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_estereos_aire WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_estereos_aire SET cd_estereo='$CEAireAcondicionado', si_no='$si_no_AireAcondicionado', observaciones='$observaciones_AireAcondicionado', foto=$fotoSql, buen_estado='$buenEstado_AireAcondicionado' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_estereos_aire (id_checklist, cd_estereo, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$CEAireAcondicionado', '$si_no_AireAcondicionado', '$observaciones_AireAcondicionado', $fotoSql, '$buenEstado_AireAcondicionado')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistFaros($conn, $id_checklist, $si_no_faros, $observaciones_faros, $foto_faros, $placa, $buenEstado_Faros) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Faros", $_FILES['foto_Faros'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/faros/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_faros (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_faros', '$observaciones_faros', '$rutaChecklist', '$buenEstado_Faros')";
-    
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Faros'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/faros";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Faros']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Faros', $placa, 'checklist_Faros', 'faros');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_faros WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_faros SET si_no='$si_no_faros', observaciones='$observaciones_faros', foto=$fotoSql, buen_estado='$buenEstado_Faros' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_faros (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_faros', '$observaciones_faros', $fotoSql, '$buenEstado_Faros')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistGolpesExterior($conn, $id_checklist, $si_no_golpes, $observaciones_golpes, $foto_golpes, $placa, $buenEstado_Exterior) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_GolpesExterior", $_FILES['foto_Exterior'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/golpes_exterior/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_golpes_exterior (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_golpes', '$observaciones_golpes', '$rutaChecklist', '$buenEstado_Exterior')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Exterior'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/golpes_exterior";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Exterior']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Exterior', $placa, 'checklist_GolpesExterior', 'golpes_exterior');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_golpes_exterior WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_golpes_exterior SET si_no='$si_no_golpes', observaciones='$observaciones_golpes', foto=$fotoSql, buen_estado='$buenEstado_Exterior' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_golpes_exterior (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_golpes', '$observaciones_golpes', $fotoSql, '$buenEstado_Exterior')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistLimpiaParabrisas($conn, $id_checklist, $si_no_LimpiaParabrisas, $observaciones_LimpiaParabrisas, $foto_limpiaParabrisas, $placa, $buenEstado_Limpiaparabrisas) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_LimpiaParabrisas", $_FILES['foto_Limpiaparabrisas'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/limpiaParabrisas/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_limpiaparabrisas (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_LimpiaParabrisas', '$observaciones_LimpiaParabrisas', '$rutaChecklist', '$buenEstado_Limpiaparabrisas')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Limpiaparabrisas'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/limpiaParabrisas";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Limpiaparabrisas']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Limpiaparabrisas', $placa, 'checklist_LimpiaParabrisas', 'limpiaParabrisas');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_limpiaparabrisas WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_limpiaparabrisas SET si_no='$si_no_LimpiaParabrisas', observaciones='$observaciones_LimpiaParabrisas', foto=$fotoSql, buen_estado='$buenEstado_Limpiaparabrisas' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_limpiaparabrisas (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_LimpiaParabrisas', '$observaciones_LimpiaParabrisas', $fotoSql, '$buenEstado_Limpiaparabrisas')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observaciones_limpieza, $foto_limpieza, $placa, $buenEstado_Limpieza) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Limpieza", $_FILES['foto_Limpieza'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/limpieza/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_limpieza (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_limpieza', '$observaciones_limpieza', '$rutaChecklist', '$buenEstado_Limpieza')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Limpieza'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/limpieza";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Limpieza']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Limpieza', $placa, 'checklist_Limpieza', 'limpieza');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_limpieza WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_limpieza SET si_no='$si_no_limpieza', observaciones='$observaciones_limpieza', foto=$fotoSql, buen_estado='$buenEstado_Limpieza' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_limpieza (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_limpieza', '$observaciones_limpieza', $fotoSql, '$buenEstado_Limpieza')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistLlantas($conn, $id_checklist, $no_rin, $medidas, $observaciones_Llantas, $foto_llantas, $placa, $buenEstado_Llantas) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Llantas", $_FILES['foto_Llantas'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/llantas/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_llantas (id_checklist, buen_estado, no_rin, medidas, observaciones, foto) 
-        VALUES ('$id_checklist', '$buenEstado_Llantas', '$no_rin', '$medidas', '$observaciones_Llantas', '$rutaChecklist')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Llantas'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/llantas";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Llantas']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Llantas', $placa, 'checklist_Llantas', 'llantas');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_llantas WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_llantas SET buen_estado='$buenEstado_Llantas', no_rin='$no_rin', medidas='$medidas', observaciones='$observaciones_Llantas', foto=$fotoSql WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_llantas (id_checklist, buen_estado, no_rin, medidas, observaciones, foto) VALUES ('$id_checklist', '$buenEstado_Llantas', '$no_rin', '$medidas', '$observaciones_Llantas', $fotoSql)";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistPlacas($conn, $id_checklist, $si_no_Placas, $observaciones_Placas, $foto_placas, $buenEstado_Placas, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Placas", $_FILES['foto_Placas'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/placas/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_placas (id_checklist, si_no, observaciones, foto, buen_estado) 
-        VALUES ('$id_checklist', '$si_no_Placas', '$observaciones_Placas', '$rutaChecklist', '$buenEstado_Placas')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Placas'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/placas";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Placas']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Placas', $placa, 'checklist_Placas', 'placas');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_placas WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_placas SET si_no='$si_no_Placas', observaciones='$observaciones_Placas', foto=$fotoSql, buen_estado='$buenEstado_Placas' WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_placas (id_checklist, si_no, observaciones, foto, buen_estado) VALUES ('$id_checklist', '$si_no_Placas', '$observaciones_Placas', $fotoSql, '$buenEstado_Placas')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistPuertasLlave($conn, $id_checklist, $buenEstado_PuertasLlave, $duplicado_PuertasLlave, $observaciones_PuertasLlave, $foto_PuertasLlave, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_PuertasLlave", $_FILES['foto_PuertasLlave'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/puertas_llave/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_puertas_llave (id_checklist, buen_estado, duplicado_llaves, observaciones, foto) 
-        VALUES ('$id_checklist', '$buenEstado_PuertasLlave', '$duplicado_PuertasLlave', '$observaciones_PuertasLlave', '$rutaChecklist')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_PuertasLlave'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/puertas_llave";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_PuertasLlave']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_PuertasLlave', $placa, 'checklist_PuertasLlave', 'puertas_llave');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_puertas_llave WHERE id_checklist='$id_checklist'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_puertas_llave SET buen_estado='$buenEstado_PuertasLlave', duplicado_llaves='$duplicado_PuertasLlave', observaciones='$observaciones_PuertasLlave', foto=$fotoSql WHERE id_checklist='$id_checklist'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_puertas_llave (id_checklist, buen_estado, duplicado_llaves, observaciones, foto) VALUES ('$id_checklist', '$buenEstado_PuertasLlave', '$duplicado_PuertasLlave', '$observaciones_PuertasLlave', $fotoSql)";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 // FUNCIONES PARA DOCUMENTACION
 
 function insertChecklistDocumentaciontarjetaC($conn, $id_checklist, $si_no_tarjetaC, $observaciones_documentacion_tarjetaC, $foto_documentacion_tarjetaC, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_TarjetaC", $_FILES['foto_tarjetaC'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaC/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado, vencimiento, no_tarjeta) 
-        VALUES ('$id_checklist', '$si_no_tarjetaC', 'Tarjeta de Circulacion', '$observaciones_documentacion_tarjetaC', '$rutaChecklist', 'S/R', NULL, 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_tarjetaC'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaC";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_tarjetaC']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_tarjetaC', $placa, 'checklist_TarjetaC', 'tarjetaC');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta de Circulacion'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_tarjetaC', observaciones='$observaciones_documentacion_tarjetaC', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta de Circulacion'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado, vencimiento, no_tarjeta) VALUES ('$id_checklist', '$si_no_tarjetaC', 'Tarjeta de Circulacion', '$observaciones_documentacion_tarjetaC', $fotoSql, 'S/R', NULL, 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionRefrendo($conn, $id_checklist, $si_no_refrendo, $observaciones_documentacion_refrendo, $foto_documentacion_refrendo, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Refrendo", $_FILES['foto_Refrendo'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/refrendo/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado, vencimiento, no_tarjeta) 
-        VALUES ('$id_checklist', '$si_no_refrendo', 'Refrendo', '$observaciones_documentacion_refrendo', '$rutaChecklist', 'S/R', NULL, 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Refrendo'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/refrendo";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Refrendo']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Refrendo', $placa, 'checklist_Refrendo', 'refrendo');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Refrendo'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_refrendo', observaciones='$observaciones_documentacion_refrendo', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Refrendo'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, observaciones, foto, entregado, vencimiento, no_tarjeta) VALUES ('$id_checklist', '$si_no_refrendo', 'Refrendo', '$observaciones_documentacion_refrendo', $fotoSql, 'S/R', NULL, 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionSeguro($conn, $id_checklist, $si_no_seguro, $vencimiento_seguro, $no_tarjeta_seguro, $observaciones_documentacion_seguro, $foto_documentacion_seguro, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Seguro", $_FILES['foto_Seguro'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/seguro/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) 
-        VALUES ('$id_checklist', '$si_no_seguro', 'Seguro de Auto', '$vencimiento_seguro', '$no_tarjeta_seguro', '$observaciones_documentacion_seguro', '$rutaChecklist', 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Seguro'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/seguro";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Seguro']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Seguro', $placa, 'checklist_Seguro', 'seguro');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Seguro de Auto'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_seguro', vencimiento='$vencimiento_seguro', no_tarjeta='$no_tarjeta_seguro', observaciones='$observaciones_documentacion_seguro', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Seguro de Auto'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) VALUES ('$id_checklist', '$si_no_seguro', 'Seguro de Auto', '$vencimiento_seguro', '$no_tarjeta_seguro', '$observaciones_documentacion_seguro', $fotoSql, 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionVerificacion($conn, $id_checklist, $si_no_verificacion, $vencimiento_verificacion, $observaciones_documentacion_verificacion, $foto_documentacion_verificacion, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Verificacion", $_FILES['foto_Verificacion'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/verificacion/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, observaciones, foto, entregado, no_tarjeta) 
-        VALUES ('$id_checklist', '$si_no_verificacion', 'Verificacion', '$vencimiento_verificacion', '$observaciones_documentacion_verificacion', '$rutaChecklist', 'S/R', 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Verificacion'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/verificacion";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Verificacion']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Verificacion', $placa, 'checklist_Verificacion', 'verificacion');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Verificacion'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_verificacion', vencimiento='$vencimiento_verificacion', observaciones='$observaciones_documentacion_verificacion', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Verificacion'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, observaciones, foto, entregado, no_tarjeta) VALUES ('$id_checklist', '$si_no_verificacion', 'Verificacion', '$vencimiento_verificacion', '$observaciones_documentacion_verificacion', $fotoSql, 'S/R', 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionLicencia($conn, $id_checklist, $si_no_licencia, $vencimiento_licencia, $observaciones_documentacion_licencia, $foto_documentacion_licencia, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_Licencia", $_FILES['foto_Licencia'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/licencia/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, observaciones, foto, entregado, no_tarjeta) 
-        VALUES ('$id_checklist', '$si_no_licencia', 'Licencia de Manejo', '$vencimiento_licencia', '$observaciones_documentacion_licencia', '$rutaChecklist', 'S/R', 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_Licencia'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/licencia";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_Licencia']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_Licencia', $placa, 'checklist_Licencia', 'licencia');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Licencia de Manejo'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_licencia', vencimiento='$vencimiento_licencia', observaciones='$observaciones_documentacion_licencia', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Licencia de Manejo'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, observaciones, foto, entregado, no_tarjeta) VALUES ('$id_checklist', '$si_no_licencia', 'Licencia de Manejo', '$vencimiento_licencia', '$observaciones_documentacion_licencia', $fotoSql, 'S/R', 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionTarjetaEfe($conn, $id_checklist, $si_no_tarjetaEfe, $vencimiento_tarjetaEfe, $no_tarjeta_tarjetaEfe, $observaciones_documentacion_tarjetaEfe, $foto_documentacion_tarjetaEfe, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_TarjetaEfe", $_FILES['foto_TarjetaEfe'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaEfe/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) 
-        VALUES ('$id_checklist', '$si_no_tarjetaEfe', 'Tarjeta Efecticard', '$vencimiento_tarjetaEfe', '$no_tarjeta_tarjetaEfe', '$observaciones_documentacion_tarjetaEfe', '$rutaChecklist', 'S/R')";
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_TarjetaEfe'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaEfe";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_TarjetaEfe']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_TarjetaEfe', $placa, 'checklist_TarjetaEfe', 'tarjetaEfe');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta Efecticard'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_tarjetaEfe', vencimiento='$vencimiento_tarjetaEfe', no_tarjeta='$no_tarjeta_tarjetaEfe', observaciones='$observaciones_documentacion_tarjetaEfe', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta Efecticard'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) VALUES ('$id_checklist', '$si_no_tarjetaEfe', 'Tarjeta Efecticard', '$vencimiento_tarjetaEfe', '$no_tarjeta_tarjetaEfe', '$observaciones_documentacion_tarjetaEfe', $fotoSql, 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }
 
 function insertChecklistDocumentacionTarjetaIAVE($conn, $id_checklist, $si_no_tarjetaIAVE, $vencimiento_tarjetaIAVE, $no_tarjeta_tarjetaIAVE, $observaciones_documentacion_tarjetaIAVE, $foto_documentacion_tarjetaIAVE, $placa) {
-    $rutaImagen = obtenerRutaImagen($placa, "checklist_TarjetaIAVE", $_FILES['foto_TarjetaIAVE'] ?? null);
-    $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaIAVE/" . $rutaImagen;
-
-    $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) 
-        VALUES ('$id_checklist', '$si_no_tarjetaIAVE', 'Tarjeta IAVE', '$vencimiento_tarjetaIAVE', '$no_tarjeta_tarjetaIAVE', '$observaciones_documentacion_tarjetaIAVE', '$rutaChecklist', 'S/R')";
-    
-    if (mysqli_query($conn, $sql)) {
-        if ($rutaImagen !== "S/R" && isset($_FILES['foto_TarjetaIAVE'])) {
-            $rutaChecklist = "img_control_vehicular/$placa/checklist/tarjetaIAVE";
-            subirImagenAsientos($rutaChecklist, $rutaImagen, $_FILES['foto_TarjetaIAVE']['tmp_name']);
-        }
-        return true;
+    $foto = getFotoInfo('foto_TarjetaIAVE', $placa, 'checklist_TarjetaIAVE', 'tarjetaIAVE');
+    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta IAVE'");
+    if ($r && mysqli_num_rows($r) > 0) {
+        $sql = "UPDATE checklist_documentacion SET si_no='$si_no_tarjetaIAVE', vencimiento='$vencimiento_tarjetaIAVE', no_tarjeta='$no_tarjeta_tarjetaIAVE', observaciones='$observaciones_documentacion_tarjetaIAVE', foto=$fotoSql WHERE id_checklist='$id_checklist' AND t_documento='Tarjeta IAVE'";
     } else {
-        return false;
+        $sql = "INSERT INTO checklist_documentacion (id_checklist, si_no, t_documento, vencimiento, no_tarjeta, observaciones, foto, entregado) VALUES ('$id_checklist', '$si_no_tarjetaIAVE', 'Tarjeta IAVE', '$vencimiento_tarjetaIAVE', '$no_tarjeta_tarjetaIAVE', '$observaciones_documentacion_tarjetaIAVE', $fotoSql, 'S/R')";
     }
+    if (mysqli_query($conn, $sql)) {
+        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
+        return true;
+    }
+    return false;
 }

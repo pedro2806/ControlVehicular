@@ -23,7 +23,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <!-- Custom styles for this template-->
     <link href = "css/sb-admin-2.min.css" rel = "stylesheet">    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 
@@ -72,6 +73,24 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
                             <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
                             <input type="hidden" id="id_coche" name="id_coche">
+                            <input type="hidden" name="ruta_foto_Asientos">
+                            <input type="hidden" name="ruta_foto_Espejos">
+                            <input type="hidden" name="ruta_foto_AireAcondicionado">
+                            <input type="hidden" name="ruta_foto_Faros">
+                            <input type="hidden" name="ruta_foto_Exterior">
+                            <input type="hidden" name="ruta_foto_Graficas">
+                            <input type="hidden" name="ruta_foto_Limpiaparabrisas">
+                            <input type="hidden" name="ruta_foto_Limpieza">
+                            <input type="hidden" name="ruta_foto_Llantas">
+                            <input type="hidden" name="ruta_foto_Placas">
+                            <input type="hidden" name="ruta_foto_PuertasLlave">
+                            <input type="hidden" name="ruta_foto_tarjetaC">
+                            <input type="hidden" name="ruta_foto_Refrendo">
+                            <input type="hidden" name="ruta_foto_Seguro">
+                            <input type="hidden" name="ruta_foto_Verificacion">
+                            <input type="hidden" name="ruta_foto_Licencia">
+                            <input type="hidden" name="ruta_foto_TarjetaEfe">
+                            <input type="hidden" name="ruta_foto_TarjetaIAVE">
                         </div>
                     
                         <div class="row">                                                
@@ -354,8 +373,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Custom scripts for all pages-->
     <script src = "js/sb-admin-2.min.js"></script>    
-    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/1.10.8/js/jquery.dataTables.min.js" defer="defer"></script>    
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     
 <script type="text/javascript">
@@ -366,21 +385,32 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         llenaTVehiculosAsignados(); //LLENAR TABLA DE VEHICULOS ASIGNADOS
 
         $('#TVehiculosAsignados').DataTable({
-            destroy: true, // Permitir reinicializar la tabla
-            paging: false, // Quitar paginado
-            ordering: false, // Quitar orden
-            searching: false, // Quitar buscador
-            info: false, // Quitar leyendas a pie de tabla
+            destroy: true,
+            paging: true,
+            pageLength: 10,
+            ordering: true,
+            searching: true,
+            info: true,
             language: {
-            decimal: ",",
-            thousands: ".",
-            processing: "Procesando...",
-            loadingRecords: "Cargando...",
-            zeroRecords: "No se encontraron resultados",
-            emptyTable: "No hay datos disponibles en la tabla"
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                search: "Buscar:",
+                lengthMenu: "Mostrar _MENU_ registros",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 registros",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                }
             },
             createdRow: function(row, data, dataIndex) {
-                $(row).css('font-size', '12px'); // Reducir tamaño del texto
+                $(row).css('font-size', '15px');
             }
         });
         
@@ -428,6 +458,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#fecha_inspeccion').val('');            
         $('#carta_resguardo').prop('checked', false);            
         $('#foto_inspeccion').val('');
+        limpiarRutasFoto();
         OcultaDivVehiculosAsignados(); // Ocultar el div de vehículos asignados
         verificarBorrador(Registro.idCoche);
     }
@@ -623,6 +654,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
         }
 
+        function limpiarRutasFoto() {
+            $('input[name^="ruta_foto_"]').val('');
+        }
+
         function verificarBorrador(id_coche) {
             $.ajax({
                 url: 'AccionesCheckVehiculo.php',
@@ -656,6 +691,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             function setCheck(name, val) {
                 $('input[name="' + name + '"]').prop('checked', val == 1 || val === '1');
             }
+            function setRuta(name, val) {
+                if (!val) return;
+                $('[name="' + name + '"]').val(val);
+                var fileInputName = name.replace('ruta_', '');
+                var $input = $('input[name="' + fileInputName + '"]');
+                if ($input.length) {
+                    $input.parent().find('.foto-borrador-preview, [id^="preview_"]').remove();
+                    $('<img>')
+                        .attr('src', val)
+                        .addClass('foto-borrador-preview')
+                        .css({ maxHeight: '60px', maxWidth: '80px', marginTop: '4px', borderRadius: '4px', display: 'block' })
+                        .on('error', function () { $(this).hide(); })
+                        .insertAfter($input);
+                }
+            }
 
             if (data.motivo && data.motivo !== 'S/R') $('textarea[name="motivo"]').val(data.motivo);
 
@@ -663,96 +713,114 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setCheck('si_no_Asientos', data.asientos.si_no);
                 setCheck('buenEstado_Asientos', data.asientos.buen_estado);
                 setVal('observaciones_Asientos', data.asientos.observaciones);
+                setRuta('ruta_foto_Asientos', data.asientos.foto);
             }
             if (data.espejos) {
                 setCheck('si_no_Espejos', data.espejos.si_no);
                 setCheck('buenEstado_Espejos', data.espejos.buen_estado);
                 setVal('observaciones_Espejos', data.espejos.observaciones);
+                setRuta('ruta_foto_Espejos', data.espejos.foto);
             }
             if (data.estereos) {
                 setCheck('si_no_AireAcondicionado', data.estereos.si_no);
                 setCheck('buenEstado_AireAcondicionado', data.estereos.buen_estado);
                 setVal('observaciones_AireAcondicionado', data.estereos.observaciones);
                 setVal('CEAireAcondicionado', data.estereos.cd_estereo);
+                setRuta('ruta_foto_AireAcondicionado', data.estereos.foto);
             }
             if (data.faros) {
                 setCheck('si_no_Faros', data.faros.si_no);
                 setCheck('buenEstado_Faros', data.faros.buen_estado);
                 setVal('observaciones_Faros', data.faros.observaciones);
+                setRuta('ruta_foto_Faros', data.faros.foto);
             }
             if (data.golpes) {
                 setCheck('si_no_Exterior', data.golpes.si_no);
                 setCheck('buenEstado_Exterior', data.golpes.buen_estado);
                 setVal('observaciones_Exterior', data.golpes.observaciones);
+                setRuta('ruta_foto_Exterior', data.golpes.foto);
             }
             if (data.graficas) {
                 setCheck('si_no_Graficas', data.graficas.si_no);
                 setCheck('buenEstado_Graficas', data.graficas.buen_estado);
                 setVal('observaciones_Graficas', data.graficas.observaciones);
+                setRuta('ruta_foto_Graficas', data.graficas.foto);
             }
             if (data.limpiaparabrisas) {
                 setCheck('si_no_Limpiaparabrisas', data.limpiaparabrisas.si_no);
                 setCheck('buenEstado_Limpiaparabrisas', data.limpiaparabrisas.buen_estado);
                 setVal('observaciones_Limpiaparabrisas', data.limpiaparabrisas.observaciones);
+                setRuta('ruta_foto_Limpiaparabrisas', data.limpiaparabrisas.foto);
             }
             if (data.limpieza) {
                 setCheck('si_no_Limpieza', data.limpieza.si_no);
                 setCheck('buenEstado_Limpieza', data.limpieza.buen_estado);
                 setVal('observaciones_Limpieza', data.limpieza.observaciones);
+                setRuta('ruta_foto_Limpieza', data.limpieza.foto);
             }
             if (data.llantas) {
                 setCheck('buenEstado_Llantas', data.llantas.buen_estado);
                 setVal('CE_Llantas', data.llantas.no_rin);
                 setVal('medidas_Llantas', data.llantas.medidas);
                 setVal('observaciones_Llantas', data.llantas.observaciones);
+                setRuta('ruta_foto_Llantas', data.llantas.foto);
             }
             if (data.placas) {
                 setCheck('si_no_Placas', data.placas.si_no);
                 setCheck('buenEstado_Placas', data.placas.buen_estado);
                 setVal('observaciones_Placas', data.placas.observaciones);
+                setRuta('ruta_foto_Placas', data.placas.foto);
             }
             if (data.puertas) {
                 setCheck('buenEstado_PuertasLlave', data.puertas.buen_estado);
                 setVal('duplicado_PuertasLlave', data.puertas.duplicado_llaves);
                 setVal('observaciones_PuertasLlave', data.puertas.observaciones);
+                setRuta('ruta_foto_PuertasLlave', data.puertas.foto);
             }
 
             var docs = data.documentacion || {};
             if (docs['Tarjeta de Circulacion']) {
                 setCheck('si_no_tarjetaC', docs['Tarjeta de Circulacion'].si_no);
                 setVal('observaciones_tarjetaC', docs['Tarjeta de Circulacion'].observaciones);
+                setRuta('ruta_foto_tarjetaC', docs['Tarjeta de Circulacion'].foto);
             }
             if (docs['Refrendo']) {
                 setCheck('si_no_Refrendo', docs['Refrendo'].si_no);
                 setVal('observaciones_Refrendo', docs['Refrendo'].observaciones);
+                setRuta('ruta_foto_Refrendo', docs['Refrendo'].foto);
             }
             if (docs['Seguro de Auto']) {
                 setCheck('si_no_Seguro', docs['Seguro de Auto'].si_no);
                 setVal('vencimiento_Seguro', docs['Seguro de Auto'].vencimiento);
                 setVal('no_tarjeta_Seguro', docs['Seguro de Auto'].no_tarjeta);
                 setVal('observaciones_Seguro', docs['Seguro de Auto'].observaciones);
+                setRuta('ruta_foto_Seguro', docs['Seguro de Auto'].foto);
             }
             if (docs['Verificacion']) {
                 setCheck('si_no_Verificacion', docs['Verificacion'].si_no);
                 setVal('vencimiento_Verificacion', docs['Verificacion'].vencimiento);
                 setVal('observaciones_Verificacion', docs['Verificacion'].observaciones);
+                setRuta('ruta_foto_Verificacion', docs['Verificacion'].foto);
             }
             if (docs['Licencia de Manejo']) {
                 setCheck('si_no_Licencia', docs['Licencia de Manejo'].si_no);
                 setVal('vencimiento_Licencia', docs['Licencia de Manejo'].vencimiento);
                 setVal('observaciones_Licencia', docs['Licencia de Manejo'].observaciones);
+                setRuta('ruta_foto_Licencia', docs['Licencia de Manejo'].foto);
             }
             if (docs['Tarjeta Efecticard']) {
                 setCheck('si_no_TarjetaEfe', docs['Tarjeta Efecticard'].si_no);
                 setVal('vencimiento_TarjetaEfe', docs['Tarjeta Efecticard'].vencimiento);
                 setVal('no_tarjeta_TarjetaEfe', docs['Tarjeta Efecticard'].no_tarjeta);
                 setVal('observaciones_TarjetaEfe', docs['Tarjeta Efecticard'].observaciones);
+                setRuta('ruta_foto_TarjetaEfe', docs['Tarjeta Efecticard'].foto);
             }
             if (docs['Tarjeta IAVE']) {
                 setCheck('si_no_TarjetaIAVE', docs['Tarjeta IAVE'].si_no);
                 setVal('vencimiento_TarjetaIAVE', docs['Tarjeta IAVE'].vencimiento);
                 setVal('no_tarjeta_TarjetaIAVE', docs['Tarjeta IAVE'].no_tarjeta);
                 setVal('observaciones_TarjetaIAVE', docs['Tarjeta IAVE'].observaciones);
+                setRuta('ruta_foto_TarjetaIAVE', docs['Tarjeta IAVE'].foto);
             }
         }
 
@@ -798,26 +866,26 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     const file = event.target.files[0]; // Obtiene el primer archivo seleccionado
 
                     if (file) {
-                        console.log('¡Foto detectada!', file.name, file.type, file.size);
-                        // Aquí es donde puedes mostrar una vista previa de la imagen,
-                        // subirla por AJAX, etc.
+                        // Quitar cualquier preview existente (borrador o selección previa)
+                        $(input).parent().find('.foto-borrador-preview, [id^="preview_"]').remove();
+
                         const reader = new FileReader();
                         reader.onload = function(e) {
-                            // Por ejemplo, mostrar una vista previa:
-                            const previewId = 'preview_' + input.id.split('_')[1]; // Asumiendo que quieres una ID de vista previa para cada input
+                            const previewId = 'preview_' + input.name;
                             let previewElement = document.getElementById(previewId);
                             if (!previewElement) {
                                 previewElement = document.createElement('img');
                                 previewElement.id = previewId;
-                                previewElement.style.maxWidth = '100px';
-                                previewElement.style.maxHeight = '100px';
-                                input.parentNode.appendChild(previewElement); // Añade la vista previa debajo del input
+                                previewElement.style.maxWidth = '80px';
+                                previewElement.style.maxHeight = '60px';
+                                previewElement.style.marginTop = '4px';
+                                previewElement.style.borderRadius = '4px';
+                                previewElement.style.display = 'block';
+                                input.parentNode.appendChild(previewElement);
                             }
                             previewElement.src = e.target.result;
                         };
-                        reader.readAsDataURL(file); // Lee el archivo como una URL de datos para la vista previa
-                    } else {
-                        console.log('No se seleccionó ninguna foto.');
+                        reader.readAsDataURL(file);
                     }
                 });
             });

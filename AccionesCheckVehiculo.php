@@ -6,7 +6,7 @@ $id_usuario = $_COOKIE['id_usuario'];
 $no_empleado = intval($_POST['cookieNoEmpleado'] ?? ($_COOKIE['noEmpleado'] ?? 0));
 
 if ($opcion == "llenaTVehiculosAsignados") {
-    if ($no_empleado == 100 || $no_empleado == 71 || $no_empleado == 523) {
+    if ($no_empleado == 100 || $no_empleado == 386 || $no_empleado == 523) {
     $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, COUNT(c.id_checklist) as countChecklists
         FROM inventario i
         LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario

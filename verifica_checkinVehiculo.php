@@ -58,12 +58,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <table id="TVehiculosAsignados" name="TVehiculosAsignados" class="table table-striped table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Placa</th>
-                                        <th>Modelo</th>
-                                        <th>Color</th>
-                                        <th>Año</th>
-                                        <th>Asignado</th>
-                                        <th>Acciones</th>
+                                        <th style="text-align:center;">Estado</th>
+                                        <th style="text-align:center;">Placa</th>
+                                        <th style="text-align:center;">Modelo</th>
+                                        <th style="text-align:center;">Color</th>
+                                        <th style="text-align:center;">Año</th>
+                                        <th style="text-align:center;">Asignado</th>
+                                        <th style="text-align:center;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>                                    
@@ -221,13 +222,18 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     
                     table.clear().draw();                            
                     registros.forEach(function(Registro) {
-                        // Determinar icono según si tiene checklist
-                        var iconoEstatus = Registro.tieneChecklist 
-                            ? '<i class="fas fa-check-circle" style="color: green; margin-right: 8px;"></i>' 
-                            : '<i class="fas fa-circle" style="color: #FFC107; margin-right: 8px;"></i>';
-                        
-                        table.row.add([                                    
-                            iconoEstatus + '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
+                        var badgeEstado;
+                        if (Registro.estatusChecklist === 'completo') {
+                            badgeEstado = '<span style="background-color:#198754;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">Completo</span>';
+                        } else if (Registro.estatusChecklist === 'borrador') {
+                            badgeEstado = '<span style="background-color:#FFC107;color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">Incompleto</span>';
+                        } else {
+                            badgeEstado = '<span style="background-color:#6c757d;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">S/R</span>';
+                        }
+
+                        table.row.add([
+                            '<center>' + badgeEstado + '</center>',
+                            '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                             '<b> ' + Registro.modelo + ' </b>',
                             '<b> ' + Registro.color + ' </b>',
                             '<b> ' + Registro.anio + ' </b>',

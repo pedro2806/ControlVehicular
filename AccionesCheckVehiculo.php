@@ -7,12 +7,16 @@ $no_empleado = intval($_POST['cookieNoEmpleado'] ?? ($_COOKIE['noEmpleado'] ?? 0
 
 if ($opcion == "llenaTVehiculosAsignados") {
     if ($no_empleado == 100 || $no_empleado == 386 || $no_empleado == 523) {
-    $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, COUNT(c.id_checklist) as countChecklists
+    $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, c.estatus as estatusChecklist
         FROM inventario i
         LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
-        LEFT JOIN checklist c ON i.id_vehiculo = c.id_vehiculo
-        WHERE i.estatus = 'Activo'
-        GROUP BY i.id_vehiculo";
+        LEFT JOIN checklist c ON c.id_checklist = (
+            SELECT id_checklist FROM checklist
+            WHERE id_vehiculo = i.id_vehiculo
+            ORDER BY fecha DESC, id_checklist DESC
+            LIMIT 1
+        )
+        WHERE i.estatus = 'Activo'";
     } else {
         $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado
                 FROM inventario i
@@ -45,7 +49,7 @@ if ($opcion == "llenaTVehiculosAsignados") {
             'referencia' => $row2["referencia"],
             'marca' => $row2["marca"],
             'asignado' => $row2["asignado"],
-            'tieneChecklist' => intval($row2["countChecklists"]) > 0 ? true : false
+            'estatusChecklist' => $row2["estatusChecklist"] ?? null
         );
     }
 

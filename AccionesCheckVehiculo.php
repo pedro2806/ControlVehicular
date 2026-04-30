@@ -6,7 +6,15 @@ $id_usuario = $_COOKIE['id_usuario'];
 $no_empleado = intval($_POST['cookieNoEmpleado'] ?? ($_COOKIE['noEmpleado'] ?? 0));
 
 if ($opcion == "llenaTVehiculosAsignados") {
-    if ($no_empleado == 100 || $no_empleado == 386 || $no_empleado == 523) {
+    $tieneAccesoTotal = false;
+    $stmtAcc = $conn->prepare("SELECT id FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verTodosVehiculo' AND estatus = 1 LIMIT 1");
+    if ($stmtAcc) {
+        $stmtAcc->bind_param("i", $no_empleado);
+        $stmtAcc->execute();
+        $tieneAccesoTotal = $stmtAcc->get_result()->num_rows > 0;
+    }
+
+    if ($tieneAccesoTotal) {
     $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, c.estatus as estatusChecklist
         FROM inventario i
         LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
@@ -53,11 +61,7 @@ if ($opcion == "llenaTVehiculosAsignados") {
         );
     }
 
-    if (empty($registros)) {
-        echo json_encode(array("message" => "No records found."));
-    } else {
-        echo json_encode($registros);
-    }
+    echo json_encode($registros);
 }
 
 if ($opcion == 'verChecks') {

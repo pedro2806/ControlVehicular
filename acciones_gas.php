@@ -52,4 +52,23 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         }
         exit;
     }
+
+        if ($accion == 'obtenerRegistrosGasTodos'){
+        $sqlU = "SELECT ca.*, CONCAT(inv.placa, ' - ', inv.modelo, ' - ', inv.marca) AS Vehiculo, inv.usuario
+                FROM `carga_gasolina`  ca
+                INNER JOIN inventario inv ON inv.id_vehiculo = ca.id_vehiculo                
+                ORDER BY ca.id DESC";
+        
+        $resultU = $conn->query($sqlU);
+        $registros = array();
+        if ($resultU) {
+            while ($row = $resultU->fetch_assoc()) {
+                $registros[] = $row;
+            }
+            echo json_encode($registros);
+        } else {
+            echo json_encode(array("status" => "error", "message" => "Error al obtener la última carga de gasolina: " . $conn->error));
+        }
+        exit;
+    }
 ?>

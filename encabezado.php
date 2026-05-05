@@ -634,6 +634,7 @@
 
     // Cargar vehículos al select
     function cargarVehiculos(selectVehiculo) {
+        
         $.ajax({
             url: 'acciones_kilometraje.php',
             method: 'POST',
@@ -642,7 +643,8 @@
             success: function (data) {
                 var select = $('#' + selectVehiculo);
                 select.empty();
-                if (data && data.length > 0) {
+
+                
                     select.append('<option value="">Seleccione un vehículo</option>');
                     $.each(data, function (index, vehiculo) {                            
                         // Asignar id prestamo al input oculto solo si no es vacío o nulo
@@ -654,9 +656,7 @@
                             select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
                         }
                     });
-                } else {
-                    select.append('<option value="">No hay vehículos disponibles</option>');
-                }
+                
                 verPlaca('vehiculoAsignado', 'kmActual');
             },
             error: function () {

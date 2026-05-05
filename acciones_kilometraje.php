@@ -66,16 +66,7 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
 }*/
 
 if ($accion == 'CargarVehiculos'){
-    //rol 
-    //if ($rol == 3 || $rol == 2) {
-        /*$sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo, '' as estatus
-            FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'
-            UNION
-            SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
-            FROM inventario inv
-            INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-            WHERE (inv.id_usuario = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
-    }else{*/
+
         $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo, '' as estatus
             FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'
             UNION
@@ -83,12 +74,6 @@ if ($accion == 'CargarVehiculos'){
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
             WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
-    //}
-        /*SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
-        FROM inventario inv
-        INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-        WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
-        */
     $result = $conn->query($sql);
     
     if ($result->num_rows > 0) {

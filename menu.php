@@ -85,13 +85,25 @@
     <?php
     }?>
 
-    <!-- Menú Gasolina -->
-    <li class="nav-item">
-        <a class="nav-link py-2" href="#" data-bs-toggle="modal" data-bs-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
-            <i class="fas fa-fw fa-gas-pump"></i>
-            <span>Registrar Gasolina</span>
-        </a>
-    </li>
+<!-- Menú Gasolina -->        
+<li class="nav-item">    
+    <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseGasolina" aria-expanded="false" aria-controls="collapseGasolina">
+        <i class="fas fa-fw fa-gas-pump"></i>
+        <span>Gasolina</span>
+    </a>        
+    <div id="collapseGasolina" class="collapse" aria-labelledby="headingGasolina" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">            
+            <a class="collapse-item" href="#" data-toggle="modal" data-target="#capturaGasModal" onclick="cargarVehiculos('vehiculoAsignadoGas')">
+                <i class="fas fa-fw fa-gas-pump"></i>
+                <span>Registrar Gasolina</span>
+            </a>
+            <a class="collapse-item" href="historial_gasolina">
+                <i class="fas fa-fw fa-history"></i>
+                <span>Historial de Cargas</span>
+            </a>
+        </div>
+    </div>
+</li>
 
     <!-- Menú CheckIn -->
     <li class="nav-item">
@@ -101,22 +113,22 @@
         </a>
     </li>
 
-    <!-- Menú Mantenimiento -->
-    <li class="nav-item">
-        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="true" aria-controls="collapseMantenimiento">
-            <i class="fas fa-fw fa-tools"></i>
-            <span>Mantenimiento</span>
-        </a>
-        <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-                <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
-                <?php if (isset($_COOKIE['rol']) && $_COOKIE['rol'] == 2): ?>
-                    <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
-                <?php endif; ?>
-            </div>
+<!-- Menú Mantenimiento -->
+<li class="nav-item">
+    <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseMantenimiento" aria-expanded="false" aria-controls="collapseMantenimiento">
+        <i class="fas fa-fw fa-tools"></i>
+        <span>Mantenimiento</span>
+    </a>
+    <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
+            <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
+            <?php if (isset($_COOKIE['rol']) && $_COOKIE['rol'] == 2): ?>
+                <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
+            <?php endif; ?>
         </div>
-    </li>
+    </div>
+</li>
 
     <!-- Menú Documentación -->
     <li class="nav-item">

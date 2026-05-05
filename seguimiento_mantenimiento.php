@@ -45,7 +45,7 @@
                                                                 <th>Fecha Registro</th>
                                                                 <th>Vehiculo</th>
                                                                 <th>Descripción</th>                                                        
-                                                                <th></th>
+                                                                <th>Detalle</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody></tbody>
@@ -135,7 +135,7 @@
                             mantenimiento.placa + ' / ' + mantenimiento.modelo,
                             mantenimiento.descripcion,
                             `<center>
-                                <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleMantenimiento(${JSON.stringify(mantenimiento)})'>
+                                <button class="btn btn-warning btn-sm" onclick='mostrarDetalleMantenimiento(${JSON.stringify(mantenimiento)})'>
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </center>`
@@ -173,7 +173,7 @@
                 estiloEstatus = 'warning';                
             } else if (estiloEstatus == 'AUTORIZADO') {
                 estiloEstatus = 'primary';
-                encabezado = `<button class="btn btn-outline-success btn-sm" onclick="mantenimientoRealizado('${mantenimiento.id_mantenimiento}')"><i class="fas fa-check"></i> Marcar como realizado</button>`;
+                encabezado = `<button class="btn btn-success btn-sm" onclick="mantenimientoRealizado('${mantenimiento.id_mantenimiento}')"><i class="fas fa-check"></i> Marcar como realizado</button>`;
             } else if (estiloEstatus == 'REALIZADO') {
                 estiloEstatus = 'success';
                 encabezado = '';

@@ -18,7 +18,18 @@
     <!-- Custom styles for this template-->
     <link href = "css/sb-admin-2.min.css" rel = "stylesheet">
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        @keyframes pulso-vehiculo {
+            0%   { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.7); border-color: #4e73df; }
+            70%  { box-shadow: 0 0 3px 3px rgba(78, 115, 223, 0); border-color: #4e73df; }
+            100% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0); border-color: #4e73df; }
+        }
+        #vehiculo_select.select-pulso {
+            animation: pulso-vehiculo 1.4s ease-in-out infinite;
+            border: 2px solid #4e73df;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body id = "page-top">
     <!-- Page Wrapper -->
@@ -42,128 +53,89 @@
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class = "h3 mb-0 text-black-800">Registro de Mantenimiento</h1>                        
                     </div>
-                    <!-- TABLA DE VEHICULOS -->
-                    <div class="container">
-                        <table id="tablaInventario" class="table table-striped table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Placa</th>
-                                    <th>Mod/Marca</th>
-                                    <th>Color</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Las filas se cargarán dinámicamente -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- CONTENEDOR INFO AUTO -->
-                    <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
                     <!-- FORMULARIO DEL MANTENIMIENTO -->
-                    <form id="formRegistroMantenimiento" style="display: none;">
-                        <!-- Content Row -->
-                        <div class = "row">
-                                <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
-                                <input type = "hidden" class = "form-control" id = "hora" name = "hora" readonly>
-                        </div>
-                        <br>
-                        <!-- Content Row -->
-                        <h1 class="h5 mb-0 text-black" style="font-weight: bold;">Detalles del Servicio</h1>
-                        <div class="row">
+                    <form id="formRegistroMantenimiento">
+                        <input type="hidden" id="fecha" name="fecha">
+                        <input type="hidden" id="hora" name="hora">
+                        <input type="hidden" id="id_vehiculo" name="id_vehiculo">
+                        <span id="placaVehiculo" style="display:none;"></span>
+
+                        <!-- Detalles del Servicio -->
+                        <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Detalles del Servicio</h1>
+                        <div class="row mb-4">
+                            <div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                                <label>Vehículo:</label>
+                                <select class="form-select select-pulso" id="vehiculo_select" name="vehiculo_select" required onchange="alSeleccionarVehiculo(this)">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 col-6">
                                 <label>Tipo de Servicio:</label>
-                                <select class = "form-select" id = "servicio" name = "servicio" required>
-                                    <option value = "">Seleccione...</option>
-                                    <option value = "Preventivo">Preventivo</option>
-                                    <option value = "Correctivo">Correctivo</option>
-                                    <option value = "Verificacion">Verificación</option>
+                                <select class="form-select" id="servicio" name="servicio" required>
+                                    <option value="">Seleccione...</option>
+                                    <option value="Preventivo">Preventivo</option>
+                                    <option value="Correctivo">Correctivo</option>
+                                    <option value="Verificacion">Verificación</option>
+                                    <option value="Cambio de llantas">Cambio de llantas</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="div_tipo_carro" style="display: none;">
-                                <label>Tipo de Vehiculo:</label>
-                                <select class="form-select" id="tipo_carro" name="tipo_carro" onchange="mostrarCampoDueno()">
-                                    <option value="">Seleccione...</option>
-                                    <option value="Asignado">Asignado</option>
-                                    <option value="Propio">Propio</option>
-                                    <option value="Prestado">Prestado</option>
-                                </select>  
-                            </div>
-                            <!-- Campo adicional para el nombre del dueño -->
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
-                                <label>Propietario del Vehiculo:</label>
-                                <select class="form-select" id="id_dueno" name="id_dueno" required>
-                                    <option value="">Seleccione...</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
-                                </select>
-                            </div>
-                            <div class="col-lg-9 col-md-9 col-sm-6 col-6">
+                            <div class="col-lg-6 col-md-6 col-sm-12 col-12">
                                 <label>Descripción:</label>
-                                <textarea class = "form-control" id = "descripcion" name = "descripcion" required></textarea>
+                                <textarea class="form-control" id="descripcion" name="descripcion" required></textarea>
                             </div>
-                            
                         </div>
-                        <br>
-                        <!-- Content Row -->
-                        <div class = "row">
-                            <h1 class="h5 mb-0 text-black" style="font-weight: bold;">Detalles del Automovil</h1> 
-                            <br>
+
+                        <!-- Info llantas (visible solo con Cambio de llantas) -->
+                        <div id="info_llantas" class="alert alert-info py-2 mb-3" style="display:none;">
+                            <strong><i class="fas fa-circle-info"></i> Último registro de llantas:</strong>
+                            <span class="ms-3">Rin: <strong id="llantas_rin">—</strong></span>
+                            <span class="ms-3">Medidas: <strong id="llantas_medidas">—</strong></span>
+                        </div>
+
+                        <!-- Detalles del Automovil -->
+                        <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Detalles del Automovil</h1>
+                        <div class="row mb-4">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Kilometraje:</label>  
-                                <input class = "form-control" id = "kilometraje" name = "kilometraje" type="number" min="0">
+                                <label>Kilometraje:</label>
+                                <input class="form-control" id="kilometraje" name="kilometraje" type="number" min="0">
                             </div>
-                            <br>
-                            <br>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
                                 <label>Gasolina:</label>
-                                <select class = "form-select" id = "gasolina" name = "gasolina">
-                                    <option value = "">Seleccione...</option>
-                                    <option value = "SD">Sin Datos</option>
-                                    <option value = "1/8">1/8</option>
-                                    <option value = "2/8">2/8</option>
-                                    <option value = "3/8">3/8</option>    
-                                    <option value = "4/8">4/8</option>
-                                    <option value = "5/8">5/8</option>
-                                    <option value = "6/8">6/8</option>
-                                    <option value = "7/8">7/8</option>
-                                    <option value = "8/8">8/8</option>
-                                </select>  
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto:</label>  
-                                <input class = "form-control" id = "contacto" name = "contacto" type="tel" required>
-                            </div>
-                            <br>
-                            <br>
-                            <!--
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Prox. Servicio:</label>
-                                <input type = "date" class = "form-control" id = "prox_fecha" name = "prox_fecha" required>
+                                <select class="form-select" id="gasolina" name="gasolina">
+                                    <option value="">Seleccione...</option>
+                                    <option value="SD">Sin Datos</option>
+                                    <option value="1/8">1/8</option>
+                                    <option value="2/8">2/8</option>
+                                    <option value="3/8">3/8</option>
+                                    <option value="4/8">4/8</option>
+                                    <option value="5/8">5/8</option>
+                                    <option value="6/8">6/8</option>
+                                    <option value="7/8">7/8</option>
+                                    <option value="8/8">8/8</option>
+                                </select>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Kilometraje Prox. Servicio:</label>  
-                                <input class = "form-control" id = "prox_kilometraje" name = "prox_kilometraje" type="number" min="0">
+                                <label>Contacto:</label>
+                                <input class="form-control" id="contacto" name="contacto" type="tel" required>
                             </div>
-                            -->
-                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
-                                <label>Foto del Automovil:</label>
-                                <input 
-                                    type="file" 
-                                    class="form-control" 
-                                    id="foto" 
-                                    name="foto" 
-                                    accept="image/*" 
-                                    capture="environment" 
-                                    multiple 
+                        </div>
+
+                        <!-- Foto del Automovil -->
+                        <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Foto del Automovil</h1>
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    id="foto"
+                                    name="foto"
+                                    accept="image/*"
+                                    capture="environment"
+                                    multiple
                                     required>
                             </div>
                         </div>
-                        <br>
-                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
+
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarMantenimiento()">Guardar</button>
                         </center>
@@ -192,58 +164,18 @@
     <script src = "js/sb-admin-2.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos();
-            $("#tablaInventario").DataTable({
-                destroy: true,
-                paging: true,
-                pageLength: 5,
-                ordering: true,
-                searching: true,
-                info: true,
-                language: {
-                    decimal: ",",
-                    thousands: ".",
-                    processing: "Procesando...",
-                    loadingRecords: "Cargando...",
-                    zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "Siguiente",
-                        previous: "Anterior"
-                    },
-                    lengthMenu: "Mostrar _MENU_",
-                    aria: {
-                        sortAscending: ": activar para ordenar la columna de manera ascendente",
-                        sortDescending: ": activar para ordenar la columna de manera descendente"
-                    }
-                },                
-                createdRow: function(row, data, dataIndex) {
-                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
-                },
-                //Justifica el buscador y la paginación
-                dom: '<"d-flex justify-content-between"lf>t<"d-flex justify-content-between"ip>'
-            });
             cargarUsuarios();
             const now = new Date();
             const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
             const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
-            $("#fecha").val(fecha); 
-            $("#hora").val(hora); 
+            $("#fecha").val(fecha);
+            $("#hora").val(hora);
         });
         
-         // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
+        // FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
         function infoVehiculos() {
             $.ajax({
                 type: "POST",
@@ -251,23 +183,10 @@
                 data: { accion: "consultarInventario" },
                 dataType: "json",
                 success: function (respuesta) {
-                    var tabla = $("#tablaInventario").DataTable(); // Obtener instancia de DataTable
-                    tabla.clear(); // Limpiar datos existentes en la tabla
-
-                    respuesta.forEach(function (mantenimiento) {
-                        tabla.row.add([
-                            `<strong><i class="fas fa-car"></i> ${mantenimiento.placa}</strong>`,
-                            `<strong>${mantenimiento.modelo} ${mantenimiento.marca}</strong>`,
-                            `<strong>${mantenimiento.color}</strong>`,
-                            `<center>
-                                <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${mantenimiento.id_vehiculo}', '${mantenimiento.placa}', '${mantenimiento.modelo}', '${mantenimiento.marca}', '${mantenimiento.color}')">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </center>`
-                        ]);
+                    var select = $("#vehiculo_select");
+                    respuesta.forEach(function (v) {
+                        select.append(`<option value="${v.id_vehiculo}" data-placa="${v.placa}">${v.placa} - ${v.modelo} ${v.marca}</option>`);
                     });
-
-                    tabla.draw(); // Redibujar la tabla con los nuevos datos
                 },
                 error: function () {
                     Swal.fire({
@@ -278,6 +197,77 @@
                     });
                 }
             });
+        }
+
+        $("#servicio").on("change", function() {
+            $("#info_llantas").hide();
+            if ($(this).val() !== "Cambio de llantas") return;
+
+            var id_vehiculo = $("#id_vehiculo").val();
+            if (!id_vehiculo) {
+                Swal.fire({ icon: "warning", title: "Vehículo requerido", text: "Selecciona primero el vehículo.", confirmButtonText: "Aceptar" });
+                $(this).val("");
+                return;
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "acciones_mantenimiento",
+                data: { accion: "infoLlantas", id_vehiculo: id_vehiculo },
+                dataType: "json",
+                success: function(r) {
+                    function tieneValor(v) {
+                        return v && v.trim() !== '' && v.trim().toUpperCase() !== 'S/R';
+                    }
+                    if (r.found && tieneValor(r.no_rin) && tieneValor(r.medidas)) {
+                        $("#llantas_rin").text(r.no_rin);
+                        $("#llantas_medidas").text(r.medidas);
+                        $("#info_llantas").show();
+                    } else {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Sin datos de llantas",
+                            text: "No se encontró información de rin y medidas para este vehículo. Por favor llena el checklist de llantas antes de registrar este mantenimiento.",
+                            showCancelButton: true,
+                            confirmButtonText: "Ir al Checklist",
+                            cancelButtonText: "Cerrar",
+                            confirmButtonColor: "#4e73df"
+                        }).then(function(result) {
+                            if (result.isConfirmed) {
+                                window.location.href = "checkVehiculo";
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        function alSeleccionarVehiculo(sel) {
+            var opt = sel.options[sel.selectedIndex];
+            $("#id_vehiculo").val(opt.value);
+            $("#placaVehiculo").text($(opt).data("placa") || "");
+
+            // Limpiar campos
+            $("#kilometraje").val("");
+            $("#gasolina").val("");
+            $("#contacto").val("");
+            $("#info_llantas").hide();
+
+            if (opt.value) {
+                $("#vehiculo_select").removeClass("select-pulso");
+                $.ajax({
+                    type: "POST",
+                    url: "acciones_mantenimiento",
+                    data: { accion: "ultimoRegistroVehiculo", id_vehiculo: opt.value },
+                    dataType: "json",
+                    success: function(r) {
+                        if (r.km_actual)  $("#kilometraje").val(r.km_actual);
+                        if (r.gasolina)   $("#gasolina").val(r.gasolina);
+                    }
+                });
+            } else {
+                $("#vehiculo_select").addClass("select-pulso");
+            }
         }
         
         // Cargar la lista de usuarios
@@ -306,30 +296,7 @@
             });
         }
         
-        // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
-            $("#placaSeleccionada")
-                .html(`
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
-                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
-                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
-                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
-                    </div>
-                `)
-                .show();
-            $("#id_vehiculo").val(id_vehiculo);
-            $("#btnCambiarVehiculo").show();
-            $("#tablaInventario").closest(".container").hide();
-            $("#formRegistroMantenimiento").show();
-        }
-
-        function cambiarVehiculo() {
-            $("#placaSeleccionada").hide();
-            $("#btnCambiarVehiculo").hide();
-            $("#tablaInventario").closest(".container").show();
-            $("#formRegistroMantenimiento").hide();
-        }
+       
 
         //FUNCION REGISTRO DE MANTENIMIENTO
         function RegistrarMantenimiento() {
@@ -405,7 +372,6 @@
                         });
                         //$("#formRegistroMantenimiento")[0].reset();
                         $("#placaSeleccionada").hide();
-                        $("#btnCambiarVehiculo").hide();
                         $("#tablaInventario").closest(".container").show();
                         $.ajax({
                             type: "POST",

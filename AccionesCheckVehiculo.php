@@ -26,10 +26,10 @@ if ($opcion == "llenaTVehiculosAsignados") {
         )
         WHERE i.estatus = 'Activo'";
     } else {
-        $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado
+        $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, '' as estatusChecklist
                 FROM inventario i
-                INNER JOIN usuarios u ON i.id_usuario = u.id_usuario             
-                WHERE i.id_usuario = $id_usuario OR i.id_us_asignado = $id_usuario";
+                LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
+                WHERE i.id_usuario = '$id_usuario' OR i.id_us_asignado = '$id_usuario'";
     }
 
     $res2 = mysqli_query($conn, $sql);
@@ -77,6 +77,7 @@ if ($opcion == 'verChecks') {
     while ($row2 = mysqli_fetch_assoc($res2)) {
         $registros[] = array(
             'id' => $row2["id_checklist"],
+            'estatus' => $row2["estatus"],
             'fecha' => $row2["fecha"],
             'id_usuario' => $row2["id_usuario"],
             'id_revisor' => $row2["id_revisor"],
@@ -418,7 +419,7 @@ if ($opcion == 'checklist_documentacion') {
 
     $buenEstado_Llantas = getPostOrSR('buenEstado_Llantas');
     $observaciones_Llantas = getPostOrSR('observaciones_Llantas');
-    $no_rin = getPostOrSR('CE_Llantas');
+    $no_rin = getPostOrSR('CELlantas');
     $medidas = getPostOrSR('medidas_Llantas');
 
     $buenEstado_PuertasLlave = getPostOrSR('buenEstado_PuertasLlave');
@@ -879,6 +880,10 @@ function insertChecklistLimpieza($conn, $id_checklist, $si_no_limpieza, $observa
 function insertChecklistLlantas($conn, $id_checklist, $no_rin, $medidas, $observaciones_Llantas, $foto_llantas, $placa, $buenEstado_Llantas) {
     $foto = getFotoInfo('foto_Llantas', $placa, 'checklist_Llantas', 'llantas');
     $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+    $no_rin              = mysqli_real_escape_string($conn, $no_rin);
+    $medidas             = mysqli_real_escape_string($conn, $medidas);
+    $observaciones_Llantas = mysqli_real_escape_string($conn, $observaciones_Llantas);
+    $buenEstado_Llantas  = mysqli_real_escape_string($conn, $buenEstado_Llantas);
     $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_llantas WHERE id_checklist='$id_checklist'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sql = "UPDATE checklist_llantas SET buen_estado='$buenEstado_Llantas', no_rin='$no_rin', medidas='$medidas', observaciones='$observaciones_Llantas', foto=$fotoSql WHERE id_checklist='$id_checklist'";

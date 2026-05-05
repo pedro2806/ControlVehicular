@@ -760,7 +760,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             }
             if (data.llantas) {
                 setCheck('buenEstado_Llantas', data.llantas.buen_estado);
-                setVal('CE_Llantas', data.llantas.no_rin);
+                setVal('CELlantas', data.llantas.no_rin);
                 setVal('medidas_Llantas', data.llantas.medidas);
                 setVal('observaciones_Llantas', data.llantas.observaciones);
                 setRuta('ruta_foto_Llantas', data.llantas.foto);

@@ -644,19 +644,17 @@
                 var select = $('#' + selectVehiculo);
                 select.empty();
 
-                
-                    select.append('<option value="">Seleccione un vehículo</option>');
-                    $.each(data, function (index, vehiculo) {                            
-                        // Asignar id prestamo al input oculto solo si no es vacío o nulo
-                        if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
-                            $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
-                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;" selected>PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
-                        }
-                        else{
-                            select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
-                        }
-                    });
-                
+                var vehiculos = Array.isArray(data) ? data : (data.vehiculos || []);
+                select.append('<option value="">Seleccione un vehículo</option>');
+                $.each(vehiculos, function (index, vehiculo) {
+                    if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
+                        $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
+                        select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;" selected>PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
+                    } else {
+                        select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                    }
+                });
+
                 verPlaca('vehiculoAsignado', 'kmActual');
             },
             error: function () {

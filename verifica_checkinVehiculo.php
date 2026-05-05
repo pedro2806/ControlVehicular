@@ -105,6 +105,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <table id="TChecksVehiculo" name="TChecksVehiculo" class="table table-striped table-bordered">
                                 <thead>
                                     <tr>
+                                        <th>Estatus</th>
                                         <th>Fecha</th>
                                         <th>Motivo</th>
                                         <th>Acciones</th>
@@ -284,7 +285,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 var table = $('#TChecksVehiculo').DataTable();
                 table.clear().draw();
                 registros.forEach(function(Registro) { 
-                    table.row.add([                                    
+                    table.row.add([                           
+                        '<b> ' + Registro.estatus + ' </b>',
                         '<b> ' + Registro.fecha + ' </b>',
                         '<b> ' + Registro.motivo + ' </b>',
                         '<center><button type="button" class="btn btn-sm btn-outline-primary" onclick=\'VerCheck(' + JSON.stringify(Registro.id) + ')\'><i class="fas fa-eye fa-1x"></i></button></center>'

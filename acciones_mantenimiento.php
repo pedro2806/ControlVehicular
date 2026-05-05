@@ -56,6 +56,39 @@ if ($accion == "RegistrarMantenimiento") {
     exit;
 }
 
+// Info de llantas desde el último checklist del vehículo
+if ($accion == "infoLlantas") {
+    $sql = "SELECT cl.no_rin, cl.medidas
+            FROM checklist_llantas cl
+            INNER JOIN checklist c ON cl.id_checklist = c.id_checklist
+            WHERE c.id_vehiculo = '$id_vehiculo'
+            ORDER BY c.fecha DESC
+            LIMIT 1";
+    $res = $conn->query($sql);
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        echo json_encode(["found" => true, "no_rin" => $row['no_rin'], "medidas" => $row['medidas']]);
+    } else {
+        echo json_encode(["found" => false]);
+    }
+    exit;
+}
+
+// Último km y gasolina registrados para el vehículo
+if ($accion == "ultimoRegistroVehiculo") {
+    $sqlKm  = "SELECT km_actual FROM carga_gasolina WHERE id_vehiculo = '$id_vehiculo' ORDER BY fecha_registro DESC LIMIT 1";
+    $sqlGas = "SELECT gasolina FROM mantenimientos WHERE id_vehiculo = '$id_vehiculo' ORDER BY fecha_registro DESC LIMIT 1";
+
+    $resKm  = $conn->query($sqlKm);
+    $resGas = $conn->query($sqlGas);
+
+    $km      = ($resKm  && $resKm->num_rows  > 0) ? $resKm->fetch_assoc()['km_actual'] : '';
+    $gasolina = ($resGas && $resGas->num_rows > 0) ? $resGas->fetch_assoc()['gasolina'] : '';
+
+    echo json_encode(["km_actual" => $km, "gasolina" => $gasolina]);
+    exit;
+}
+
 //Creacion de carpeta
 if ($accion == "manejarCarpetasYFoto") {
     

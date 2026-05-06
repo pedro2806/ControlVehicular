@@ -109,11 +109,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <script type="text/javascript">
         $(document).ready(function() {
-            cargarVehiculos('');
+            cargarVehiculosInicio('');
         });
 
         // Cargar vehículos prestados
-        function cargarVehiculos(selectVehiculo) {
+        function cargarVehiculosInicio(selectVehiculo) {
             $.ajax({
                 url: 'acciones_kilometraje.php',
                 method: 'POST',

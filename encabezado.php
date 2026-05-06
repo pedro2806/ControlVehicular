@@ -722,33 +722,30 @@
         }
     }
     
-    function verPlaca(selectVehiculo, inputKm, saldo) {            
-        var vehiculoAsignado = document.getElementById(selectVehiculo).textContent;
+    function verPlaca(selectVehiculo, inputKm, saldo) {
         var IDvehiculoAsignado = document.getElementById(selectVehiculo).value;
         var accion = "tomaKm";
-        if (vehiculoAsignado) {
-            // Tomar solo el primer valor antes del guion "-"
-            var primerValor = vehiculoAsignado.split('-')[1].trim();
+        if (IDvehiculoAsignado) {
+            var vehiculoAsignado = document.getElementById(selectVehiculo).options[document.getElementById(selectVehiculo).selectedIndex].text;
+            var primerValor = (vehiculoAsignado.split('-')[1] || '').trim();
             primerValor = primerValor.replace("Seleccione un vehículo", "");
-            // Asignar el valor al input oculto
             document.getElementById("placaElegida").value = primerValor;
-        }
-        
-        $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            async: false,
-            dataType: 'json',
-            data: { accion, IDvehiculoAsignado },
-            success: function (Registros) {                    
-                    // Asignar el valor real de kmMax si existe
-                if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
-                    $('#' + inputKm).val(Registros[0].kmMax);
-                    $('#gasActual').val(Registros[0].gasolina_actual);
-                    $('#monto').val(Registros[0].saldo);
+
+            $.ajax({
+                url: 'acciones_kilometraje.php',
+                method: 'POST',
+                async: false,
+                dataType: 'json',
+                data: { accion, IDvehiculoAsignado },
+                success: function (Registros) {
+                    if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
+                        $('#' + inputKm).val(Registros[0].kmMax);
+                        $('#gasActual').val(Registros[0].gasolina_actual);
+                        $('#monto').val(Registros[0].saldo);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     function verPlacaCheckOut() {

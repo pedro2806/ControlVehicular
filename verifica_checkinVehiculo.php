@@ -4,6 +4,14 @@ include 'conn.php';
 if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     echo '<script>window.location.assign("index")</script>';
 }
+$noEmpleado = intval($_COOKIE['noEmpleado'] ?? 0);
+$tieneAccesoTotal = false;
+$stmtAcc = $conn->prepare("SELECT id FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verTodosVehiculo' AND estatus = 1 LIMIT 1");
+if ($stmtAcc) {
+    $stmtAcc->bind_param("i", $noEmpleado);
+    $stmtAcc->execute();
+    $tieneAccesoTotal = $stmtAcc->get_result()->num_rows > 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,22 +62,24 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 <!-- Begin Page Content -->
                 <div class="container-fluid">                    
                     <div class="row" name="DivVehiculosAsignados" id="DivVehiculosAsignados">
-                        <div class="col-xl-12 col-lg-12 col-md-1 col-sm-12 col-12">
-                            <table id="TVehiculosAsignados" name="TVehiculosAsignados" class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th style="text-align:center;">Estado</th>
-                                        <th style="text-align:center;">Placa</th>
-                                        <th style="text-align:center;">Modelo</th>
-                                        <th style="text-align:center;">Color</th>
-                                        <th style="text-align:center;">Año</th>
-                                        <th style="text-align:center;">Asignado</th>
-                                        <th style="text-align:center;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>                                    
-                                </tbody>    
-                            </table>
+                        <div class="col-12">
+                            <div class="table-responsive">
+                                <table id="TVehiculosAsignados" name="TVehiculosAsignados" class="table table-striped table-bordered w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Estado</th>
+                                            <th class="text-center">Placa</th>
+                                            <th class="text-center">Modelo</th>
+                                            <th class="text-center">Color</th>
+                                            <th class="text-center">Año</th>
+                                            <th class="text-center">Asignado</th>
+                                            <th class="text-center">Acciones</th>
+                                            <th>Área</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>                    
                     
@@ -100,20 +110,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                     </div>
 
-                    <div class="row" name="DivChecksVehiculo" id="DivChecksVehiculo">
-                        <div class="col-xl-12 col-lg-12 col-md-1 col-sm-12 col-12">
-                            <table id="TChecksVehiculo" name="TChecksVehiculo" class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Estatus</th>
-                                        <th>Fecha</th>
-                                        <th>Motivo</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>                                    
-                                </tbody>    
-                            </table>
+                    <div class="row" name="DivChecksVehiculo" id="DivChecksVehiculo" style="display:none;">
+                        <div class="col-12">
+                            <div class="table-responsive">
+                                <table id="TChecksVehiculo" name="TChecksVehiculo" class="table table-striped table-bordered w-100">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Estatus</th>
+                                            <th class="text-center">Fecha</th>
+                                            <th class="text-center">Motivo</th>
+                                            <th class="text-center">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -160,6 +171,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     
 <script type="text/javascript">
+    var tieneAccesoTotal = <?php echo $tieneAccesoTotal ? 'true' : 'false'; ?>;
                         
 
                         
@@ -167,44 +179,72 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         llenaTVehiculosAsignados(); //LLENAR TABLA DE VEHICULOS ASIGNADOS
 
         $('#TVehiculosAsignados').DataTable({
-            destroy: true, // Permitir reinicializar la tabla
-            paging: true, // Quitar paginado
-            ordering: true, // Quitar orden
-            searching: true, // Quitar buscador
-            info: true, // Quitar leyendas a pie de tabla
+            destroy: true,
+            paging: true,
+            ordering: true,
+            searching: true,
+            info: true,
+            autoWidth: false,
+            columnDefs: [{ visible: false, targets: 7 }],
             language: {
-            decimal: ",",
-            thousands: ".",
-            processing: "Procesando...",
-            loadingRecords: "Cargando...",
-            zeroRecords: "No se encontraron resultados",
-            emptyTable: "No hay datos disponibles en la tabla"
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                lengthMenu: "Mostrar _MENU_ registros",
+                search: "Buscar:",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                }
+            },
+            initComplete: function() {
+                if (!tieneAccesoTotal) return;
+                var selectArea = $('<select id="filtroArea" class="form-select form-select-sm me-2" style="width:auto;display:inline-block;"><option value="">Todas las áreas</option></select>');
+                selectArea.on('change', function() {
+                    $('#TVehiculosAsignados').DataTable().column(7).search($(this).val()).draw();
+                });
+                $('#TVehiculosAsignados_filter').prepend(selectArea);
             },
             createdRow: function(row, data, dataIndex) {
-                $(row).css('font-size', '12px'); // Reducir tamaño del texto
+                $(row).css('font-size', '12px');
             }
         });
 
         $('#TChecksVehiculo').DataTable({
-            destroy: true, // Permitir reinicializar la tabla
-            paging: true, // Activar paginado
-            pageLength: 5, // Paginado de 5 en 5            
+            destroy: true,
+            paging: true,
+            pageLength: 5,
+            autoWidth: false,
+            order: [[1, 'desc']],
             language: {
-            decimal: ",",
-            thousands: ".",
-            processing: "Procesando...",
-            loadingRecords: "Cargando...",
-            zeroRecords: "No se encontraron resultados",
-            emptyTable: "No hay datos disponibles en la tabla",
-            paginate: {
-                first: "Primero",
-                last: "Último",
-                next: "Siguiente",
-                previous: "Anterior"
-            }
+                decimal: ",",
+                thousands: ".",
+                processing: "Procesando...",
+                loadingRecords: "Cargando...",
+                zeroRecords: "No se encontraron resultados",
+                emptyTable: "No hay datos disponibles en la tabla",
+                lengthMenu: "Mostrar _MENU_ registros",
+                search: "Buscar:",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                infoEmpty: "Mostrando 0 a 0 de 0 registros",
+                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                paginate: {
+                    first: "Primero",
+                    last: "Último",
+                    next: "Siguiente",
+                    previous: "Anterior"
+                }
             },
             createdRow: function(row, data, dataIndex) {
-            $(row).css('font-size', '12px'); // Reducir tamaño del texto
+                $(row).css('font-size', '12px');
             }
         });
         
@@ -238,10 +278,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             '<b> ' + Registro.modelo + ' </b>',
                             '<b> ' + Registro.color + ' </b>',
                             '<b> ' + Registro.anio + ' </b>',
-                            '<b> ' + Registro.asignado + ' </b>',                            
-                            '<center><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
+                            '<b> ' + Registro.asignado + ' </b>',
+                            '<center><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>',
+                            Registro.area || ''
                         ]).draw(false);
                     });
+
+                    // Poblar el select de área (solo visible para usuarios con acceso total)
+                    if (tieneAccesoTotal) {
+                        var areas = [...new Set(registros.map(function(r){ return r.area; }).filter(Boolean))].sort();
+                        var sel = $('#filtroArea').val('');
+                        sel.find('option:not(:first)').remove();
+                        areas.forEach(function(area) {
+                            sel.append('<option value="' + area + '">' + area + '</option>');
+                        });
+                    }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     
@@ -255,15 +306,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#color').text(Registro.color); // Asignar valor a la etiqueta de color
         $('#placa').text(Registro.placa); // Asignar valor a la etiqueta de placa
         verChecks(Registro.idCoche); // Llamar a la función verChecks con el idCoche del registro seleccionado
-        $('#DivVehiculosAsignados').hide(); // Ocultar la tabla de vehículos asignados
+        $('#DivVehiculosAsignados').hide();
         $('#DivInfoVehiculo').show();
         $('#btnSeleccionarOtro').show();
+        $('#DivChecksVehiculo').show();
     }
 
     function seleccionarOtroVehiculo() {
         $('#DivVehiculosAsignados').show();
         $('#DivInfoVehiculo').hide();
         $('#btnSeleccionarOtro').hide();
+        $('#DivChecksVehiculo').hide();
         $('#marca').text('');
         $('#modelo').text('');
         $('#color').text('');

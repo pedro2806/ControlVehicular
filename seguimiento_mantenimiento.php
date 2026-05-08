@@ -200,6 +200,8 @@
                                 <p style="margin:1;"><strong>Tipo:</strong> ${mantenimiento.tipo_mantenimiento || 'N/A'}</p>
                                 <p style="margin:1;"><strong>Kilometraje:</strong> ${mantenimiento.kilometraje || 'N/A'}</p>                                
                                 <p style="margin:1;"><strong>Descripción:</strong> ${mantenimiento.descripcion || 'N/A'}</p>
+                                <p style="margin:1;"><strong>Proveedor:</strong> ${mantenimiento.proveedor || 'N/A'}</p>
+                                <p style="margin:1;"><strong>Contacto proveedor:</strong> ${mantenimiento.contacto_proveedor || 'N/A'}</p>
                             </div>
                             <!-- Segunda columna con la imagen -->
                             <div class="col-sm-5">

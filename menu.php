@@ -1,5 +1,4 @@
 <?php
-    
     include 'conn.php';
     if($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null){
         echo '<script>window.location.assign("index")</script>';
@@ -123,9 +122,20 @@
         <div class="bg-white py-2 collapse-inner rounded">
             <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
             <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
-            <?php if (isset($_COOKIE['rol']) && $_COOKIE['rol'] == 2): ?>
-                <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
-            <?php endif; ?>
+            <a class="collapse-item" href="autorizar_mantenimiento" id="menuAutMantenimiento" style="display:none;">Aut. Mantenimientos</a>
+            <script>
+                fetch("acciones_mantenimiento.php", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: "accion=verificarAccesoAutorizar"
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(resp) {
+                    if (resp.puedeAutorizar) {
+                        document.getElementById("menuAutMantenimiento").style.display = "";
+                    }
+                });
+            </script>
         </div>
     </div>
 </li>

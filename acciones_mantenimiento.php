@@ -28,7 +28,9 @@ $foto = $_POST["rutaImagen"];
 $placa = $_POST["placa"];
 $foto = $_POST["rutaImagen"];
 $folioOC = $_POST["folioOC"];
-$costo = $_POST["costo"] ?? null; // Nuevo campo para el costo del mantenimiento
+$costo = $_POST["costo"] ?? null;
+$proveedor = $_POST["proveedor"] ?? null;
+$contacto_proveedor = $_POST["contacto_proveedor"] ?? null;
 
 /*---------------------------------------------*/
 $id_mantenimiento = $_POST["id_mantenimiento"];
@@ -43,9 +45,9 @@ $estatus = $_POST['estatus'];
 if ($accion == "RegistrarMantenimiento") {
 
     $sqlregistro = "INSERT INTO mantenimientos
-                    (id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe, 
+                    (id_vehiculo, fecha_registro, kilometraje, gasolina, proveedor, contacto_proveedor, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe,
                     fecha_proxi, km_proxi, tipo_carro, id_dueno, foto)
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE' ,
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$proveedor', '$contacto_proveedor', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE',
                     NULL, NULL, '$tipo_carro', '$id_dueno', '$foto')";                   
     $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
@@ -143,26 +145,97 @@ if ($accion == "consultarUsuarios") {
     exit;
 }
 
+// Verificar si el usuario tiene acceso para autorizar mantenimientos
+if ($accion == "verificarAccesoAutorizar") {
+    $stmt = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'autorizaMantenimiento' AND estatus = 1 LIMIT 1");
+    $tieneAcceso = false;
+    if ($stmt) {
+        $stmt->bind_param("i", $noEmpleado);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $tieneAcceso = (bool)$row;
+        $stmt->close();
+    }
+    echo json_encode(["puedeAutorizar" => $tieneAcceso]);
+    exit;
+}
+
 //Consulta de Mantenimientos
 if ($accion == "consultarMantenimientos") {
     
-    if($rol == '2'){
-        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
+    $infAdicionalAut = null;
+    $tieneAccesoAut = false;
+    $stmtAut = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'autorizaMantenimiento' AND estatus = 1 LIMIT 1");
+    if ($stmtAut) {
+        $stmtAut->bind_param("i", $noEmpleado);
+        $stmtAut->execute();
+        $rowAut = $stmtAut->get_result()->fetch_assoc();
+        if ($rowAut) {
+            $tieneAccesoAut = true;
+            $infAdicionalAut = !empty($rowAut['inf_adicional']) && $rowAut['inf_adicional'] !== '-' ? trim($rowAut['inf_adicional']) : null;
+        }
+        $stmtAut->close();
+    }
+
+    if ($tieneAccesoAut && ($infAdicionalAut === null || $infAdicionalAut === 'TODAS')) {
+        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
                         mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                         INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
                         WHERE mant.VoBo_jefe = '$estatus'
                         ORDER BY mant.fecha_registro DESC";
-    } else {        
-    
-        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo , mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento, 
+    } elseif ($tieneAccesoAut && $infAdicionalAut) {
+        $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), array_map('trim', explode(',', $infAdicionalAut))));
+        $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
                         mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                         INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                        WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
+                        WHERE mant.VoBo_jefe = '$estatus' AND inv.area IN ('$areasEsc')
                         ORDER BY mant.fecha_registro DESC";
+    } else {
+
+        $infAdicional = null;
+        $stmtReg = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'registrarMantenimiento' AND estatus = 1 LIMIT 1");
+        if ($stmtReg) {
+            $stmtReg->bind_param("i", $noEmpleado);
+            $stmtReg->execute();
+            $rowReg = $stmtReg->get_result()->fetch_assoc();
+            if ($rowReg && !empty($rowReg['inf_adicional']) && $rowReg['inf_adicional'] !== '-') {
+                $infAdicional = trim($rowReg['inf_adicional']);
+            }
+            $stmtReg->close();
+        }
+
+        if ($infAdicional === 'TODAS') {
+            $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            FROM mantenimientos mant
+                            INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            WHERE mant.VoBo_jefe = '$estatus'
+                            ORDER BY mant.fecha_registro DESC";
+        } elseif ($infAdicional) {
+            $areasPermitidas = array_map('trim', explode(',', $infAdicional));
+            $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), $areasPermitidas));
+            $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            FROM mantenimientos mant
+                            INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            WHERE mant.VoBo_jefe = '$estatus'
+                            AND (inv.id_usuario = '$id_usuario' OR inv.area IN ('$areasEsc'))
+                            ORDER BY mant.fecha_registro DESC";
+        } else {
+            $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            FROM mantenimientos mant
+                            INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
+                            ORDER BY mant.fecha_registro DESC";
+        }
     }
     $result = $conn->query($sqlConsulta);
 

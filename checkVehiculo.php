@@ -176,7 +176,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                         echo '</div>';
                                                         echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
                                                             echo '<div class="form-check form-switch me-3">';
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
@@ -184,7 +184,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                     if($item["id"] == "PuertasLlave") {
                                                         echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
@@ -195,13 +195,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                     } else {
                                                         echo '<div class="col-lg-4 col-md-4 col-sm-4 col-4">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
                                                         echo '<div class="col-lg-8 col-md-8 col-sm-8 col-8">';
                                                             echo '<div class="form-check form-switch me-3">';
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
@@ -284,7 +284,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                     if ($item["id"] == "tarjetaC" || $item["id"] == "Refrendo") {
                                                         echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
@@ -295,7 +295,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                         echo '</div>';
                                                         echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
                                                             echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);" required>';
+                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
                                                                 echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
                                                             echo '</div>';
                                                         echo '</div>';
@@ -467,8 +467,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         let esValido = true;
         let mensajeError = "";
 
-        // Validar todos los campos de tipo date, sin importar si tienen required
-        // Validar los campos de fecha requeridos
         const camposFecha = [
             'vencimiento_Seguro',
             'vencimiento_Verificacion',
@@ -478,13 +476,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         camposFecha.forEach(function(nombreCampo) {
             const campo = $(`input[name="${nombreCampo}"]`);
             if (campo.length && campo.val().trim() === "") {
-            esValido = false;
-            mensajeError += `El campo ${nombreCampo.replace(/_/g, ' ')} es obligatorio.\n`;
+                esValido = false;
+                mensajeError += `El campo ${nombreCampo.replace(/_/g, ' ')} es obligatorio.\n`;
             }
         });
 
         if (!esValido) {
-            Swal.fire("Error", mensajeError, "error");
+            Swal.fire("Campos obligatorios", mensajeError, "error");
         }
 
         return esValido;

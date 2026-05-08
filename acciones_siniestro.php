@@ -146,21 +146,48 @@ if ($accion == "subirImagenes") {
     exit;
 }
 
-// Consulta para obtener los vehiculos asignados al usuario 
+// Consulta para obtener los vehiculos asignados al usuario
 if ($accion == "consultarInventario") {
 
-    $sqlConsultaVehiculos ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
-                            FROM inventario inv
-                            WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
-                            UNION
-                            SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio 
-                            FROM prestamos p 
-                            INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
-                            WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
+    $infAdicional = null;
+    $stmtReg = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'registrarMantenimiento' AND estatus = 1 LIMIT 1");
+    if ($stmtReg) {
+        $stmtReg->bind_param("i", $noEmpleado);
+        $stmtReg->execute();
+        $rowReg = $stmtReg->get_result()->fetch_assoc();
+        if ($rowReg && !empty($rowReg['inf_adicional']) && $rowReg['inf_adicional'] !== '-') {
+            $infAdicional = trim($rowReg['inf_adicional']);
+        }
+        $stmtReg->close();
+    }
+
+    if ($infAdicional === 'TODAS') {
+        $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio FROM inventario ORDER BY placa";
+    } else {
+        $areasPermitidas = $infAdicional ? array_map('trim', explode(',', $infAdicional)) : [];
+
+        $sqlConsultaVehiculos = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                FROM inventario inv
+                                WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
+                                UNION
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                FROM prestamos p
+                                INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
+                                WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
+
+        if (!empty($areasPermitidas)) {
+            $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), $areasPermitidas));
+            $sqlConsultaVehiculos .= " UNION
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                FROM inventario inv
+                                WHERE inv.area IN ('$areasEsc')";
+        }
+    }
+
     $result = $conn->query($sqlConsultaVehiculos);
 
     $vehiculos = [];
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $vehiculos[] = $row;
         }

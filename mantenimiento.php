@@ -115,8 +115,12 @@
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto:</label>
-                                <input class="form-control" id="contacto" name="contacto" type="tel" required>
+                                <label>Proveedor:</label>
+                                <input class="form-control" id="proveedor" name="proveedor" type="text" placeholder="Nombre del proveedor">
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                                <label>Contacto del proveedor:</label>
+                                <input class="form-control" id="contacto_proveedor" name="contacto_proveedor" type="text" placeholder="Teléfono o correo">
                             </div>
                         </div>
 
@@ -250,7 +254,8 @@
             // Limpiar campos
             $("#kilometraje").val("");
             $("#gasolina").val("");
-            $("#contacto").val("");
+            $("#proveedor").val("");
+            $("#contacto_proveedor").val("");
             $("#info_llantas").hide();
 
             if (opt.value) {
@@ -312,22 +317,18 @@
             var km_proxi = '';//$("#prox_kilometraje").val();
             var tipo_carro = $("#tipo_carro").val();
             var id_dueno = $("#id_dueno").val();
+            var proveedor = $("#proveedor").val();
+            var contacto_proveedor = $("#contacto_proveedor").val();
             var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
             var accion = "RegistrarMantenimiento";
             var rutaImagen = $("#foto")[0].files[0];
 
             //Verificacion de campos faltantes
             var camposFaltantes = [];
-            // Validar cada campo y agregar al array si está vacío
             if (!placa) camposFaltantes.push("Vehículo seleccionado");
-            //if (!tipo_carro) camposFaltantes.push("Tipo de vehículo");
-            //if (tipo_carro === "Prestado" && !id_dueno) camposFaltantes.push("Propietario");
             if (!descripcion) camposFaltantes.push("Descripción");
-            //if (!fecha_proxi) camposFaltantes.push("Fecha del próximo servicio");
-            //if (!km_proxi) camposFaltantes.push("Kilometraje del próximo servicio");
             if (!kilometraje) camposFaltantes.push("Kilometraje actual");
             if (!tipo_mantenimiento) camposFaltantes.push("Tipo de servicio");
-            if (!contacto) camposFaltantes.push("Contacto");
 
             //VALIDACIONES DE CAMPOS
             if (camposFaltantes.length > 0) {
@@ -360,8 +361,8 @@
                 $.ajax({
                     type: "POST",
                     url: "acciones_mantenimiento",
-                    data: { id_vehiculo, fecha_registro, kilometraje, gasolina, tipo_mantenimiento, descripcion, solicitante, 
-                            tipo_carro, id_dueno, rutaImagen, accion},
+                    data: { id_vehiculo, fecha_registro, kilometraje, gasolina, proveedor, contacto_proveedor,
+                            tipo_mantenimiento, descripcion, solicitante, tipo_carro, id_dueno, rutaImagen, accion},
                     dataType: 'json',
                     success: function (respuesta) {
                         Swal.fire({

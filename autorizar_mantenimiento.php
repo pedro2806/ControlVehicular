@@ -174,24 +174,32 @@
         
     });
 
+    var puedeAutorizar = false;
+
+    $.ajax({
+        type: "POST",
+        url: "acciones_mantenimiento.php",
+        data: { accion: "verificarAccesoAutorizar" },
+        dataType: "json",
+        success: function(resp) { puedeAutorizar = resp.puedeAutorizar; }
+    });
+
     // Función para cargar los mantenimientos desde la base de datos
     function cargarMantenimientos(estatus, estiloTabla) {
-        const rol = getCookie('rol'); // Obtener el rol del usuario desde las cookies
-
         $.ajax({
             type: "POST",
             url: "acciones_mantenimiento.php",
             data: { accion: "consultarMantenimientos", estatus: estatus },
             dataType: "json",
             success: function (respuesta) {
-                
-                var table = $('#tablaMantenimientos').DataTable();                
 
-                table.clear().draw();                            
-                respuesta.forEach(function(mantenimiento) { 
+                var table = $('#tablaMantenimientos').DataTable();
+
+                table.clear().draw();
+                respuesta.forEach(function(mantenimiento) {
 
                     var botones = "";
-                    if (rol == 2 && estatus == "PENDIENTE") { 
+                    if (puedeAutorizar && estatus == "PENDIENTE") {
                         botones = `
                             <button class="btn btn-outline-success" onclick="autorizarMantenimiento(${mantenimiento.id_mantenimiento})">
                                 <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>

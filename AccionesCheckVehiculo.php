@@ -374,7 +374,14 @@ if ($opcion == 'checklist_documentacion') {
 //////// FUNCIONES Y  VARIABLES PARA GUARDAR CHECKLIST ////////////
     // Helper function to get POST value or 'S/R' if null/empty
     function getPostOrSR($key) {
-        return (isset($_POST[$key]) && $_POST[$key] !== null && $_POST[$key] !== '') ? $_POST[$key] : 'S/R';
+        return (isset($_POST[$key]) && $_POST[$key] !== null && $_POST[$key] !== '') ? $_POST[$key] : '';
+    }
+
+    function checklistEsCompleto($campos) {
+        foreach ($campos as $v) {
+            if ($v === null || $v === '') return false;
+        }
+        return true;
     }
     $placa = getPostOrSR('placa');
     $id_coche = getPostOrSR('id_coche');
@@ -663,6 +670,8 @@ if ($opcion == 'cargarBorrador') {
         $r = mysqli_query($conn, "SELECT * FROM $tabla WHERE id_checklist='$id_checklist_borrador' LIMIT 1");
         if ($r && mysqli_num_rows($r) > 0) {
             $data[$key] = mysqli_fetch_assoc($r);
+        } else {
+            $data[$key] = null;
         }
     }
 

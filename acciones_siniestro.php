@@ -164,7 +164,18 @@ if ($accion == "consultarInventario") {
     if ($infAdicional === 'TODAS') {
         $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio FROM inventario ORDER BY placa";
     } else {
-        $areasPermitidas = $infAdicional ? array_map('trim', explode(',', $infAdicional)) : [];
+        $areas = [];
+        $deptos = [];
+        if ($infAdicional) {
+            foreach (array_map('trim', explode(',', $infAdicional)) as $item) {
+                if (stripos($item, 'LAB:') === 0) {
+                    $id = (int) substr($item, 4);
+                    if ($id > 0) $deptos[] = $id;
+                } else {
+                    $areas[] = $conn->real_escape_string($item);
+                }
+            }
+        }
 
         $sqlConsultaVehiculos = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
                                 FROM inventario inv
@@ -175,12 +186,21 @@ if ($accion == "consultarInventario") {
                                 INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
                                 WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
 
-        if (!empty($areasPermitidas)) {
-            $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), $areasPermitidas));
+        if (!empty($areas)) {
+            $areasEsc = implode("','", $areas);
             $sqlConsultaVehiculos .= " UNION
                                 SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
                                 FROM inventario inv
                                 WHERE inv.area IN ('$areasEsc')";
+        }
+
+        if (!empty($deptos)) {
+            $deptosEsc = implode(',', $deptos);
+            $sqlConsultaVehiculos .= " UNION
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                FROM inventario inv
+                                INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario
+                                WHERE us.departamento IN ($deptosEsc)";
         }
     }
 

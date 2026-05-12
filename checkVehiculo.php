@@ -28,6 +28,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 
+    <style>
+        .bg-orange {
+            background-color: #da880f !important;
+        }
+    </style>
 </head>
 
 <body id="page-top">
@@ -70,7 +75,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <button type="button" class="btn btn-primary btn-sm" onclick="MostrarDivVehiculosAsignados()">Cambiar de vehículo</button>
                         </div>
                         <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
                             <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
                             <input type="hidden" id="id_coche" name="id_coche">
                             <input type="hidden" name="ruta_foto_Asientos">
@@ -162,7 +167,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 foreach ($accordionItems as $item) {
                                     echo '<div class="accordion-item">';
                                         echo '<h2 class="accordion-header">';
-                                            echo '<button class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
+                                            echo '<button id="accordion-item-' . $item["id"] . '" class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
                                             echo $item["title"];
                                             echo '</button>';
                                         echo '</h2>';
@@ -189,8 +194,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                                             echo '</div>';
                                                         echo '</div>';
                                                         echo '<div class="col-lg-5 col-md-5 col-sm-5 col-5">';
+                                                            echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label>';
                                                             echo '<input type="text" id="duplicado_' . $item["id"] . '" name="duplicado_' . $item["id"] . '" class="form-control">';
-                                                            echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label><br>';
                                                         echo '</div>';
                                                     } else {
                                                         echo '<div class="col-lg-4 col-md-4 col-sm-4 col-4">';
@@ -274,7 +279,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 foreach ($accordionItems2 as $item) {
                                     echo '<div class="accordion-item">';
                                         echo '<h2 class="accordion-header">';
-                                            echo '<button class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
+                                            echo '<button id="accordion-item-' . $item["id"] . '" class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
                                             echo $item["title"];
                                             echo '</button>';
                                         echo '</h2>';
@@ -333,7 +338,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>  
                         <div class="row">
                             <div class="col-md-12 mt-3">
-                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm" onclick="guardarCheckIn()">Guardar</button>
+                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
                             <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
                             </div>
                         </div>
@@ -459,40 +464,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#carta_resguardo').prop('checked', false);            
         $('#foto_inspeccion').val('');
         limpiarRutasFoto();
-        OcultaDivVehiculosAsignados(); // Ocultar el div de vehículos asignados
+        OcultaDivVehiculosAsignados();
         verificarBorrador(Registro.idCoche);
-    }
-
-    function validarFormulario() {
-        let esValido = true;
-        let mensajeError = "";
-
-        const camposFecha = [
-            'vencimiento_Seguro',
-            'vencimiento_Verificacion',
-            'vencimiento_Licencia',
-            'vencimiento_TarjetaEfe'
-        ];
-        camposFecha.forEach(function(nombreCampo) {
-            const campo = $(`input[name="${nombreCampo}"]`);
-            if (campo.length && campo.val().trim() === "") {
-                esValido = false;
-                mensajeError += `El campo ${nombreCampo.replace(/_/g, ' ')} es obligatorio.\n`;
-            }
-        });
-
-        if (!esValido) {
-            Swal.fire("Campos obligatorios", mensajeError, "error");
-        }
-
-        return esValido;
+        verificarCompletitud();
     }
 
         function guardarCheckIn() {
-            // Validar el formulario antes de enviar
-            if (!validarFormulario()) {
-                return; // Detener la ejecución si hay errores de validación
-            }
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros
@@ -559,17 +536,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 contentType: false,
                 dataType: 'json',
                 success: function(response) {
-                    Swal.close(); // Cerrar el mensaje de procesamiento
+                    Swal.close();
                     if (response.success) {
                         Swal.fire("Éxito", "El check-in se guardó correctamente.", "success");
                         window.location.assign("verifica_checkinVehiculo");
                     } else {
                         Swal.fire("Error", "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
+                        $('#btnguardarCheck, #btnguardarCheck2, #btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                        verificarCompletitud();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
-                    Swal.close(); // Cerrar el mensaje de procesamiento
+                    Swal.close();
                     Swal.fire("Error", "No se pudo completar la solicitud. Por favor, inténtalo más tarde.", "error");
+                    $('#btnguardarCheck, #btnguardarCheck2, #btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                    verificarCompletitud();
                 }
             });
             
@@ -628,26 +609,20 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     Swal.close();
                     if (response.success) {
                         Swal.fire("Avance guardado", "Tu progreso fue guardado. Puedes continuar el registro más tarde.", "success").then(function() {
-                            $('#btnguardarCheck').prop('disabled', false);
-                            $('#btnguardarCheck2').prop('disabled', false);
-                            $('#btnGuardarAvance').prop('disabled', false);
-                            $('#btnGuardarAvance2').prop('disabled', false);
+                            $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                            verificarCompletitud();
                         });
                     } else {
                         Swal.fire("Error", "Hubo un problema al guardar el avance.", "error");
-                        $('#btnguardarCheck').prop('disabled', false);
-                        $('#btnguardarCheck2').prop('disabled', false);
-                        $('#btnGuardarAvance').prop('disabled', false);
-                        $('#btnGuardarAvance2').prop('disabled', false);
+                        $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                        verificarCompletitud();
                     }
                 },
                 error: function() {
                     Swal.close();
                     Swal.fire("Error", "No se pudo completar la solicitud.", "error");
-                    $('#btnguardarCheck').prop('disabled', false);
-                    $('#btnguardarCheck2').prop('disabled', false);
-                    $('#btnGuardarAvance').prop('disabled', false);
-                    $('#btnGuardarAvance2').prop('disabled', false);
+                    $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                    verificarCompletitud();
                 }
             });
         }
@@ -712,12 +687,18 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setCheck('buenEstado_Asientos', data.asientos.buen_estado);
                 setVal('observaciones_Asientos', data.asientos.observaciones);
                 setRuta('ruta_foto_Asientos', data.asientos.foto);
+                if (data.asientos.foto === '') {
+                    $('#accordion-item-Asientos').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (data.espejos) {
                 setCheck('si_no_Espejos', data.espejos.si_no);
                 setCheck('buenEstado_Espejos', data.espejos.buen_estado);
                 setVal('observaciones_Espejos', data.espejos.observaciones);
                 setRuta('ruta_foto_Espejos', data.espejos.foto);
+                if (data.espejos.foto === '') {
+                    $('#accordion-item-Espejos').removeClass('bg-primary').addClass('bg-warning');
+                }
             }
             if (data.estereos) {
                 setCheck('si_no_AireAcondicionado', data.estereos.si_no);
@@ -725,36 +706,54 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setVal('observaciones_AireAcondicionado', data.estereos.observaciones);
                 setVal('CEAireAcondicionado', data.estereos.cd_estereo);
                 setRuta('ruta_foto_AireAcondicionado', data.estereos.foto);
+                if (data.estereos.foto === '') {
+                    $('#accordion-item-AireAcondicionado').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (data.faros) {
                 setCheck('si_no_Faros', data.faros.si_no);
                 setCheck('buenEstado_Faros', data.faros.buen_estado);
                 setVal('observaciones_Faros', data.faros.observaciones);
                 setRuta('ruta_foto_Faros', data.faros.foto);
+                if (data.faros.foto === '') {
+                    $('#accordion-item-Faros').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (data.golpes) {
                 setCheck('si_no_Exterior', data.golpes.si_no);
                 setCheck('buenEstado_Exterior', data.golpes.buen_estado);
                 setVal('observaciones_Exterior', data.golpes.observaciones);
                 setRuta('ruta_foto_Exterior', data.golpes.foto);
+                if (data.golpes.foto === '') {
+                    $('#accordion-item-Exterior').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (data.graficas) {
                 setCheck('si_no_Graficas', data.graficas.si_no);
                 setCheck('buenEstado_Graficas', data.graficas.buen_estado);
                 setVal('observaciones_Graficas', data.graficas.observaciones);
                 setRuta('ruta_foto_Graficas', data.graficas.foto);
+                if (data.graficas.foto === '') {
+                    $('#accordion-item-Graficas').removeClass('bg-primary').addClass('bg-warning');
+                }
             }
             if (data.limpiaparabrisas) {
                 setCheck('si_no_Limpiaparabrisas', data.limpiaparabrisas.si_no);
                 setCheck('buenEstado_Limpiaparabrisas', data.limpiaparabrisas.buen_estado);
                 setVal('observaciones_Limpiaparabrisas', data.limpiaparabrisas.observaciones);
                 setRuta('ruta_foto_Limpiaparabrisas', data.limpiaparabrisas.foto);
+                if (data.limpiaparabrisas.foto === '') {
+                    $('#accordion-item-Limpiaparabrisas').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (data.limpieza) {
                 setCheck('si_no_Limpieza', data.limpieza.si_no);
                 setCheck('buenEstado_Limpieza', data.limpieza.buen_estado);
                 setVal('observaciones_Limpieza', data.limpieza.observaciones);
                 setRuta('ruta_foto_Limpieza', data.limpieza.foto);
+                if (data.limpieza.foto === '') {
+                    $('#accordion-item-Limpieza').removeClass('bg-primary').addClass('bg-warning');
+                }
             }
             if (data.llantas) {
                 setCheck('buenEstado_Llantas', data.llantas.buen_estado);
@@ -762,18 +761,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setVal('medidas_Llantas', data.llantas.medidas);
                 setVal('observaciones_Llantas', data.llantas.observaciones);
                 setRuta('ruta_foto_Llantas', data.llantas.foto);
+                if (data.llantas.foto === '') {
+                    $('#accordion-item-Llantas').removeClass('bg-primary').addClass('bg-warning');
+                }
             }
             if (data.placas) {
                 setCheck('si_no_Placas', data.placas.si_no);
                 setCheck('buenEstado_Placas', data.placas.buen_estado);
                 setVal('observaciones_Placas', data.placas.observaciones);
                 setRuta('ruta_foto_Placas', data.placas.foto);
+                if (data.placas.foto === '') {
+                    $('#accordion-item-Placas').removeClass('bg-primary').addClass('bg-warning');
+                }
             }
             if (data.puertas) {
                 setCheck('buenEstado_PuertasLlave', data.puertas.buen_estado);
                 setVal('duplicado_PuertasLlave', data.puertas.duplicado_llaves);
                 setVal('observaciones_PuertasLlave', data.puertas.observaciones);
                 setRuta('ruta_foto_PuertasLlave', data.puertas.foto);
+                if (data.puertas.foto === '') {
+                    $('#accordion-item-PuertasLlave').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
 
             var docs = data.documentacion || {};
@@ -781,11 +789,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setCheck('si_no_tarjetaC', docs['Tarjeta de Circulacion'].si_no);
                 setVal('observaciones_tarjetaC', docs['Tarjeta de Circulacion'].observaciones);
                 setRuta('ruta_foto_tarjetaC', docs['Tarjeta de Circulacion'].foto);
+                if (docs['Tarjeta de Circulacion'].foto === '') {
+                    $('#accordion-item-tarjetaC').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (docs['Refrendo']) {
                 setCheck('si_no_Refrendo', docs['Refrendo'].si_no);
                 setVal('observaciones_Refrendo', docs['Refrendo'].observaciones);
                 setRuta('ruta_foto_Refrendo', docs['Refrendo'].foto);
+                if (docs['Refrendo'].foto === '') {
+                    $('#accordion-item-Refrendo').removeClass('bg-black').addClass('bg-warning');
+                }
             }
             if (docs['Seguro de Auto']) {
                 setCheck('si_no_Seguro', docs['Seguro de Auto'].si_no);
@@ -793,18 +807,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setVal('no_tarjeta_Seguro', docs['Seguro de Auto'].no_tarjeta);
                 setVal('observaciones_Seguro', docs['Seguro de Auto'].observaciones);
                 setRuta('ruta_foto_Seguro', docs['Seguro de Auto'].foto);
+                if (docs['Seguro de Auto'].foto === '') {
+                    $('#accordion-item-Seguro').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (docs['Verificacion']) {
                 setCheck('si_no_Verificacion', docs['Verificacion'].si_no);
                 setVal('vencimiento_Verificacion', docs['Verificacion'].vencimiento);
                 setVal('observaciones_Verificacion', docs['Verificacion'].observaciones);
                 setRuta('ruta_foto_Verificacion', docs['Verificacion'].foto);
+                if (docs['Verificacion'].foto === '') {
+                    $('#accordion-item-Verificacion').removeClass('bg-black').addClass('bg-warning');
+                }
             }
             if (docs['Licencia de Manejo']) {
                 setCheck('si_no_Licencia', docs['Licencia de Manejo'].si_no);
                 setVal('vencimiento_Licencia', docs['Licencia de Manejo'].vencimiento);
                 setVal('observaciones_Licencia', docs['Licencia de Manejo'].observaciones);
                 setRuta('ruta_foto_Licencia', docs['Licencia de Manejo'].foto);
+                if (docs['Licencia de Manejo'].foto === '') {
+                    $('#accordion-item-Licencia').removeClass('bg-secondary').addClass('bg-orange');
+                }
             }
             if (docs['Tarjeta Efecticard']) {
                 setCheck('si_no_TarjetaEfe', docs['Tarjeta Efecticard'].si_no);
@@ -812,6 +835,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setVal('no_tarjeta_TarjetaEfe', docs['Tarjeta Efecticard'].no_tarjeta);
                 setVal('observaciones_TarjetaEfe', docs['Tarjeta Efecticard'].observaciones);
                 setRuta('ruta_foto_TarjetaEfe', docs['Tarjeta Efecticard'].foto);
+                if (docs['Tarjeta Efecticard'].foto === '') {
+                    $('#accordion-item-TarjetaEfe').removeClass('bg-black').addClass('bg-warning');
+                }
             }
             if (docs['Tarjeta IAVE']) {
                 setCheck('si_no_TarjetaIAVE', docs['Tarjeta IAVE'].si_no);
@@ -819,8 +845,37 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 setVal('no_tarjeta_TarjetaIAVE', docs['Tarjeta IAVE'].no_tarjeta);
                 setVal('observaciones_TarjetaIAVE', docs['Tarjeta IAVE'].observaciones);
                 setRuta('ruta_foto_TarjetaIAVE', docs['Tarjeta IAVE'].foto);
+                if (docs['Tarjeta IAVE'].foto === '') {
+                    $('#accordion-item-TarjetaIAVE').removeClass('bg-secondary').addClass('bg-orange');
+                }
+            }
+            verificarCompletitud();
+        }
+
+        function verificarCompletitud() {
+            var fotoInputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
+            var completo = Array.from(fotoInputs).every(function(input) {
+                if (input.files && input.files.length > 0) return true;
+                var rutaInput = document.querySelector('input[name="ruta_' + input.name + '"]');
+                return rutaInput && rutaInput.value.trim() !== '';
+            });
+            if (completo) {
+                $('#btnguardarCheck, #btnguardarCheck2').show();
+                $('#btnGuardarAvance, #btnGuardarAvance2').hide();
+            } else {
+                $('#btnguardarCheck, #btnguardarCheck2').hide();
+                $('#btnGuardarAvance, #btnGuardarAvance2').show();
             }
         }
+
+        $(document).on('input', 'textarea, input[type="text"], input[type="date"], input[type="input"]', verificarCompletitud);
+        $(document).on('change', 'input[type="checkbox"]', function() {
+            var sectionId = $(this).closest('.accordion-collapse').attr('id');
+            if (sectionId) {
+                $('[name="_seccion_' + sectionId + '"]').val('1');
+            }
+            verificarCompletitud();
+        });
 
         // Función para obtener el valor de una cookie por su nombre
         function getCookie(name) {
@@ -884,6 +939,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             previewElement.src = e.target.result;
                         };
                         reader.readAsDataURL(file);
+                        verificarCompletitud();
                     }
                 });
             });

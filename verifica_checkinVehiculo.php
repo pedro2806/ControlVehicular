@@ -38,7 +38,7 @@ if ($stmtAcc) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-
+    
 </head>
 
 <body id="page-top">
@@ -606,7 +606,8 @@ if ($stmtAcc) {
 
             // Crear el div de la card
             const cardDiv = document.createElement('div');
-            cardDiv.classList.add('card', 'border-left-info', 'shadow', 'h-60', 'py-0');
+            cardDiv.classList.add('card', 'shadow', 'h-60', 'py-0');
+            cardDiv.style.borderLeft = '4px solid ' + (registro.Si_No == 1 ? '#28a745' : '#fd7e14');
 
             // Crear el header de la card
             const cardHeaderDiv = document.createElement('div');
@@ -623,10 +624,36 @@ if ($stmtAcc) {
             const cardBodyDiv = document.createElement('div');
             cardBodyDiv.classList.add('card-body');
 
+            // Chip row para Si_No y Buen_estado
+            const chipRow = document.createElement('div');
+            chipRow.classList.add('d-flex', 'gap-2', 'mb-2', 'flex-wrap');
+
+            if (registro.Si_No !== undefined) {
+                const chip = document.createElement('span');
+                const presente = registro.Si_No == 1;
+                chip.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:50rem;font-size:0.85rem;color:#fff;background-color:' + (presente ? '#28a745' : '#fd7e14');
+                chip.innerHTML = presente
+                    ? '<i class="bi bi-check-circle-fill me-1"></i>Presente'
+                    : '<i class="bi bi-x-circle-fill me-1"></i>Ausente';
+                chipRow.appendChild(chip);
+            }
+
+            if (registro.Buen_estado !== undefined) {
+                const chip = document.createElement('span');
+                const bueno = registro.Buen_estado == 1;
+                chip.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:50rem;font-size:0.85rem;color:#fff;background-color:' + (bueno ? '#28a745' : '#fd7e14');
+                chip.innerHTML = bueno
+                    ? '<i class="bi bi-check-circle-fill me-1"></i>Buen estado'
+                    : '<i class="bi bi-exclamation-triangle-fill me-1"></i>Mal estado';
+                chipRow.appendChild(chip);
+            }
+
+            if (chipRow.children.length > 0) cardBodyDiv.appendChild(chipRow);
+
             // Iterar sobre las propiedades del registro para crear las labels dinámicamente
             for (const key in registro) {
                 // Excluir el ID o cualquier otra propiedad que no quieras mostrar como label
-                if (key !== 'idCheck' && key !== 'nombre_seccion' && !key.includes('imagen')) {
+                if (key !== 'idCheck' && key !== 'nombre_seccion' && !key.includes('imagen') && key !== 'Si_No' && key !== 'Buen_estado') {
                     const labelTitulo = document.createElement('label');
                     labelTitulo.classList.add('font-weight-bold');
                     labelTitulo.textContent = `${formatearNombreLabel(key)}:`;
@@ -653,10 +680,11 @@ if ($stmtAcc) {
                         cardBodyDiv.appendChild(sinImagenLabel);
                     } else {
                         const imagen = document.createElement('img');
-                        imagen.src = registro[key]; // Ajusta esto al nombre real de la propiedad de la imagen
-                        imagen.alt = registro.nombre_seccion || 'Imagen'; // Texto alternativo para la imagen
-                        imagen.classList.add('img-fluid', 'mt-1');                        
-                        imagen.style.maxHeight = '120px'; // Controla la altura máxima de la imagen
+                        imagen.src = registro[key];
+                        imagen.alt = registro.nombre_seccion || 'Imagen';
+                        imagen.classList.add('img-fluid', 'mt-1');
+                        imagen.style.maxHeight = '120px';
+                        imagen.onerror = function() { this.style.display = 'none'; };
                         cardBodyDiv.appendChild(imagen);
                     }
                     break; // Suponiendo que solo hay una imagen por tarjeta

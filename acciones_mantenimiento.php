@@ -217,15 +217,34 @@ if ($accion == "consultarMantenimientos") {
                             WHERE mant.VoBo_jefe = '$estatus'
                             ORDER BY mant.fecha_registro DESC";
         } elseif ($infAdicional) {
-            $areasPermitidas = array_map('trim', explode(',', $infAdicional));
-            $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), $areasPermitidas));
+            $areas = [];
+            $deptos = [];
+            foreach (array_map('trim', explode(',', $infAdicional)) as $item) {
+                if (stripos($item, 'LAB:') === 0) {
+                    $id = (int) substr($item, 4);
+                    if ($id > 0) $deptos[] = $id;
+                } else {
+                    $areas[] = $conn->real_escape_string($item);
+                }
+            }
+
+            $conditions = ["inv.id_usuario = '$id_usuario'"];
+            if (!empty($areas)) {
+                $areasEsc = implode("','", $areas);
+                $conditions[] = "inv.area IN ('$areasEsc')";
+            }
+            if (!empty($deptos)) {
+                $deptosEsc = implode(',', $deptos);
+                $conditions[] = "inv.id_usuario IN (SELECT id_usuario FROM mess_rrhh.usuarios WHERE departamento IN ($deptosEsc))";
+            }
+            $whereExtra = implode(' OR ', $conditions);
+
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
                             mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                             INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                            WHERE mant.VoBo_jefe = '$estatus'
-                            AND (inv.id_usuario = '$id_usuario' OR inv.area IN ('$areasEsc'))
+                            WHERE mant.VoBo_jefe = '$estatus' AND ($whereExtra)
                             ORDER BY mant.fecha_registro DESC";
         } else {
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,

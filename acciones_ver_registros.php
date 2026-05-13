@@ -133,16 +133,33 @@ if ($_POST['accion'] == 'verSiniestrosXVehiculo') {
     exit;
 }
 
-// Consulta para obtener los registros de documetnación
+// Consulta para obtener los registros de documentación
 if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
-    $id_vehiculo = intval($_POST['id_vehiculo']);
-    $sql = " SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.id_usuario_registro, doc.contacto, 
-                    doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente, 
-                    inv.usuario, inv.id_usuario, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
+    $id_usuario_int  = intval($id_usuario);
+    $noEmpleado_int  = intval($noEmpleado);
+
+    // Verificar acceso especial para ver todos los vehículos
+    $tieneAccesoTotal = false;
+    $stmtAcc = $conn->prepare("SELECT id FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verTodosVehiculo' AND estatus = 1 LIMIT 1");
+    if ($stmtAcc) {
+        $stmtAcc->bind_param("i", $noEmpleado_int);
+        $stmtAcc->execute();
+        $stmtAcc->store_result();
+        $tieneAccesoTotal = $stmtAcc->num_rows > 0;
+        $stmtAcc->close();
+    }
+
+    $whereClause = $tieneAccesoTotal
+        ? ""
+        : "WHERE inv.id_usuario = $id_usuario_int OR inv.id_us_asignado = $id_usuario_int";
+
+    $sql = "SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.id_usuario_registro, doc.contacto,
+                   doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente,
+                   inv.usuario, inv.id_usuario, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
             FROM documentacion doc
             LEFT JOIN inventario inv ON doc.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios u ON doc.id_usuario_registro = u.id_usuario 
-            WHERE inv.id_usuario = $id_usuario OR inv.id_us_asignado = $id_usuario
+            LEFT JOIN usuarios u ON doc.id_usuario_registro = u.id_usuario
+            $whereClause
             ORDER BY doc.fecha_registro ASC";
     $result = $conn->query($sql);
 

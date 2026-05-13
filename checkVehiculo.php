@@ -386,6 +386,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         
 
                         
+    var autoSelectVehiculo = <?php echo intval($_GET['v'] ?? 0); ?>;
+
     $(document).ready(function () {
         llenaTVehiculosAsignados(); //LLENAR TABLA DE VEHICULOS ASIGNADOS
 
@@ -433,13 +435,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             var table = $('#TVehiculosAsignados').DataTable();
                             
                             table.clear().draw();                            
-                            registros.forEach(function(Registro) { 
-                                table.row.add([                                    
+                            registros.forEach(function(Registro) {
+                                table.row.add([
                                     '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                                     '<b> ' + Registro.modelo + ' </b>',
                                     '<center><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
                                 ]).draw(false);
                             });
+
+                            // Si viene desde un QR, auto-seleccionar el vehículo correspondiente
+                            if (autoSelectVehiculo) {
+                                var match = registros.find(function(r) { return r.idCoche == autoSelectVehiculo; });
+                                if (match) SeleccionaVehiculo(match);
+                            }
                         },
                         error: function(jqXHR, textStatus, errorThrown) {
                             

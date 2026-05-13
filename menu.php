@@ -175,14 +175,35 @@
             <span>Check List</span>
         </a>
         <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-parent="#accordionSidebar">
-        
+
             <div class="bg-white py-2 collapse-inner rounded">
                 <a class="collapse-item" href="checkVehiculo">Registrar / Actualizar</a>
                 <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check List</a>
-            </div>            
+            </div>
         </div>
-    
+
     </li>
+
+    <!-- Menú QR Vehículos (visible solo con acceso 'verQR') -->
+    <li class="nav-item" id="menuVerQR" style="display:none;">
+        <a class="nav-link py-2" href="generar_qr_vehiculo">
+            <i class="fas fa-fw fa-qrcode"></i>
+            <span>QR Vehículos</span>
+        </a>
+    </li>
+    <script>
+        fetch("acciones_qr.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "accion=verificarAccesoQR"
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            if (resp.tieneAcceso) {
+                document.getElementById("menuVerQR").style.display = "";
+            }
+        });
+    </script>
 
     <!-- SALIR -->
     <li class = "nav-item">

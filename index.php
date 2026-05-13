@@ -37,6 +37,7 @@
                                         <h1 class = "h4 text-gray-900 mb-4">Bienvenido</h1>
                                     </div>
                                     <form class = "user" method = "POST">
+                                        <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                         <div class = "form-group">
                                             <input type = "text" class = "form-control form-control-user" id = "InputEmail" name = "InputEmail" aria-describedby = "emailHelp" placeholder = "Usuario">
                                             <span>@mess.com.mx</span>
@@ -133,7 +134,12 @@
                     echo '<script>document.cookie = "navSesion=Navegador; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 }
 
-                echo '<script>window.location.assign("inicio")</script>';
+                $redirect = $_POST['redirect'] ?? '';
+                // Solo permitir rutas relativas (sin protocolo ni doble slash)
+                $destino = (!empty($redirect) && !preg_match('/^(https?:)?\/\//i', $redirect))
+                    ? $redirect
+                    : 'inicio';
+                echo '<script>window.location.assign("' . addslashes($destino) . '")</script>';
             }
             else if ($nr  ==  0)
             {

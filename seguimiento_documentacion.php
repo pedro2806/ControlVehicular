@@ -120,11 +120,15 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // Inicializar DataTables            
             var TablaRegistrosDocumentacion = $('#TablaRegistrosDocumentacion').DataTable({
                 data: [],
-                paging: false,
+                paging: true,
                 pageLength: 5,
+                lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
                 ordering: true,
                 searching: true,
                 info: true,
+                autoWidth: false,
+                responsive: true,
+                order: [[1, 'desc']],
                 language: {
                     decimal: ",",
                     thousands: ".",
@@ -304,6 +308,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                         <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">CONTACTO</small>
                                         <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
                                             <i class="fas fa-address-book fa-lg me-2 text-secondary"></i>${documento.contacto || 'N/A'}
+                                        </span>
+                                    </div>
+
+                                    <div class="info-item mb-4">
+                                        <small class="text-muted d-block uppercase font-weight-bold" style="font-size: 0.9rem; letter-spacing: 1px;">PRÓXIMA VERIFICACIÓN</small>
+                                        <span class="text-dark" style="font-size: 1.2rem; font-weight: 500;">
+                                            <i class="fas fa-calendar-check fa-lg me-2 text-secondary"></i>${documento.fecha_prox || 'N/A'}
                                         </span>
                                     </div>
                                 </div>

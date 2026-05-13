@@ -72,9 +72,14 @@
                                 <input class="form-control" id="contacto" name="contacto" type="tel" required>
                             </div>
                             <br>
-                            <div class="col-lg-4 col-md-6 col-sm-6 col-6" style="display: none">
-                                <label>Fecha Prox. Revisión:</label>
-                                <input type="date" class="form-control" id="prox_fecha" name="prox_fecha" value="<?php echo date('Y-m-d'); ?>">
+                            <div class="col-lg-4 col-md-6 col-sm-6 col-6">
+                                <label>
+                                    Fecha Próxima Verificación: <span class="text-danger">*</span>
+                                    <button type="button" class="btn btn-link p-0 ms-1" data-toggle="modal" data-target="#modalCalendarioVerificacion" title="Ver calendario de verificación">
+                                        <i class="fas fa-info-circle text-secondary"></i>
+                                    </button>
+                                </label>
+                                <input type="date" class="form-control" id="prox_fecha" name="prox_fecha" min="<?php echo date('Y-m-d'); ?>" required>
                             </div>
                         </div>
                         <br>
@@ -145,9 +150,69 @@
                         <input type="hidden" id="placa" name="placa">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <center>
-                            <button type="button" class="btn btn-outline-success" onclick="RegistrarDocumentos()">Guardar</button>
+                            <button type="button" id="btnGuardarDocumentos" class="btn btn-outline-success" onclick="RegistrarDocumentos()" style="display:none;">Guardar</button>
                         </center>
                     </form>
+
+                    <!-- Modal Calendario de Verificación -->
+                    <div class="modal fade" id="modalCalendarioVerificacion" tabindex="-1" role="dialog" aria-labelledby="modalCalendarioVerificacionLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header" style="background-color: #4a3728;">
+                                    <h5 class="modal-title text-white font-weight-bold" id="modalCalendarioVerificacionLabel">
+                                        <i class="fas fa-calendar-alt me-2"></i> Calendario de Verificación
+                                    </h5>
+                                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <table class="table table-bordered mb-0 text-center">
+                                        <thead>
+                                            <tr style="background-color: #4a3728; color: white;">
+                                                <th>Engomado</th>
+                                                <th>Período</th>
+                                                <th>Fecha límite</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="badge font-weight-bold px-3 py-2" style="background-color:#f5c518; color:#333; font-size:1rem;">5 o 6</span></td>
+                                                <td>Enero – Febrero</td>
+                                                <td class="font-weight-bold">28 de febrero</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge font-weight-bold px-3 py-2" style="background-color:#e06c7a; color:#fff; font-size:1rem;">7 u 8</span></td>
+                                                <td>Febrero – Marzo</td>
+                                                <td class="font-weight-bold">31 de marzo</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge font-weight-bold px-3 py-2" style="background-color:#4caf50; color:#fff; font-size:1rem;">3 o 4</span></td>
+                                                <td>Marzo – Abril</td>
+                                                <td class="font-weight-bold">30 de abril</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge font-weight-bold px-3 py-2" style="background-color:#e67e22; color:#fff; font-size:1rem;">1 o 2</span></td>
+                                                <td>Abril – Mayo</td>
+                                                <td class="font-weight-bold">30 de mayo</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge font-weight-bold px-3 py-2" style="background-color:#6c3483; color:#fff; font-size:1rem;">9 o 0</span></td>
+                                                <td>Mayo – Junio</td>
+                                                <td class="font-weight-bold">30 de junio</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <p class="text-muted small px-3 pt-2 mb-2">
+                                        <i class="fas fa-info-circle"></i> El engomado corresponde al último dígito de la placa del vehículo.
+                                    </p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <footer class = "sticky-footer bg-white">
@@ -214,8 +279,13 @@
                     }
                 }
             });
+
+            // Listeners para validación de completitud del formulario
+            $('#contacto').on('input', verificarCompletitud);
+            $('#prox_fecha').on('change', verificarCompletitud);
+            $('#archivoLicenciaInput, #archivoCirculacionInput, #archivoRefrendoInput, #archivoPolizaInput, #archivoVerificacionInput').on('change', verificarCompletitud);
         });
-        
+
         //FUNCION REGISTRO DE LA DOCUMENTACION
         function RegistrarDocumentos() {
             var formData = new FormData();
@@ -447,12 +517,41 @@
             var campo = $("#" + campoId);
 
             if (isChecked) {
-                campo.show(); // Mostrar el campo
-                $("#" + campoId + "Input").attr("required", true); 
+                campo.show();
+                $("#" + campoId + "Input").attr("required", true);
             } else {
-                campo.hide(); // Ocultar el campo
-                $("#" + campoId + "Input").removeAttr("required"); 
+                campo.hide();
+                $("#" + campoId + "Input").val('').removeAttr("required");
             }
+            verificarCompletitud();
+        }
+
+        //FUNCION PARA VALIDAR QUE HAYA AL MENOS UN DOC CON ARCHIVO ANTES DE MOSTRAR GUARDAR
+        function verificarCompletitud() {
+            var proxFecha = $('#prox_fecha').val();
+
+            var pares = [
+                { check: 'licencia',     file: 'archivoLicenciaInput' },
+                { check: 'circulacion',  file: 'archivoCirculacionInput' },
+                { check: 'refrendo',     file: 'archivoRefrendoInput' },
+                { check: 'poliza',       file: 'archivoPolizaInput' },
+                { check: 'verificacion', file: 'archivoVerificacionInput' }
+            ];
+
+            var algunoMarcado = false;
+            var todosConArchivo = true;
+
+            pares.forEach(function(par) {
+                if ($('#' + par.check).is(':checked')) {
+                    algunoMarcado = true;
+                    if ($('#' + par.file)[0].files.length === 0) {
+                        todosConArchivo = false;
+                    }
+                }
+            });
+
+            var valido = proxFecha !== '' && algunoMarcado && todosConArchivo;
+            $('#btnGuardarDocumentos').toggle(valido);
         }
 
         //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS

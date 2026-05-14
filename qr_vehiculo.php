@@ -53,6 +53,36 @@ if (empty($_COOKIE['noEmpleado'])) {
             line-height: 1.3;
         }
         .action-btn i { font-size: 1.5rem; }
+
+        .foto-captura {
+            background: #dee2e6;
+            border-radius: 12px;
+            position: relative;
+            height: 220px;
+            cursor: pointer;
+            padding: 14px;
+            user-select: none;
+        }
+        .foto-captura .foto-viewfinder {
+            border: 2px dashed #9aa3ad;
+            border-radius: 6px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .foto-captura .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #495057;
+            border-style: solid;
+        }
+        .foto-captura .corner.tl { top: 5px; left: 5px;   border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
+        .foto-captura .corner.tr { top: 5px; right: 5px;  border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
+        .foto-captura .corner.bl { bottom: 5px; left: 5px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
+        .foto-captura .corner.br { bottom: 5px; right: 5px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
     </style>
 </head>
 <body id="page-top">
@@ -89,24 +119,6 @@ if (empty($_COOKIE['noEmpleado'])) {
                         </div>
                     </div>
 
-                    <!-- Estatus (se llena por JS) -->
-                    <div class="card shadow mb-3" id="cardEstatus" style="display:none;">
-                        <div class="card-body py-3">
-                            <div class="d-flex flex-column gap-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-clipboard-check text-muted fa-fw"></i>
-                                    <span class="text-muted small fw-semibold" style="min-width:110px;">Check List:</span>
-                                    <span class="badge px-3 py-2" id="badgeChecklist"></span>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-calendar-check text-muted fa-fw"></i>
-                                    <span class="text-muted small fw-semibold" style="min-width:110px;">Verificación:</span>
-                                    <span class="badge px-3 py-2" id="badgeVerif"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Acciones rápidas -->
                     <div class="card shadow mb-3" id="cardAcciones" style="display:none;">
                         <div class="card-header bg-white py-2">
@@ -121,13 +133,6 @@ if (empty($_COOKIE['noEmpleado'])) {
                                         <i class="far fa-check-square"></i>
                                         Check-In / Out
                                     </button>
-                                </div>
-
-                                <div class="col-6">
-                                    <a href="checkVehiculo.php?v=<?php echo $id_vehiculo; ?>" class="btn btn-outline-info w-100 action-btn">
-                                        <i class="fas fa-book"></i>
-                                        Check List
-                                    </a>
                                 </div>
 
                                 <div class="col-6">
@@ -150,6 +155,32 @@ if (empty($_COOKIE['noEmpleado'])) {
                         </div>
                     </div>
 
+                    <!-- Estatus (se llena por JS) -->
+                    <div class="card shadow mb-3" id="cardEstatus" style="display:none;">
+                        <div class="card-body py-3">
+                            <div class="d-flex flex-column gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-clipboard-check text-muted fa-fw"></i>
+                                    <span class="text-muted small fw-semibold" style="min-width:110px;">Check List:</span>
+                                    <span class="badge px-3 py-2" id="badgeChecklist"></span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-wrench text-muted fa-fw"></i>
+                                    <span class="text-muted small fw-semibold" style="min-width:110px;">Mantenimiento:</span>
+                                    <span class="badge px-3 py-2" id="badgeMant"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentación (se llena por JS) -->
+                    <div class="card shadow mb-3" id="cardDocumentacion" style="display:none;">
+                        <div class="card-header bg-white py-2">
+                            <h6 class="m-0 fw-bold text-dark">Documentación</h6>
+                        </div>
+                        <div class="card-body py-2" id="listaDocumentacion"></div>
+                    </div>
+
                 </div>
             </div>
 
@@ -167,28 +198,38 @@ if (empty($_COOKIE['noEmpleado'])) {
     <div class="modal fade" id="modalAnomalia" tabindex="-1" aria-labelledby="modalAnomaliaLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalAnomaliaLabel">
-                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>Reportar Anomalía
-                    </h5>
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title fw-bold" id="modalAnomaliaLabel">Reporte Anomalía</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Descripción <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="anomaliaDescripcion" rows="3"
-                            placeholder="Describe la anomalía encontrada..."></textarea>
+                <div class="modal-body pt-2">
+                    <!-- Área de captura de foto -->
+                    <div class="foto-captura mb-3" id="fotoCaptura"
+                        onclick="document.getElementById('anomaliaFoto').click()">
+                        <div class="foto-viewfinder">
+                            <div id="fotoPlaceholder" class="text-center text-muted">
+                                <i class="fas fa-camera fa-3x mb-2 d-block"></i>
+                                <span style="font-size:0.82rem;">Toca para capturar</span>
+                            </div>
+                            <img id="fotoPreviewImg" src="" alt=""
+                                style="display:none; width:100%; height:100%; object-fit:cover; border-radius:4px;">
+                        </div>
+                        <span class="corner tl"></span>
+                        <span class="corner tr"></span>
+                        <span class="corner bl"></span>
+                        <span class="corner br"></span>
                     </div>
-                    <div class="mb-1">
-                        <label class="form-label fw-semibold">Foto <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control" id="anomaliaFoto"
-                            accept="image/*" capture="environment">
-                    </div>
+                    <input type="file" id="anomaliaFoto" accept="image/*" capture="environment" style="display:none;">
+
+                    <!-- Detalles -->
+                    <label class="form-label fw-semibold mb-1">Detalles:</label>
+                    <textarea class="form-control" id="anomaliaDescripcion" rows="3"
+                        placeholder="Describe la anomalía encontrada..."></textarea>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="btnGuardarAnomalia" onclick="guardarAnomalia()">
-                        <i class="fas fa-paper-plane me-1"></i> Reportar
+                <div class="modal-footer border-0 pt-1">
+                    <button type="button" class="btn btn-primary fw-semibold px-4"
+                        id="btnGuardarAnomalia" onclick="guardarAnomalia()">
+                        Registrar Anomalía
                     </button>
                 </div>
             </div>
@@ -212,6 +253,27 @@ if (empty($_COOKIE['noEmpleado'])) {
 
         $(document).ready(function () {
             cargarVehiculo();
+
+            // Preview de foto al seleccionar
+            document.getElementById('anomaliaFoto').addEventListener('change', function () {
+                var file = this.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#fotoPreviewImg').attr('src', e.target.result).show();
+                        $('#fotoPlaceholder').hide();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Reset del modal al cerrarse (dismiss sin enviar)
+            document.getElementById('modalAnomalia').addEventListener('hidden.bs.modal', function () {
+                $('#fotoPreviewImg').hide().attr('src', '');
+                $('#fotoPlaceholder').show();
+                $('#anomaliaDescripcion').val('');
+                $('#anomaliaFoto').val('');
+            });
         });
 
         function cargarVehiculo() {
@@ -227,7 +289,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     }
                     renderVehiculo(v);
                     $('#loadingQR').hide();
-                    $('#cardVehiculo, #cardEstatus, #cardAcciones').show();
+                    $('#cardVehiculo, #cardAcciones, #cardEstatus, #cardDocumentacion').show();
                 },
                 error: function () {
                     $('#loadingQR').html('<div class="alert alert-danger">No se pudo cargar la información del vehículo.</div>');
@@ -254,32 +316,65 @@ if (empty($_COOKIE['noEmpleado'])) {
                 (v.marca || '') + ' ' + (v.modelo || '') + ' · ' + (v.anio || '')
             );
 
-            // Badges de color / área / responsable
+            // Badges: área, usuario y verificación (color se omite para no saturar)
             var badges = '';
-            if (v.color)   badges += '<span class="badge bg-light text-dark border"><i class="fas fa-palette me-1"></i>' + escapeHtml(v.color) + '</span>';
             if (v.area)    badges += '<span class="badge bg-light text-dark border"><i class="fas fa-building me-1"></i>' + escapeHtml(v.area) + '</span>';
             if (v.usuario) badges += '<span class="badge bg-light text-dark border"><i class="fas fa-user me-1"></i>' + escapeHtml(v.usuario) + '</span>';
+            if (v.fecha_prox) {
+                var diasVerif = (new Date(v.fecha_prox) - new Date()) / 86400000;
+                if (diasVerif < 0)
+                    badges += '<span class="badge bg-danger"><i class="fas fa-calendar-times me-1"></i>Vencida</span>';
+                else
+                    badges += '<span class="badge bg-success"><i class="fas fa-calendar-check me-1"></i>Vigente</span>';
+            } else {
+                badges += '<span class="badge bg-secondary">Sin verificación</span>';
+            }
             $('#infoBadges').html(badges);
 
             // Badge checklist
-            var ck = { bg: 'secondary', texto: 'Sin checklist registrado' };
+            var ck = { bg: 'secondary', texto: 'Sin registro' };
             if (v.estatus_checklist === 'completo') {
-                ck = { bg: 'success', texto: 'Checklist OK · ' + formatFecha(v.fecha_checklist) };
+                ck = { bg: 'success', texto: 'Completo · #' + v.id_checklist + ' · ' + formatFecha(v.fecha_checklist) };
             } else if (v.estatus_checklist === 'borrador') {
-                ck = { bg: 'warning text-dark', texto: 'Checklist borrador · ' + formatFecha(v.fecha_checklist) };
+                ck = { bg: 'warning text-dark', texto: 'Borrador · #' + v.id_checklist + ' · ' + formatFecha(v.fecha_checklist) };
             }
             $('#badgeChecklist').removeClass().addClass('badge px-3 py-2 bg-' + ck.bg).text(ck.texto);
 
-            // Badge verificación
-            var vf = { bg: 'secondary', texto: 'Sin registro de verificación' };
-            if (v.fecha_prox) {
-                var dias = (new Date(v.fecha_prox) - new Date()) / 86400000;
-                var fechaFmt = formatFecha(v.fecha_prox);
-                if (dias < 0)        vf = { bg: 'danger',            texto: 'Verificación vencida · ' + fechaFmt };
-                else if (dias <= 30) vf = { bg: 'warning text-dark', texto: 'Vence pronto · ' + fechaFmt };
-                else                 vf = { bg: 'success',           texto: 'Al corriente · ' + fechaFmt };
+            // Badge mantenimiento
+            var mt = { bg: 'secondary', texto: 'Sin registros' };
+            if (v.estatus_mant) {
+                if (v.estatus_mant === 'PENDIENTE')
+                    mt = { bg: 'warning text-dark', texto: 'Pendiente · ' + formatFecha(v.fecha_mant) };
+                else if (v.estatus_mant === 'AUTORIZADO')
+                    mt = { bg: 'info text-dark', texto: 'Autorizado · ' + formatFecha(v.fecha_mant) };
+                else if (v.estatus_mant === 'DENEGADO')
+                    mt = { bg: 'secondary', texto: 'Denegado · ' + formatFecha(v.fecha_mant) };
+                else
+                    mt = { bg: 'secondary', texto: v.estatus_mant + ' · ' + formatFecha(v.fecha_mant) };
             }
-            $('#badgeVerif').removeClass().addClass('badge px-3 py-2 bg-' + vf.bg).text(vf.texto);
+            $('#badgeMant').removeClass().addClass('badge px-3 py-2 bg-' + mt.bg).text(mt.texto);
+
+            // Lista documentación
+            var nombreDoc = {
+                licencia:             'Licencia',
+                tarjeta_circulacion:  'T. Circulación',
+                refrendo_actual:      'Refrendo',
+                seguro_vehiculo:      'Seguro',
+                verificacion_vigente: 'Verificación'
+            };
+            var listaHtml = '';
+            if (!v.fecha_reg_doc) {
+                listaHtml = '<p class="text-muted small mb-0">Sin documentación registrada</p>';
+            } else {
+                Object.keys(nombreDoc).forEach(function (c) {
+                    var tiene = v[c] && v[c] !== 'S/R';
+                    listaHtml += '<div class="d-flex align-items-center gap-2 py-1 border-bottom">'
+                        + '<i class="fas fa-' + (tiene ? 'check-circle text-success' : 'times-circle text-danger') + ' fa-fw"></i>'
+                        + '<span class="small">' + nombreDoc[c] + '</span>'
+                        + '</div>';
+                });
+            }
+            $('#listaDocumentacion').html(listaHtml);
 
             // Guardar datos del vehículo para pre-selección en modales
             vehiculoQR = { id: v.id_vehiculo, placa: v.placa, modelo: v.modelo };
@@ -318,7 +413,8 @@ if (empty($_COOKIE['noEmpleado'])) {
 
         function formatFecha(fechaStr) {
             if (!fechaStr) return '';
-            var p = fechaStr.split('-');
+            var dateOnly = String(fechaStr).split(' ')[0];
+            var p = dateOnly.split('-');
             return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : fechaStr;
         }
 
@@ -354,6 +450,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                     if (resp.success) {
                         $('#anomaliaDescripcion').val('');
                         $('#anomaliaFoto').val('');
+                        $('#fotoPreviewImg').hide().attr('src', '');
+                        $('#fotoPlaceholder').show();
                         // Cerrar modal y limpiar backdrops residuales (conflicto BS4+BS5 en la misma página)
                         var modalEl = document.getElementById('modalAnomalia');
                         modalEl.addEventListener('hidden.bs.modal', function () {

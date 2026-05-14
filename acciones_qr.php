@@ -17,9 +17,15 @@ if ($accion === 'obtenerDatosVehiculo') {
     $stmt = $conn->prepare("
         SELECT i.id_vehiculo, i.placa, i.modelo, i.marca, i.anio, i.color,
                i.usuario, i.area, i.foto_general,
+               c.id_checklist,
                c.estatus  AS estatus_checklist,
                c.fecha    AS fecha_checklist,
-               d.fecha_prox
+               d.fecha_prox,
+               DATE(d.fecha_registro) AS fecha_reg_doc,
+               d.licencia, d.tarjeta_circulacion, d.refrendo_actual,
+               d.seguro_vehiculo, d.verificacion_vigente,
+               m.VoBo_jefe AS estatus_mant,
+               DATE(m.fecha_registro) AS fecha_mant
         FROM inventario i
         LEFT JOIN checklist c ON c.id_checklist = (
             SELECT id_checklist FROM checklist
@@ -29,6 +35,12 @@ if ($accion === 'obtenerDatosVehiculo') {
         )
         LEFT JOIN documentacion d ON d.id = (
             SELECT id FROM documentacion
+            WHERE id_vehiculo = i.id_vehiculo
+            ORDER BY fecha_registro DESC
+            LIMIT 1
+        )
+        LEFT JOIN mantenimientos m ON m.id_mantenimiento = (
+            SELECT id_mantenimiento FROM mantenimientos
             WHERE id_vehiculo = i.id_vehiculo
             ORDER BY fecha_registro DESC
             LIMIT 1

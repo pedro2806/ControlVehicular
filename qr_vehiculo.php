@@ -119,6 +119,18 @@ if (empty($_COOKIE['noEmpleado'])) {
                         </div>
                     </div>
 
+                    <!-- Disclaimer checklist incompleto -->
+                    <div class="alert alert-warning d-flex gap-3 align-items-start mb-3" id="disclaimerChecklist" style="display:none !important;">
+                        <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold mb-1">Checklist incompleto</div>
+                            <div style="font-size:0.875rem;">El checklist de este vehículo está incompleto. Cualquier imperfecto no reportado previamente podrá asumirse como responsabilidad del último usuario que lo utilizó.</div>
+                            <a id="btnIrChecklist" href="#" class="btn btn-warning btn-sm fw-semibold mt-2">
+                                <i class="fas fa-clipboard-check me-1"></i> Llenar Checklist
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Acciones rápidas -->
                     <div class="card shadow mb-3" id="cardAcciones" style="display:none;">
                         <div class="card-header bg-white py-2">
@@ -129,7 +141,7 @@ if (empty($_COOKIE['noEmpleado'])) {
 
                                 <div class="col-6">
                                     <button class="btn btn-outline-primary w-100 action-btn"
-                                        onclick="validarActividadesPendientes()">
+                                        id="btnCheckinKM" data-bs-toggle="modal" data-bs-target="#modalCheckinKM">
                                         <i class="far fa-check-square"></i>
                                         Check-In / Out
                                     </button>
@@ -143,7 +155,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                                     </button>
                                 </div>
 
-                                <div class="col-6">
+                                <div class="col-12">
                                     <button class="btn btn-outline-danger w-100 action-btn"
                                         data-bs-toggle="modal" data-bs-target="#modalAnomalia">
                                         <i class="fas fa-exclamation-triangle"></i>
@@ -175,8 +187,11 @@ if (empty($_COOKIE['noEmpleado'])) {
 
                     <!-- Documentación (se llena por JS) -->
                     <div class="card shadow mb-3" id="cardDocumentacion" style="display:none;">
-                        <div class="card-header bg-white py-2">
+                        <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
                             <h6 class="m-0 fw-bold text-dark">Documentación</h6>
+                            <a id="btnIrDocumentacion" href="documentacion" class="btn btn-warning btn-sm fw-semibold" style="display:none;">
+                                <i class="fas fa-folder-open me-1"></i> Actualizar Docs
+                            </a>
                         </div>
                         <div class="card-body py-2" id="listaDocumentacion"></div>
                     </div>
@@ -191,6 +206,51 @@ if (empty($_COOKIE['noEmpleado'])) {
                     </div>
                 </div>
             </footer>
+        </div>
+    </div>
+
+    <!-- Modal: Check-In / Out + KM (combinado) -->
+    <div class="modal fade" id="modalCheckinKM" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title fw-bold" id="modalCheckinKMLabel">Check-In / Out</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted mb-3" id="checkinMensaje">Verificando estado...</p>
+
+                    <label class="form-label fw-semibold mb-1">KM actual: <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control mb-3" id="checkinKM" min="0" placeholder="Ej. 45320">
+
+                    <label class="form-label fw-semibold mb-1">OT / OV:</label>
+                    <input type="text" class="form-control mb-3" id="checkinOT" placeholder="Número de OT u OV">
+
+                    <div id="checkinFotoSection" style="display:none;">
+                        <div class="foto-captura" onclick="document.getElementById('checkinFoto').click()">
+                            <div class="foto-viewfinder">
+                                <div id="checkinFotoPlaceholder" class="text-center text-muted">
+                                    <i class="fas fa-camera fa-3x mb-2 d-block"></i>
+                                    <span style="font-size:0.82rem;">Foto del KM</span>
+                                </div>
+                                <img id="checkinFotoPreview" src="" alt=""
+                                    style="display:none; width:100%; height:100%; object-fit:cover; border-radius:4px;">
+                            </div>
+                            <span class="corner tl"></span>
+                            <span class="corner tr"></span>
+                            <span class="corner bl"></span>
+                            <span class="corner br"></span>
+                        </div>
+                        <input type="file" id="checkinFoto" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-1">
+                    <button type="button" class="btn btn-primary fw-semibold px-4"
+                        id="btnGuardarCheckinKM" disabled>
+                        Verificando...
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -249,7 +309,9 @@ if (empty($_COOKIE['noEmpleado'])) {
 
     <script>
         var idVehiculo = <?php echo $id_vehiculo; ?>;
+        var idUsuarioActual = <?php echo intval($_COOKIE['id_usuarioL'] ?? 0); ?>;
         var vehiculoQR = { id: 0, placa: '', modelo: '' };
+        var checkinEstado = { tieneCheckinActivo: false };
 
         $(document).ready(function () {
             cargarVehiculo();
@@ -266,6 +328,84 @@ if (empty($_COOKIE['noEmpleado'])) {
                     reader.readAsDataURL(file);
                 }
             });
+
+            // Modal checkin/km: cargar estado al abrirse
+            document.getElementById('modalCheckinKM').addEventListener('show.bs.modal', function () {
+                $('#modalCheckinKMLabel').text('Check-In / Out');
+                $('#checkinMensaje').text('Verificando estado...');
+                $('#btnGuardarCheckinKM').prop('disabled', true).text('Verificando...');
+
+                $.ajax({
+                    url: 'acciones_qr.php',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { accion: 'verificarEstadoCheckin', id_vehiculo: idVehiculo },
+                    success: function (resp) {
+                        checkinEstado = resp;
+                        var esCheckout = resp.tieneCheckinActivo;
+                        $('#modalCheckinKMLabel').text(esCheckout ? 'Check-Out' : 'Check-In');
+                        $('#checkinMensaje').text(
+                            esCheckout
+                                ? 'Ya tienes una entrada activa para este vehículo. ¿Registras tu salida?'
+                                : '¿Confirmas tu entrada para este vehículo?'
+                        );
+                        $('#checkinFotoSection').toggle(resp.primerKMDeLaSemana === true);
+                        $('#btnGuardarCheckinKM')
+                            .prop('disabled', false)
+                            .text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
+                    },
+                    error: function () {
+                        $('#checkinMensaje').text('Error al verificar el estado. Intenta de nuevo.');
+                    }
+                });
+            });
+
+            // FileReader para foto de check-in
+            document.getElementById('checkinFoto').addEventListener('change', function () {
+                var file = this.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        $('#checkinFotoPreview').attr('src', e.target.result).show();
+                        $('#checkinFotoPlaceholder').hide();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Reset del modal checkin al cerrarse
+            document.getElementById('modalCheckinKM').addEventListener('hidden.bs.modal', function () {
+                $('#checkinFotoPreview').hide().attr('src', '');
+                $('#checkinFotoPlaceholder').show();
+                $('#checkinKM').val('');
+                $('#checkinOT').val('');
+                $('#checkinFoto').val('');
+            });
+
+            // Botón guardar checkin
+            document.getElementById('btnGuardarCheckinKM').addEventListener('click', guardarCheckinKM);
+
+            // Placeholder dinámico OT/OV — efecto typewriter
+            (function () {
+                var ejemplos = ['MT26-01E-34', 'MESS-OV-3434-2026'];
+                var idx = 0, pos = 0, borrando = false;
+                var input = document.getElementById('checkinOT');
+                function tick() {
+                    var texto = ejemplos[idx];
+                    if (!borrando) {
+                        pos++;
+                        input.placeholder = texto.slice(0, pos);
+                        if (pos === texto.length) { borrando = true; setTimeout(tick, 1800); return; }
+                        setTimeout(tick, 100);
+                    } else {
+                        pos--;
+                        input.placeholder = texto.slice(0, pos);
+                        if (pos === 0) { borrando = false; idx = (idx + 1) % ejemplos.length; setTimeout(tick, 400); return; }
+                        setTimeout(tick, 55);
+                    }
+                }
+                tick();
+            })();
 
             // Reset del modal al cerrarse (dismiss sin enviar)
             document.getElementById('modalAnomalia').addEventListener('hidden.bs.modal', function () {
@@ -290,6 +430,9 @@ if (empty($_COOKIE['noEmpleado'])) {
                     renderVehiculo(v);
                     $('#loadingQR').hide();
                     $('#cardVehiculo, #cardAcciones, #cardEstatus, #cardDocumentacion').show();
+
+                    // Registrar préstamo automático si el vehículo no es del usuario
+                    $.post('acciones_qr.php', { accion: 'registrarPrestamoQR', id_vehiculo: idVehiculo });
                 },
                 error: function () {
                     $('#loadingQR').html('<div class="alert alert-danger">No se pudo cargar la información del vehículo.</div>');
@@ -323,22 +466,38 @@ if (empty($_COOKIE['noEmpleado'])) {
             if (v.fecha_prox) {
                 var diasVerif = (new Date(v.fecha_prox) - new Date()) / 86400000;
                 if (diasVerif < 0)
-                    badges += '<span class="badge bg-danger"><i class="fas fa-calendar-times me-1"></i>Vencida</span>';
+                    badges += '<span class="badge bg-danger"><i class="fas fa-calendar-times me-1"></i>Verificación · Vencida</span>';
                 else
-                    badges += '<span class="badge bg-success"><i class="fas fa-calendar-check me-1"></i>Vigente</span>';
+                    badges += '<span class="badge bg-success"><i class="fas fa-calendar-check me-1"></i>Verificación · Vigente</span>';
             } else {
-                badges += '<span class="badge bg-secondary">Sin verificación</span>';
+                badges += '<span class="badge bg-secondary">Verificación · Sin registro</span>';
             }
             $('#infoBadges').html(badges);
 
             // Badge checklist
             var ck = { bg: 'secondary', texto: 'Sin registro' };
             if (v.estatus_checklist === 'completo') {
-                ck = { bg: 'success', texto: 'Completo · #' + v.id_checklist + ' · ' + formatFecha(v.fecha_checklist) };
+                ck = { bg: 'success', texto: 'Completo · ' + formatFecha(v.fecha_checklist) };
             } else if (v.estatus_checklist === 'borrador') {
-                ck = { bg: 'warning text-dark', texto: 'Borrador · #' + v.id_checklist + ' · ' + formatFecha(v.fecha_checklist) };
+                ck = { bg: 'warning text-dark', texto: 'Borrador · ' + formatFecha(v.fecha_checklist) };
             }
             $('#badgeChecklist').removeClass().addClass('badge px-3 py-2 bg-' + ck.bg).text(ck.texto);
+
+            // Determinar si el usuario actual es dueño o asignado del vehículo
+            var esAsignado = (v.id_usuario == idUsuarioActual || v.id_us_asignado == idUsuarioActual);
+
+            // Disclaimer: visible para todos cuando el checklist no está completo
+            // El botón de llenar checklist solo aparece al usuario asignado
+            if (v.estatus_checklist !== 'completo') {
+                $('#disclaimerChecklist').css('display', 'flex');
+                if (esAsignado) {
+                    $('#btnIrChecklist').attr('href', 'checkVehiculo?v=' + v.id_vehiculo).show();
+                } else {
+                    $('#btnIrChecklist').hide();
+                }
+            } else {
+                $('#disclaimerChecklist').hide();
+            }
 
             // Badge mantenimiento
             var mt = { bg: 'secondary', texto: 'Sin registros' };
@@ -363,11 +522,14 @@ if (empty($_COOKIE['noEmpleado'])) {
                 verificacion_vigente: 'Verificación'
             };
             var listaHtml = '';
+            var faltanDocs = false;
             if (!v.fecha_reg_doc) {
                 listaHtml = '<p class="text-muted small mb-0">Sin documentación registrada</p>';
+                faltanDocs = true;
             } else {
                 Object.keys(nombreDoc).forEach(function (c) {
                     var tiene = v[c] && v[c] !== 'S/R';
+                    if (!tiene) faltanDocs = true;
                     listaHtml += '<div class="d-flex align-items-center gap-2 py-1 border-bottom">'
                         + '<i class="fas fa-' + (tiene ? 'check-circle text-success' : 'times-circle text-danger') + ' fa-fw"></i>'
                         + '<span class="small">' + nombreDoc[c] + '</span>'
@@ -375,6 +537,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                 });
             }
             $('#listaDocumentacion').html(listaHtml);
+            $('#btnIrDocumentacion').attr('href', 'documentacion?v=' + v.id_vehiculo).toggle(faltanDocs && esAsignado);
 
             // Guardar datos del vehículo para pre-selección en modales
             vehiculoQR = { id: v.id_vehiculo, placa: v.placa, modelo: v.modelo };
@@ -511,6 +674,70 @@ if (empty($_COOKIE['noEmpleado'])) {
                     console.error('Error al cargar los vehículos');
                 }
             });
+        }
+
+        function guardarCheckinKM() {
+            var esCheckout = checkinEstado.tieneCheckinActivo;
+            var km = $('#checkinKM').val().trim();
+
+            if (!km || isNaN(km) || parseInt(km) <= 0) {
+                Swal.fire({ icon: 'warning', title: 'Requerido', text: 'Ingresa el KM actual.', confirmButtonText: 'Aceptar' });
+                return;
+            }
+
+            $('#btnGuardarCheckinKM').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
+
+            function enviar(coordenadas) {
+                var formData = new FormData();
+                formData.append('accion', esCheckout ? 'checkOutQR' : 'checkInQR');
+                formData.append('id_vehiculo', idVehiculo);
+                formData.append('coordenadas', coordenadas);
+                formData.append('km_actual', km);
+                formData.append('ot', $('#checkinOT').val().trim());
+                var foto = $('#checkinFoto')[0].files[0];
+                if (foto) formData.append('foto', foto);
+
+                $.ajax({
+                    url: 'acciones_qr.php',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function (resp) {
+                        if (resp.success) {
+                            var modalEl = document.getElementById('modalCheckinKM');
+                            var msg = esCheckout ? 'Salida registrada correctamente.' : 'Entrada registrada correctamente.';
+                            modalEl.addEventListener('hidden.bs.modal', function () {
+                                document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
+                                document.body.classList.remove('modal-open');
+                                document.body.style.overflow = '';
+                                document.body.style.paddingRight = '';
+                                Swal.fire({ icon: 'success', title: '¡Listo!', text: msg, timer: 2000, showConfirmButton: false });
+                            }, { once: true });
+                            bootstrap.Modal.getInstance(modalEl).hide();
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo registrar.', confirmButtonText: 'Aceptar' });
+                        }
+                    },
+                    error: function () {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.', confirmButtonText: 'Aceptar' });
+                    },
+                    complete: function () {
+                        $('#btnGuardarCheckinKM').prop('disabled', false).text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
+                    }
+                });
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (pos) { enviar(pos.coords.latitude + ',' + pos.coords.longitude); },
+                    function () { enviar(''); },
+                    { timeout: 5000, maximumAge: 60000 }
+                );
+            } else {
+                enviar('');
+            }
         }
 
         function escapeHtml(str) {

@@ -619,6 +619,24 @@
             $("#formRegistroDocumentacion").hide();
         }
 
+        // Auto-seleccionar vehículo si viene ?v={id_vehiculo} desde QR
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var idV = params.get('v');
+            if (!idV) return;
+            $.ajax({
+                url: 'acciones_qr.php',
+                method: 'POST',
+                dataType: 'json',
+                data: { accion: 'obtenerDatosVehiculo', id_vehiculo: idV },
+                success: function (v) {
+                    if (v && v.id_vehiculo) {
+                        seleccionarVehiculo(v.id_vehiculo, v.placa, v.modelo, v.marca, v.color || '');
+                    }
+                }
+            });
+        })();
+
         //FUNCION PARA OBTENER LA COOKIE
         function getCookie(name) {
             let cookieArr = document.cookie.split(";"); 

@@ -62,10 +62,10 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px; height: 30px;
-            background: #4e73df;
+            width: 40px; height: 40px;
+            background: #ffffff;
             border-radius: 4px;
-            padding: 3px;
+            padding: 1px;
             pointer-events: none;
             z-index: 1;
         }
@@ -108,24 +108,47 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         /* ── Impresión ── */
+        @page {
+            size: letter;
+            margin: 5mm;
+        }
         @media print {
             .no-print { display: none !important; }
 
-            body * { visibility: hidden; }
-            #areaImpresionLote,
-            #areaImpresionLote * { visibility: visible; }
+            /* Ocultar chrome del layout SB-Admin-2 */
+            #accordionSidebar,
+            .topbar,
+            .scroll-to-top,
+            footer { display: none !important; }
+
+            /* Limpiar espacios de los wrappers para que no empujen el contenido */
+            #wrapper, #content-wrapper, #content, .container-fluid,
+            #loteContainer, #loteContainer > .card, #loteContainer .card-body,
             #areaImpresionLote {
-                position: fixed; left: 0; top: 0; width: 100%;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                height: auto !important;
+                width: 100% !important;
             }
+
             #loteGrid {
                 display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 6mm;
-                padding: 8mm;
+                grid-template-columns: repeat(2, 95mm);
+                gap: 3mm;
+                justify-content: center;
             }
             .sticker-item {
-                width: auto;
+                width: 95mm;
+                height: 53mm;
+                box-sizing: border-box;
+                overflow: hidden;
                 break-inside: avoid;
+                display: inline-flex !important;
             }
         }
     </style>
@@ -139,15 +162,38 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 <?php include 'encabezado.php'; ?>
 
                 <div class="container-fluid">
-                    <h1 class="h3 mb-3 text-black-800">Generar QR por Vehículo</h1>
+                    <h1 class="h3 mb-3 text-black-800 no-print">Generar QR por Vehículo</h1>
 
                     <!-- Tabla de vehículos -->
-                    <div class="card shadow mb-4">
+                    <div class="card shadow mb-4 no-print">
+                        <div class="card-header bg-white py-2 d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-bold text-dark small">Vehículos</span>
+                            <button id="btnAgregarSeleccionados"
+                                class="btn btn-success btn-sm"
+                                style="display:none;"
+                                onclick="agregarSeleccionados()">
+                                <i class="fas fa-layer-group me-1"></i>
+                                Agregar seleccionados (<span id="cntSeleccionados">0</span>)
+                            </button>
+                            <div class="ms-auto d-flex align-items-center gap-2" id="botonesLote" style="display:none !important;">
+                                <span class="text-muted small">Lote:</span>
+                                <span class="badge bg-success" id="loteContador">0</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="limpiarLote()">
+                                    <i class="fas fa-trash me-1"></i> Limpiar
+                                </button>
+                                <button class="btn btn-success btn-sm" onclick="imprimirLote()">
+                                    <i class="fas fa-print me-1"></i> Imprimir lote
+                                </button>
+                            </div>
+                        </div>
                         <div class="card-body">
                             <div class="table-responsive">
                                 <table id="TablaVehiculos" class="table table-bordered table-striped w-100">
                                     <thead class="thead-dark">
                                         <tr>
+                                            <th style="width:40px;" class="text-center">
+                                                <input type="checkbox" id="chkTodos" title="Seleccionar todos">
+                                            </th>
                                             <th>Placa</th>
                                             <th>Modelo</th>
                                             <th>Marca</th>
@@ -165,19 +211,6 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                     <!-- Lote de impresión -->
                     <div id="loteContainer" style="display:none;">
                         <div class="card shadow mb-4">
-                            <div class="card-header bg-white py-3 d-flex align-items-center flex-wrap gap-2 no-print">
-                                <i class="fas fa-layer-group text-success"></i>
-                                <h6 class="m-0 font-weight-bold text-dark">Lote de impresión</h6>
-                                <span class="badge bg-success ms-1" id="loteContador">0</span>
-                                <div class="ms-auto d-flex gap-2">
-                                    <button class="btn btn-outline-danger btn-sm" onclick="limpiarLote()">
-                                        <i class="fas fa-trash me-1"></i> Limpiar
-                                    </button>
-                                    <button class="btn btn-success btn-sm" onclick="imprimirLote()">
-                                        <i class="fas fa-print me-1"></i> Imprimir lote
-                                    </button>
-                                </div>
-                            </div>
                             <div class="card-body">
                                 <div id="areaImpresionLote">
                                     <div id="loteGrid"></div>
@@ -213,20 +246,24 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        var baseUrl  = '<?php echo $baseUrl; ?>';
-        var loteIds  = [];
+        var baseUrl       = <?php echo json_encode($baseUrl); ?>;
+        var loteIds       = [];
+        var vehiculosData = {};
+        var selectedIds   = new Set();
+        var tablaGlobal;
 
         $(document).ready(function () {
-            var tabla = $('#TablaVehiculos').DataTable({
+            tablaGlobal = $('#TablaVehiculos').DataTable({
                 data: [],
                 paging: true,
                 pageLength: 10,
-                lengthMenu: [[5, 10, 25], [5, 10, 25]],
+                lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
                 ordering: true,
                 searching: true,
                 info: true,
                 autoWidth: false,
-                order: [[0, 'asc']],
+                order: [[1, 'asc']],
+                columnDefs: [{ orderable: false, targets: [0, 6] }],
                 language: {
                     decimal: ",",
                     thousands: ".",
@@ -245,9 +282,42 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                         previous: "Anterior"
                     },
                     lengthMenu: "Mostrar _MENU_ registros"
+                },
+                drawCallback: function () {
+                    // Restaurar estado de checkboxes al cambiar página o buscar
+                    $('.chk-vehiculo').each(function () {
+                        $(this).prop('checked', selectedIds.has(parseInt($(this).data('id'))));
+                    });
+                    actualizarChkTodos();
                 }
             });
-            cargarVehiculos(tabla);
+
+            cargarVehiculos(tablaGlobal);
+
+            // Botón Agregar individual (data-id evita problemas de quoting con caracteres especiales)
+            $(document).on('click', '.btn-agregar', function () {
+                var id = parseInt($(this).data('id'));
+                var v  = vehiculosData[id];
+                if (v) agregarAlLote(v.id, v.placa, v.modelo, v.marca, v.anio);
+            });
+
+            // Checkbox individual
+            $(document).on('change', '.chk-vehiculo', function () {
+                var id = parseInt($(this).data('id'));
+                if ($(this).is(':checked')) { selectedIds.add(id); } else { selectedIds.delete(id); }
+                actualizarSeleccionados();
+                actualizarChkTodos();
+            });
+
+            // Seleccionar / deseleccionar todos
+            $('#chkTodos').on('change', function () {
+                var marcar = $(this).is(':checked');
+                Object.keys(vehiculosData).forEach(function (id) {
+                    if (marcar) { selectedIds.add(parseInt(id)); } else { selectedIds.delete(parseInt(id)); }
+                });
+                $('.chk-vehiculo').prop('checked', marcar);
+                actualizarSeleccionados();
+            });
         });
 
         function cargarVehiculos(tabla) {
@@ -257,17 +327,18 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 data: { opcion: 'llenaTVehiculosAsignados', cookieNoEmpleado: getCookie('noEmpleado') },
                 dataType: 'json',
                 success: function (data) {
+                    vehiculosData = {};
                     tabla.clear();
                     data.forEach(function (v) {
-                        var acciones = `
-                            <div class="d-flex justify-content-center">
-                                <button class="btn btn-outline-success btn-sm"
-                                    title="Agregar al lote"
-                                    onclick='agregarAlLote(${v.id}, "${escapeHtml(v.placa)}", "${escapeHtml(v.modelo)}", "${escapeHtml(v.marca)}", "${escapeHtml(v.anio)}")'>
-                                    <i class="fas fa-plus me-1"></i> Agregar
-                                </button>
-                            </div>`;
+                        vehiculosData[v.id] = v;
+                        var chk = '<div class="d-flex justify-content-center">'
+                            + '<input type="checkbox" class="chk-vehiculo" data-id="' + v.id + '">'
+                            + '</div>';
+                        var acciones = '<div class="d-flex justify-content-center">'
+                            + '<button class="btn btn-outline-success btn-sm btn-agregar" data-id="' + v.id + '" title="Agregar al lote">'
+                            + '<i class="fas fa-plus me-1"></i> Agregar</button></div>';
                         tabla.row.add([
+                            chk,
                             escapeHtml(v.placa),
                             escapeHtml(v.modelo),
                             escapeHtml(v.marca),
@@ -299,7 +370,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                     <div class="sticker-body">
                         <div class="sticker-qr">
                             <div id="${qrDivId}"></div>
-                            <img src="img/MESS_07_CuboMess_2.png" class="logo-qr" alt="MESS">
+                            <img src="img/MESS_07_CuboMess_1.png" class="logo-qr" alt="MESS">
                         </div>
                         <div class="sticker-info">
                             <div class="sticker-nombre">${escapeHtml(marca + ' ' + modelo)}</div>
@@ -311,7 +382,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                         </div>
                     </div>
                     <div class="sticker-footer">
-                        <span class="sticker-soporte">Soporte: sebastian.gutierrez@mess.com.mx</span>
+                        <span class="sticker-soporte">Soporte Sistema: sebastian.gutierrez@mess.com.mx</span>
                     </div>
                     <button class="btn btn-outline-danger btn-sm btn-quitar-sticker w-100 no-print"
                         onclick="quitarDelLote(${id})">
@@ -354,7 +425,35 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         function actualizarContador() {
-            $('#loteContador').text(loteIds.length);
+            var n = loteIds.length;
+            $('#loteContador').text(n);
+            if (n > 0) { $('#botonesLote').css('display', 'flex'); } else { $('#botonesLote').hide(); }
+        }
+
+        function actualizarSeleccionados() {
+            var n = selectedIds.size;
+            $('#cntSeleccionados').text(n);
+            $('#btnAgregarSeleccionados').toggle(n > 0);
+        }
+
+        function actualizarChkTodos() {
+            var total = Object.keys(vehiculosData).length;
+            var sel   = selectedIds.size;
+            var chk   = document.getElementById('chkTodos');
+            if (!chk) return;
+            chk.indeterminate = sel > 0 && sel < total;
+            chk.checked       = total > 0 && sel === total;
+        }
+
+        function agregarSeleccionados() {
+            selectedIds.forEach(function (id) {
+                var v = vehiculosData[id];
+                if (v) agregarAlLote(v.id, v.placa, v.modelo, v.marca, v.anio);
+            });
+            selectedIds.clear();
+            $('.chk-vehiculo').prop('checked', false);
+            actualizarChkTodos();
+            actualizarSeleccionados();
         }
 
         function escapeHtml(str) {

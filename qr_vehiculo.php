@@ -312,6 +312,7 @@ if (empty($_COOKIE['noEmpleado'])) {
         var idUsuarioActual = <?php echo intval($_COOKIE['id_usuarioL'] ?? 0); ?>;
         var vehiculoQR = { id: 0, placa: '', modelo: '' };
         var checkinEstado = { tieneCheckinActivo: false };
+        var ultimoKMVehiculo = 0;
 
         $(document).ready(function () {
             cargarVehiculo();
@@ -358,6 +359,22 @@ if (empty($_COOKIE['noEmpleado'])) {
                         $('#checkinMensaje').text('Error al verificar el estado. Intenta de nuevo.');
                     }
                 });
+
+                // Cargar ultimo KM registrado: pre-llenar el campo y usarlo como minimo
+                $.ajax({
+                    url: 'acciones_qr.php',
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { accion: 'obtenerUltimoKM', id_vehiculo: idVehiculo },
+                    success: function (resp) {
+                        ultimoKMVehiculo = parseInt(resp.ultimoKM) || 0;
+                        if (ultimoKMVehiculo > 0) {
+                            $('#checkinKM').attr('min', ultimoKMVehiculo).val(ultimoKMVehiculo);
+                        } else {
+                            $('#checkinKM').attr('min', 0);
+                        }
+                    }
+                });
             });
 
             // FileReader para foto de check-in
@@ -377,9 +394,10 @@ if (empty($_COOKIE['noEmpleado'])) {
             document.getElementById('modalCheckinKM').addEventListener('hidden.bs.modal', function () {
                 $('#checkinFotoPreview').hide().attr('src', '');
                 $('#checkinFotoPlaceholder').show();
-                $('#checkinKM').val('');
+                $('#checkinKM').val('').removeAttr('min');
                 $('#checkinOT').val('');
                 $('#checkinFoto').val('');
+                ultimoKMVehiculo = 0;
             });
 
             // Botón guardar checkin
@@ -678,22 +696,35 @@ if (empty($_COOKIE['noEmpleado'])) {
 
         function guardarCheckinKM() {
             var esCheckout = checkinEstado.tieneCheckinActivo;
-            var km = $('#checkinKM').val().trim();
+            var km   = $('#checkinKM').val().trim();
+            var otOv = $('#checkinOT').val().trim();
 
             if (!km || isNaN(km) || parseInt(km) <= 0) {
                 Swal.fire({ icon: 'warning', title: 'Requerido', text: 'Ingresa el KM actual.', confirmButtonText: 'Aceptar' });
                 return;
             }
 
+            if (ultimoKMVehiculo > 0 && parseInt(km) < ultimoKMVehiculo) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'KM inválido',
+                    text: 'El KM ingresado (' + parseInt(km).toLocaleString('es-MX') + ') es menor al último registrado (' + ultimoKMVehiculo.toLocaleString('es-MX') + ').',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
+
             $('#btnGuardarCheckinKM').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
 
-            function enviar(coordenadas) {
+            function enviar(latNum, lngNum) {
+                var coordenadas = (latNum != null && lngNum != null) ? (latNum + ',' + lngNum) : '';
+
                 var formData = new FormData();
                 formData.append('accion', esCheckout ? 'checkOutQR' : 'checkInQR');
                 formData.append('id_vehiculo', idVehiculo);
                 formData.append('coordenadas', coordenadas);
                 formData.append('km_actual', km);
-                formData.append('ot', $('#checkinOT').val().trim());
+                formData.append('ot', otOv);
                 var foto = $('#checkinFoto')[0].files[0];
                 if (foto) formData.append('foto', foto);
 
@@ -716,6 +747,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                                 Swal.fire({ icon: 'success', title: '¡Listo!', text: msg, timer: 2000, showConfirmButton: false });
                             }, { once: true });
                             bootstrap.Modal.getInstance(modalEl).hide();
+
+                            // Si el usuario capturó OT/OV y tenemos GPS, registramos km en paralelo
+                            if (otOv && latNum != null && lngNum != null) {
+                                calcularRutaAsync(otOv, latNum, lngNum);
+                            }
                         } else {
                             Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo registrar.', confirmButtonText: 'Aceptar' });
                         }
@@ -731,13 +767,21 @@ if (empty($_COOKIE['noEmpleado'])) {
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    function (pos) { enviar(pos.coords.latitude + ',' + pos.coords.longitude); },
-                    function () { enviar(''); },
+                    function (pos) { enviar(pos.coords.latitude, pos.coords.longitude); },
+                    function () { enviar(null, null); },
                     { timeout: 5000, maximumAge: 60000 }
                 );
             } else {
-                enviar('');
+                enviar(null, null);
             }
+        }
+
+        function calcularRutaAsync(otOv, lat, lng) {
+            $.ajax({
+                url: 'calcular_ruta.php',
+                method: 'POST',
+                data: { ov_ot: otOv, lat: lat, lng: lng }
+            });
         }
 
         function escapeHtml(str) {

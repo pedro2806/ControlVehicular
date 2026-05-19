@@ -2,7 +2,27 @@
     include 'conn.php';
     if($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null){
         echo '<script>window.location.assign("index")</script>';
-    }    
+    }
+
+    // Una sola consulta trae todos los accesos especiales del usuario.
+    // Cada item del menu lee de $accesos[...] en vez de hacer un fetch.
+    $accesos = [];
+    $stmtAcc = $conn->prepare(
+        "SELECT opcion FROM mess_rrhh.accesos_especiales
+         WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND estatus = 1"
+    );
+    if ($stmtAcc) {
+        $noEmpMenu = intval($_COOKIE['noEmpleado']);
+        $stmtAcc->bind_param("i", $noEmpMenu);
+        $stmtAcc->execute();
+        $resAcc = $stmtAcc->get_result();
+        while ($r = $resAcc->fetch_assoc()) { $accesos[$r['opcion']] = true; }
+        $stmtAcc->close();
+    }
+    $puedeAutorizarMant = !empty($accesos['autorizaMantenimiento']);
+    $puedeVerQR         = !empty($accesos['verQR']);
+    $puedeCargarReportes= !empty($accesos['cargarReportes']);
+    $muestraAdmin       = $puedeVerQR || $puedeCargarReportes;
 ?>
 <!-- Sidebar -->
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
@@ -122,20 +142,9 @@
         <div class="bg-white py-2 collapse-inner rounded">
             <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
             <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
-            <a class="collapse-item" href="autorizar_mantenimiento" id="menuAutMantenimiento" style="display:none;">Aut. Mantenimientos</a>
-            <script>
-                fetch("acciones_mantenimiento.php", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: "accion=verificarAccesoAutorizar"
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(resp) {
-                    if (resp.puedeAutorizar) {
-                        document.getElementById("menuAutMantenimiento").style.display = "";
-                    }
-                });
-            </script>
+            <?php if ($puedeAutorizarMant): ?>
+                <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
+            <?php endif; ?>
         </div>
     </div>
 </li>
@@ -184,26 +193,29 @@
 
     </li>
 
-    <!-- Menú QR Vehículos (visible solo con acceso 'verQR') -->
-    <li class="nav-item" id="menuVerQR" style="display:none;">
-        <a class="nav-link py-2" href="generar_qr_vehiculo">
-            <i class="fas fa-fw fa-qrcode"></i>
-            <span>QR Vehículos</span>
+    <?php if ($muestraAdmin): ?>
+    <!-- Menú Administración (solo visible si el usuario tiene al menos un acceso) -->
+    <li class="nav-item">
+        <a class="nav-link collapsed py-2" href="#" data-toggle="collapse" data-target="#collapseAdmin" aria-expanded="false" aria-controls="collapseAdmin">
+            <i class="fas fa-fw fa-cog"></i>
+            <span>Generar QR</span>
         </a>
+        <div id="collapseAdmin" class="collapse" aria-labelledby="headingAdmin" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <?php if ($puedeVerQR): ?>
+                    <a class="collapse-item" href="generar_qr_vehiculo">
+                        <i class="fas fa-fw fa-qrcode"></i> QR Vehículos
+                    </a>
+                <?php endif; ?>
+                <?php if ($puedeCargarReportes): ?>
+                    <a class="collapse-item" href="importar_reportes">
+                        <i class="fas fa-fw fa-file-csv"></i> Importar Reportes
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
     </li>
-    <script>
-        fetch("acciones_qr.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: "accion=verificarAccesoQR"
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(resp) {
-            if (resp.tieneAcceso) {
-                document.getElementById("menuVerQR").style.display = "";
-            }
-        });
-    </script>
+    <?php endif; ?>
 
     <!-- SALIR -->
     <li class = "nav-item">

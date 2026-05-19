@@ -42,11 +42,11 @@ if ($accion == "RegistrarDocumentos") {
     }
 
     $rutasArchivos = [
-        'archivoLicencia' => 'S/R',
-        'archivoCirculacion' => 'S/R',
-        'archivoRefrendo' => 'S/R',
-        'archivoPoliza' => 'S/R',
-        'archivoVerificacion' => 'S/R'
+        'archivoLicencia' => '',
+        'archivoCirculacion' => '',
+        'archivoRefrendo' => '',
+        'archivoPoliza' => '',
+        'archivoVerificacion' => ''
     ];
 
     // Procesar Licencia de Conducir

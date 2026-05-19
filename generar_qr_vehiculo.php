@@ -38,14 +38,19 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
     <style>
-        /* ── Sticker: estilos compartidos entre preview y lote ── */
+        /* ── Sticker: estilos compartidos entre preview y lote ──
+           El cuerpo y el footer son TRANSPARENTES para que al imprimirse en
+           vinil transparente, solo se vea tinta donde hay color.
+           El area del QR si tiene fondo blanco explicito: garantiza el
+           contraste necesario para que cualquier lector escanee el codigo
+           (zona segura / quiet zone) y que el logo MESS no se pierda. */
         .sticker-item {
             display: inline-flex;
             flex-direction: column;
-            border: 2.5px solid #222;
+            border: 2.5px solid #050D9E;
             border-radius: 8px;
             overflow: hidden;
-            background: #fff;
+            background: transparent;
             width: 340px;
             font-family: Arial, sans-serif;
         }
@@ -56,7 +61,13 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             padding: 12px 16px;
             gap: 16px;
         }
-        .sticker-qr { flex-shrink: 0; position: relative; }
+        .sticker-qr {
+            flex-shrink: 0;
+            position: relative;
+            background: #ffffff;     /* imprime como tinta blanca sobre vinil transparente */
+            padding: 3mm;
+            border-radius: 2mm;
+        }
         .sticker-qr canvas, .sticker-qr img:not(.logo-qr) { display: block; }
         .logo-qr {
             position: absolute;
@@ -85,12 +96,12 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         .sticker-label { font-size: 0.75rem; color: #444; line-height: 1.4; }
         .sticker-mess  { font-size: 0.88rem; font-weight: 700; color: #222; }
         .sticker-footer {
-            border-top: 1.5px solid #222;
+            border-top: 1.5px solid #050D9E;
             padding: 5px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f5f5f5;
+            background: transparent;
         }
         .sticker-soporte    { font-size: 0.62rem; color: #555; }
         .sticker-placa-footer { font-size: 0.78rem; font-weight: 700; letter-spacing: 1px; color: #222; }
@@ -395,7 +406,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
 
             new QRCode(document.getElementById(qrDivId), {
                 text: url, width: 120, height: 120,
-                colorDark: '#000000', colorLight: '#ffffff',
+                colorDark: '#050D9E', colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
             });
 

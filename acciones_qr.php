@@ -140,6 +140,30 @@ function obtenerPlacaVehiculo($conn, $id_vehiculo) {
     return $row['placa'] ?? 'SIN_PLACA';
 }
 
+// Ultimo KM registrado para el vehiculo (cualquier usuario).
+// Combina kilometrajes y actividad_vehiculo para no perder lecturas que
+// hayan quedado solo en una de las tablas.
+function obtenerUltimoKMVehiculo(mysqli $conn, int $id_vehiculo): int {
+    $sql = "SELECT MAX(km) AS ultimo FROM (
+                SELECT km FROM kilometrajes WHERE id_vehiculo = ? AND km > 0
+                UNION ALL
+                SELECT km_actual AS km FROM actividad_vehiculo WHERE id_vehiculo = ? AND km_actual > 0
+            ) t";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $id_vehiculo, $id_vehiculo);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return intval($row['ultimo'] ?? 0);
+}
+
+// Endpoint: ultimo KM registrado para el vehiculo
+if ($accion === 'obtenerUltimoKM') {
+    if (!$id_vehiculo) { echo json_encode(['error' => 'ID invalido.']); exit; }
+    echo json_encode(['ultimoKM' => obtenerUltimoKMVehiculo($conn, $id_vehiculo)]);
+    exit;
+}
+
 function subirFotoKM($placa, $prefijo) {
     if (!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK) return null;
     $carpeta = "img_control_vehicular/$placa/km";
@@ -156,6 +180,14 @@ if ($accion === 'checkInQR') {
     if (!$id_vehiculo) { echo json_encode(['error' => 'ID inválido.']); exit; }
     $id_usuario_cookie = intval($_COOKIE['id_usuario'] ?? 0);
     $ot        = trim($_POST['ot'] ?? '');
+
+    // Validar que el KM no sea menor al ultimo registrado
+    $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
+    if ($km_actual > 0 && $ultimoKM > 0 && $km_actual < $ultimoKM) {
+        echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al ultimo registrado ($ultimoKM)."]);
+        exit;
+    }
+
     $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
     $ruta_foto = subirFotoKM($placa, 'checkin');
 
@@ -183,6 +215,14 @@ if ($accion === 'checkOutQR') {
     if (!$id_vehiculo) { echo json_encode(['error' => 'ID inválido.']); exit; }
     $id_usuario_cookie = intval($_COOKIE['id_usuario'] ?? 0);
     $ot        = trim($_POST['ot'] ?? '');
+
+    // Validar que el KM no sea menor al ultimo registrado
+    $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
+    if ($km_actual > 0 && $ultimoKM > 0 && $km_actual < $ultimoKM) {
+        echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al ultimo registrado ($ultimoKM)."]);
+        exit;
+    }
+
     $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
     $ruta_foto = subirFotoKM($placa, 'checkout');
 

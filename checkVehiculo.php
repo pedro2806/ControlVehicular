@@ -62,6 +62,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <tr>
                                         <th>Placa</th>
                                         <th>Modelo</th>
+                                        <th>Usuario</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -122,7 +123,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <label id="area" name="area"></label>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="usuario"><b>Nombre del Usuario:</b></label>
+                                <label for="usuario"><b>Usuario:</b></label>
                                 <label id="usuario" name="usuario"></label>
                             </div>
                             <div class="col-lg-3 col-md-6 col-sm-6 col-6">
@@ -436,9 +437,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             
                             table.clear().draw();                            
                             registros.forEach(function(Registro) {
+                                var asignado = Registro.asignado || Registro.usuario || '-';
                                 table.row.add([
                                     '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                                     '<b> ' + Registro.modelo + ' </b>',
+                                    asignado,
                                     '<center><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
                                 ]).draw(false);
                             });

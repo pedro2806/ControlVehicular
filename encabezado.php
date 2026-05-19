@@ -333,12 +333,83 @@
 
     </nav>
 <!-- End of Topbar -->
+
+<!-- Aviso global de permisos de ubicacion -->
+<div id="avisoUbicacion" class="alert alert-warning alert-dismissible fade show mb-2 mx-3 d-none" role="alert" style="border-left: 4px solid #f6c23e;">
+    <div class="d-flex align-items-start gap-2">
+        <i class="fas fa-map-marker-alt mt-1"></i>
+        <div class="flex-grow-1">
+            <div class="fw-semibold" id="avisoUbicacionTitulo">Habilita el acceso a tu ubicación</div>
+            <div class="small mb-1" id="avisoUbicacionMsg">
+                Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.
+            </div>
+            <button type="button" class="btn btn-sm btn-warning fw-semibold mt-1" id="btnAceptarUbicacion">
+                <i class="fas fa-check me-1"></i> Habilitar ubicación
+            </button>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script  type="text/javascript">
     $(document).ready(function () {
         // Obtener coordenadas del usuario
-        obtenerCoordenadas();   
+        obtenerCoordenadas();
+        // Aviso de permisos de ubicacion (solo si esta denegado o el usuario no ha aceptado)
+        verificarPermisoUbicacion();
     });
+
+    // Banner global de permiso de geolocalizacion. Aplica el estado actual del
+    // navegador ('granted' | 'denied' | 'prompt'). Cuando es 'granted' deja un
+    // flag en localStorage para no molestar al usuario en proximas visitas.
+    function verificarPermisoUbicacion() {
+        if (!navigator.geolocation) return;
+        var banner = document.getElementById('avisoUbicacion');
+        if (!banner) return;
+        var titulo = document.getElementById('avisoUbicacionTitulo');
+        var msg    = document.getElementById('avisoUbicacionMsg');
+        var btn    = document.getElementById('btnAceptarUbicacion');
+
+        var TEXTOS = {
+            denied: ['Ubicación bloqueada', 'Tu navegador tiene bloqueada la ubicación para este sitio.'],
+            prompt: ['Habilita el acceso a tu ubicación', 'Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.']
+        };
+
+        function aplicar(state) {
+            if (state === 'granted') {
+                localStorage.setItem('cv_ubicacion_aceptada', '1');
+                banner.classList.add('d-none');
+                return;
+            }
+            if (state === 'prompt' && localStorage.getItem('cv_ubicacion_aceptada')) {
+                banner.classList.add('d-none');
+                return;
+            }
+            var t = TEXTOS[state] || TEXTOS.prompt;
+            titulo.textContent = t[0];
+            msg.textContent    = t[1];
+            banner.classList.remove('d-none');
+        }
+
+        if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then(function (status) {
+                aplicar(status.state);
+                status.onchange = function () { aplicar(status.state); };
+            }).catch(function () { aplicar('prompt'); });
+        } else {
+            aplicar('prompt');
+        }
+
+        if (btn) {
+            btn.addEventListener('click', function () {
+                navigator.geolocation.getCurrentPosition(
+                    function ()    { aplicar('granted'); },
+                    function (err) { if (err && err.code === err.PERMISSION_DENIED) aplicar('denied'); },
+                    { timeout: 8000, maximumAge: 0 }
+                );
+            });
+        }
+    }
 
     // Función para obtener las coordenadas del usuario
     function obtenerCoordenadas() {

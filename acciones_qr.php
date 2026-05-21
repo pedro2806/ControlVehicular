@@ -67,6 +67,110 @@ if ($accion === 'obtenerDatosVehiculo') {
     exit;
 }
 
+// Devuelve estado consolidado de Checklist (subáreas), Revisión (líquidos) y Mantenimiento.
+// Para usarse en el tab "Vehículo" de inicio2.php junto a la card de Documentación.
+if ($accion === 'obtenerValidacionesVehiculo') {
+    if (!$id_vehiculo) {
+        echo json_encode(['error' => 'ID de vehículo inválido.']);
+        exit;
+    }
+
+    // 1) Último checklist del vehículo (encabezado) y subáreas
+    $idChecklist = 0;
+    $fechaChecklist = null;
+    $estatusChecklist = null;
+    $stmtCh = $conn->prepare("SELECT id_checklist, fecha, estatus FROM checklist
+                              WHERE id_vehiculo = ?
+                              ORDER BY fecha DESC, id_checklist DESC LIMIT 1");
+    $stmtCh->bind_param("i", $id_vehiculo);
+    $stmtCh->execute();
+    $rsCh = $stmtCh->get_result();
+    if ($rowCh = $rsCh->fetch_assoc()) {
+        $idChecklist      = intval($rowCh['id_checklist']);
+        $fechaChecklist   = $rowCh['fecha'];
+        $estatusChecklist = $rowCh['estatus'];
+    }
+    $stmtCh->close();
+
+    // Subáreas a evaluar: cada una se considera OK si TODOS sus registros tienen buen_estado = 'Si'
+    $subareas = [
+        'asientos'          => 'checklist_asientos',
+        'espejos_ventanas'  => 'checklist_espejos_ventanas',
+        'estereos_aire'     => 'checklist_estereos_aire',
+        'faros'             => 'checklist_faros',
+        'golpes_exterior'   => 'checklist_golpes_exterior',
+        'limpiaparabrisas'  => 'checklist_limpiaparabrisas',
+        'limpieza'          => 'checklist_limpieza',
+        'llantas'           => 'checklist_llantas',
+        'placas'            => 'checklist_placas',
+        'puertas_llave'     => 'checklist_puertas_llave'
+    ];
+
+    $detalleSubareas = [];
+    foreach ($subareas as $key => $tabla) {
+        $estatus = 'no_revisado'; // default si no hay registro
+        if ($idChecklist > 0) {
+            // Si todos los registros de la subárea tienen buen_estado='Si' → ok; si hay al menos uno != Si → mal; si no hay registros → no_revisado
+            $sqlSub = "SELECT COUNT(*) AS total,
+                              SUM(CASE WHEN buen_estado = 'Si' THEN 1 ELSE 0 END) AS ok
+                       FROM $tabla WHERE id_checklist = ?";
+            $stmtSub = $conn->prepare($sqlSub);
+            if ($stmtSub) {
+                $stmtSub->bind_param("i", $idChecklist);
+                $stmtSub->execute();
+                $rowSub = $stmtSub->get_result()->fetch_assoc();
+                $stmtSub->close();
+                $total = intval($rowSub['total']);
+                $ok    = intval($rowSub['ok']);
+                if ($total === 0)        $estatus = 'no_revisado';
+                else if ($ok === $total) $estatus = 'ok';
+                else                     $estatus = 'mal';
+            }
+        }
+        $detalleSubareas[$key] = $estatus;
+    }
+
+    // 2) Última revisión (líquidos)
+    $revision = null;
+    $stmtRev = $conn->prepare("SELECT fecha, aceite, anticongelante, liquido_frenos, limpia_parabrisas
+                               FROM revisiones
+                               WHERE id_vehiculo = ?
+                               ORDER BY fecha DESC LIMIT 1");
+    $stmtRev->bind_param("i", $id_vehiculo);
+    $stmtRev->execute();
+    $rsRev = $stmtRev->get_result();
+    if ($rowRev = $rsRev->fetch_assoc()) {
+        $revision = $rowRev;
+    }
+    $stmtRev->close();
+
+    // 3) Último mantenimiento
+    $mantenimiento = null;
+    $stmtMt = $conn->prepare("SELECT VoBo_jefe, DATE(fecha_registro) AS fecha_registro, fecha_proxi, km_proxi
+                              FROM mantenimientos
+                              WHERE id_vehiculo = ?
+                              ORDER BY fecha_registro DESC LIMIT 1");
+    $stmtMt->bind_param("i", $id_vehiculo);
+    $stmtMt->execute();
+    $rsMt = $stmtMt->get_result();
+    if ($rowMt = $rsMt->fetch_assoc()) {
+        $mantenimiento = $rowMt;
+    }
+    $stmtMt->close();
+
+    echo json_encode([
+        'checklist' => [
+            'id_checklist' => $idChecklist,
+            'fecha'        => $fechaChecklist,
+            'estatus'      => $estatusChecklist,
+            'subareas'     => $detalleSubareas
+        ],
+        'revision'      => $revision,
+        'mantenimiento' => $mantenimiento
+    ]);
+    exit;
+}
+
 // Verificar si el usuario tiene acceso al módulo QR
 if ($accion === 'verificarAccesoQR') {
     $stmt = $conn->prepare(

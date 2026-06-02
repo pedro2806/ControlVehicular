@@ -239,14 +239,8 @@
 
     // Función para obtener el valor de una cookie
     function getCookie(name) {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.startsWith(name + '=')) {
-                return cookie.substring(name.length + 1);
-            }
-        }
-        return null;
+        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+        return cookies.get(name) || undefined;
     }
 
     // Función para autorizar un mantenimiento

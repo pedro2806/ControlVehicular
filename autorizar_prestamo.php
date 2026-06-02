@@ -507,14 +507,8 @@
     
     // Función para obtener el valor de una cookie
     function getCookie(name) {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.startsWith(name + '=')) {
-                return cookie.substring(name.length + 1);
-            }
-        }
-        return null;
+        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+        return cookies.get(name) || undefined;
     }
 
     // Función para cargar préstamos pendientes
@@ -1186,14 +1180,8 @@
      * @returns {string|null} El valor de la cookie o null si no existe.
      */
     function leerCookie(nombre) {
-        let cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            let cookie = cookies[i].trim();
-            if (cookie.startsWith(nombre + '=')) {
-                return decodeURIComponent(cookie.substring(nombre.length + 1));
-            }
-        }
-        return null;
+        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+        return cookies.get(nombre) || undefined;
     }
     </script>
 </body>

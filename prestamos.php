@@ -254,14 +254,8 @@
 
         //FUNCION PARA LEER COOKIES
         function leerCookie(nombre) {
-            let cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                let cookie = cookies[i].trim();
-                if (cookie.startsWith(nombre + '=')) {
-                    return decodeURIComponent(cookie.substring(nombre.length + 1));
-                }
-            }
-            return null;
+            const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+            return cookies.get(nombre) || undefined;
         }
     </script>
 </body>

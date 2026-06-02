@@ -890,9 +890,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         // Función para obtener el valor de una cookie por su nombre
         function getCookie(name) {
-            var value = "; " + document.cookie;
-            var parts = value.split("; " + name + "=");
-            if (parts.length === 2) return parts.pop().split(";").shift();
+            const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+            return cookies.get(name) || undefined;
         }
 
         // funcion para ocultar el DivVehiculosAsignados

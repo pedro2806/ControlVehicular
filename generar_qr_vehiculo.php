@@ -475,8 +475,8 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         function getCookie(name) {
-            var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-            return match ? decodeURIComponent(match[2]) : '';
+            const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
+            return cookies.get(name) || undefined;
         }
     </script>
 </body>

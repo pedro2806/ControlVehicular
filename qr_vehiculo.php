@@ -223,7 +223,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     <label class="form-label fw-semibold mb-1">KM actual: <span class="text-danger">*</span></label>
                     <input type="number" class="form-control mb-3" id="checkinKM" min="0" placeholder="Ej. 45320">
 
-                    <label class="form-label fw-semibold mb-1">OT / OV:</label>
+                    <label class="form-label fw-semibold mb-1">OT / OV / Otro:</label>
                     <input type="text" class="form-control mb-3" id="checkinOT" placeholder="Número de OT u OV">
 
                     <div id="checkinFotoSection" style="display:none;">
@@ -584,6 +584,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                         select.append($('<option>', { value: item.id_vehiculo, text: item.placa + ' - ' + item.modelo }));
                     });
                     select.val(idVeh);
+                    // Disparar el onchange para que verPlaca() cargue km, gasolina y el último saldo en Monto
+                    select.trigger('change');
                     $('#capturaGasModal').modal('show');
                 },
                 error: function () {

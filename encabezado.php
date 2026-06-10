@@ -429,6 +429,34 @@
         }
     }
     
+    // Pide la ubicación de forma OBLIGATORIA al registrar un check-in/out.
+    // Resuelve con {lat, lng} o rechaza si no se pudo obtener.
+    function obtenerUbicacionObligatoria() {
+        return new Promise(function (resolve, reject) {
+            if (!navigator.geolocation) { reject(); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    resolve({
+                        lat: parseFloat(pos.coords.latitude.toFixed(6)),
+                        lng: parseFloat(pos.coords.longitude.toFixed(6))
+                    });
+                },
+                function () { reject(); },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // Aviso reutilizable cuando la ubicación es obligatoria y no se obtuvo.
+    function avisoUbicacionObligatoria() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Ubicación obligatoria',
+            text: 'No pudimos obtener tu ubicación. Habilita el GPS y el permiso de ubicación del navegador e inténtalo de nuevo.',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
     // Función para cargar y mostrar actividades pendientes en el modal
     // Sobrescribe la función para mostrar actividades en tabla
     function mostrarActividadesPendientes() {
@@ -515,6 +543,11 @@
             $('#PidPrestamo').val('');
         }
         
+        // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-in.
+        obtenerUbicacionObligatoria().then(function (geo) {
+        coordenadas = geo.lat + ', ' + geo.lng;
+        $('#coordenadasCheck').val(coordenadas);
+
         var formData = new FormData();
         formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
         formData.append('accion', 'CapturaCheckIn');
@@ -579,6 +612,7 @@
                 $('#capturaKmModal').modal('show');
             }
         });
+        }).catch(function () { avisoUbicacionObligatoria(); });
     }
 
     // Función para capturar el check-out
@@ -602,6 +636,11 @@
         $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
         return;
         }
+
+        // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-out.
+        obtenerUbicacionObligatoria().then(function (geo) {
+        coordenadas = geo.lat + ', ' + geo.lng;
+        $('#coordenadasCheck').val(coordenadas);
 
         var formData = new FormData();
         formData.append('accion', 'CapturaCheckOut');
@@ -654,9 +693,9 @@
             $('#msgKm').text('Error al guardar el kilometraje.');
         }
         });
-        
+        }).catch(function () { avisoUbicacionObligatoria(); });
     }
-    
+
     // Función para agregar otro input de archivo, hasta un máximo de 4
     function agregarInputImagen() {
         // Contenedor donde están los inputs de imagen

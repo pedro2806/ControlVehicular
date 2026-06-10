@@ -68,14 +68,14 @@ if (empty($_COOKIE['noEmpleado'])) {
                             </div>
                             <div class="card-body">
                                 <form id="formImportar" enctype="multipart/form-data">
-                                    <p class="text-muted mb-4"> El sistema importa OV/OT y geocodifica clientes nuevos automaticamente.</p>
+                                    <p class="text-muted mb-4"> El sistema importa OV/OT, geocodifica clientes nuevos y, si subes el archivo de Actividades, las carga para calcular los KM al hacer check-in por QR.</p>
                                     <div class="row g-3">
                                         <div class="col-md-4">
                                             <label class="form-label fw-semibold small mb-1">Ventas</label>
                                             <label class="file-drop" id="dropVentas" for="csvVentas">
                                                 <i class="fas fa-file-csv fa-2x text-muted mb-2 d-block"></i>
                                                 <span class="file-name" id="nameVentas">VENTAS_*.csv</span>
-                                                <input type="file" id="csvVentas" name="ventas" accept=".csv" required>
+                                                <input type="file" id="csvVentas" name="ventas" accept=".csv">
                                             </label>
                                         </div>
 
@@ -84,7 +84,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                                             <label class="file-drop" id="dropTiempoSitio" for="csvTiempoSitio">
                                                 <i class="fas fa-file-csv fa-2x text-muted mb-2 d-block"></i>
                                                 <span class="file-name" id="nameTiempoSitio">DETALLE-TIEMPO-SITIO_*.csv</span>
-                                                <input type="file" id="csvTiempoSitio" name="tiempo_sitio" accept=".csv" required>
+                                                <input type="file" id="csvTiempoSitio" name="tiempo_sitio" accept=".csv">
                                             </label>
                                         </div>
 
@@ -93,7 +93,16 @@ if (empty($_COOKIE['noEmpleado'])) {
                                             <label class="file-drop" id="dropSinTiempo" for="csvSinTiempo">
                                                 <i class="fas fa-file-csv fa-2x text-muted mb-2 d-block"></i>
                                                 <span class="file-name" id="nameSinTiempo">DETALLE-SIN-TIEMPO_*.csv</span>
-                                                <input type="file" id="csvSinTiempo" name="sin_tiempo" accept=".csv" required>
+                                                <input type="file" id="csvSinTiempo" name="sin_tiempo" accept=".csv">
+                                            </label>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold small mb-1">Actividades</label>
+                                            <label class="file-drop" id="dropOtros" for="csvOtros">
+                                                <i class="fas fa-file-csv fa-2x text-muted mb-2 d-block"></i>
+                                                <span class="file-name" id="nameOtros">FactActividades_*.csv</span>
+                                                <input type="file" id="csvOtros" name="otros" accept=".csv">
                                             </label>
                                         </div>
                                     </div>
@@ -180,7 +189,8 @@ if (empty($_COOKIE['noEmpleado'])) {
             var mapa = {
                 csvVentas: 'nameVentas',
                 csvTiempoSitio: 'nameTiempoSitio',
-                csvSinTiempo: 'nameSinTiempo'
+                csvSinTiempo: 'nameSinTiempo',
+                csvOtros: 'nameOtros'
             };
             Object.keys(mapa).forEach(function (inputId) {
                 document.getElementById(inputId).addEventListener('change', function () {
@@ -200,17 +210,19 @@ if (empty($_COOKIE['noEmpleado'])) {
             var ventas       = $('#csvVentas')[0].files[0];
             var tiempoSitio  = $('#csvTiempoSitio')[0].files[0];
             var sinTiempo    = $('#csvSinTiempo')[0].files[0];
+            var otros        = $('#csvOtros')[0].files[0];
 
-            if (!ventas || !tiempoSitio || !sinTiempo) {
-                Swal.fire({ icon: 'warning', title: 'Faltan archivos', text: 'Sube los 3 archivos CSV.', confirmButtonText: 'Aceptar' });
+            if (!ventas && !tiempoSitio && !sinTiempo && !otros) {
+                Swal.fire({ icon: 'warning', title: 'Falta archivo', text: 'Sube al menos un archivo CSV.', confirmButtonText: 'Aceptar' });
                 return;
             }
 
             var fd = new FormData();
             fd.append('accion', 'ejecutar');
-            fd.append('ventas', ventas);
-            fd.append('tiempo_sitio', tiempoSitio);
-            fd.append('sin_tiempo', sinTiempo);
+            if (ventas) fd.append('ventas', ventas);
+            if (tiempoSitio) fd.append('tiempo_sitio', tiempoSitio);
+            if (sinTiempo) fd.append('sin_tiempo', sinTiempo);
+            if (otros) fd.append('otros', otros);
             fd.append('geocodificar', $('#chkGeocodificar').is(':checked') ? '1' : '0');
 
             $('#btnImportar').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Procesando...');
@@ -260,6 +272,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                 html += '<tr><td class="text-muted">Clientes geocodificados (exactos)</td><td class="fw-semibold">' + (r.geo.ok || 0) + '</td></tr>';
                 html += '<tr><td class="text-muted">Clientes geocodificados (centroide CP)</td><td class="fw-semibold">' + (r.geo.cp || 0) + '</td></tr>';
                 html += '<tr><td class="text-muted">Clientes fallidos</td><td class="fw-semibold">' + (r.geo.err || 0) + '</td></tr>';
+            }
+            if (r.otros) {
+                html += '<tr><td class="text-muted">Actividades importadas</td><td class="fw-semibold">' + (r.otros.ok || 0) + '</td></tr>';
+                html += '<tr><td class="text-muted">Actividades ignoradas (correo/llamada)</td><td class="fw-semibold">' + (r.otros.ignoradas || 0) + '</td></tr>';
+                html += '<tr><td class="text-muted">Actividades duplicadas (omitidas)</td><td class="fw-semibold">' + (r.otros.dup || 0) + '</td></tr>';
             }
             html += '<tr><td class="text-muted">Tiempo total</td><td class="fw-semibold">' + (r.duracion || '?') + ' seg</td></tr>';
             html += '</tbody></table>';

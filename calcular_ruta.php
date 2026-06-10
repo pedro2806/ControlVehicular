@@ -1,24 +1,33 @@
 <?php
-include __DIR__ . '/conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+/**
+ * Cálculo de km recorridos (origen check-in -> destino cliente/actividad).
+ *
+ * Doble uso:
+ *   - Endpoint AJAX: POST {ov_ot, lat, lng, [id_actividad]} desde el check-in QR.
+ *   - Librería incluible: define las funciones SIN ejecutar el endpoint, para
+ *     que el batch de reconciliación (al importar Actividades) reutilice la
+ *     misma lógica de cálculo. El bloque del endpoint solo corre cuando este
+ *     archivo es el script invocado directamente.
+ */
 
-$config    = @parse_ini_file(__DIR__ . '/token.ini');
-$INEGI_KEY = $config['INEGI_TOKEN'] ?? '';
-
-// Cuando la API INEGI falla, usamos haversine (distancia en linea recta) y
-// la multiplicamos por este factor para aproximar la ruta real por carretera.
+// Cuando la API INEGI falla, usamos haversine (línea recta) y la multiplicamos
+// por este factor para aproximar la ruta real por carretera.
 const HAVERSINE_FACTOR = 1.45;
 
-$ov_ot      = isset($_POST['ov_ot']) ? trim($_POST['ov_ot']) : '';
-$origen_lat = isset($_POST['lat'])   ? floatval($_POST['lat']) : null;
-$origen_lng = isset($_POST['lng'])   ? floatval($_POST['lng']) : null;
-$id_usuario = isset($_COOKIE['id_usuarioL']) ? intval($_COOKIE['id_usuarioL']) : null;
+// INEGI Sakbé tiene una red vial por escala (cada escala es un grafo distinto).
+// Ningún escala cubre todos los puntos: los urbanos resuelven en escalas finas,
+// los remotos/industriales solo en las gruesas. Se prueba de fino a grueso y se
+// usa el primer escala donde TANTO origen como destino resuelven (ruta más
+// detallada posible). Origen y destino deben salir del MISMO escala para rutear.
+const ESCALAS_INEGI = [20000, 50000, 250000, 1000000];
 
-if ($ov_ot === '' || $origen_lat === null || $origen_lng === null) {
-    echo json_encode(['status' => 'error', 'message' => 'Parámetros incompletos']);
-    exit;
+function tokenInegi(): string {
+    static $key = null;
+    if ($key === null) {
+        $cfg = @parse_ini_file(__DIR__ . '/token.ini');
+        $key = $cfg['INEGI_TOKEN'] ?? '';
+    }
+    return $key;
 }
 
 function resolverCliente(mysqli $conn, string $ov_ot): ?int {
@@ -37,6 +46,54 @@ function resolverCliente(mysqli $conn, string $ov_ot): ?int {
     return !empty($r['id_cliente']) ? intval($r['id_cliente']) : null;
 }
 
+/**
+ * Fallback OTROS: actividad del usuario en la tabla `otros` (poblada al importar
+ * el CSV de Actividades) cuya fecha coincide con el día de referencia del
+ * check-in. Excluye actividades ya consumidas por otro check-in (su order_code
+ * ya quedó registrado en actividad_vehiculo).
+ *
+ * `marca` es el identificador que se graba en actividad_vehiculo.order_code para
+ * marcar la actividad como consumida: el order_code del CSV, o 'OTROS-{id}' si
+ * la fila no trajo order_code (siempre no-nulo, así nunca se procesa dos veces).
+ *
+ * @param string $fechaRef fecha/hora del check-in ('Y-m-d H:i:s'); se compara por día.
+ * @return array{id_cliente:int,actividad:string,lat:?float,lng:?float,marca:string}|null
+ */
+function resolverClienteOtros(mysqli $conn, int $id_usuario, string $fechaRef): ?array {
+    try {
+        // COLLATE explícito: otros.order_code y actividad_vehiculo.order_code
+        // tienen collations distintas (tabla nueva vs vieja); sin esto el NOT IN
+        // lanza "Illegal mix of collations".
+        $sql = "SELECT id_cliente, actividad, latitude, longitude,
+                       COALESCE(order_code, CONCAT('OTROS-', id)) AS marca
+                FROM otros
+                WHERE id_usuario = ?
+                  AND fecha IS NOT NULL
+                  AND DATE(fecha) = DATE(?)
+                  AND COALESCE(order_code, CONCAT('OTROS-', id)) COLLATE utf8mb4_general_ci NOT IN (
+                        SELECT order_code COLLATE utf8mb4_general_ci
+                        FROM actividad_vehiculo WHERE order_code IS NOT NULL)
+                ORDER BY fecha DESC, id DESC
+                LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) return null; // la tabla aún no existe (sin importación previa)
+        $stmt->bind_param("is", $id_usuario, $fechaRef);
+        $stmt->execute();
+        $r = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$r || empty($r['id_cliente'])) return null;
+        return [
+            'id_cliente' => intval($r['id_cliente']),
+            'actividad'  => (string) $r['actividad'],
+            'lat'        => $r['latitude']  !== null ? floatval($r['latitude'])  : null,
+            'lng'        => $r['longitude'] !== null ? floatval($r['longitude']) : null,
+            'marca'      => (string) $r['marca'],
+        ];
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
 function obtenerCoordsCliente(mysqli $conn, int $id_cliente): ?array {
     $stmt = $conn->prepare("SELECT lat, lng FROM clientes WHERE IDCLTE = ? LIMIT 1");
     $stmt->bind_param("i", $id_cliente);
@@ -47,12 +104,64 @@ function obtenerCoordsCliente(mysqli $conn, int $id_cliente): ?array {
     return ['lat' => floatval($r['lat']), 'lng' => floatval($r['lng'])];
 }
 
-function buscarLineaInegi(float $lng, float $lat, string $key): ?array {
+/** Sedes MESS (cacheadas). Cada una con su radio en km (default 3). */
+function obtenerSedes(mysqli $conn): array {
+    static $sedes = null;
+    if ($sedes !== null) return $sedes;
+    $sedes = [];
+    $r = @$conn->query("SELECT lat, lng, radio_km FROM sedes");
+    if ($r) {
+        while ($s = $r->fetch_assoc()) {
+            $sedes[] = [
+                'lat'   => floatval($s['lat']),
+                'lng'   => floatval($s['lng']),
+                'radio' => floatval($s['radio_km']) > 0 ? floatval($s['radio_km']) : 3.0,
+            ];
+        }
+    }
+    return $sedes;
+}
+
+/** Distancia en línea recta (sin factor), para el chequeo de radio de sede. */
+function haversineRectaKm(float $lat1, float $lng1, float $lat2, float $lng2): float {
+    $R = 6371.0;
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLng = deg2rad($lng2 - $lng1);
+    $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+    return 2 * $R * asin(sqrt($a));
+}
+
+/** True si (lat,lng) cae dentro del radio de alguna sede MESS. */
+function dentroDeSede(mysqli $conn, float $lat, float $lng): bool {
+    foreach (obtenerSedes($conn) as $s) {
+        if (haversineRectaKm($lat, $lng, $s['lat'], $s['lng']) <= $s['radio']) return true;
+    }
+    return false;
+}
+
+/**
+ * Destino del km para una actividad OTROS: las coordenadas de la propia
+ * actividad, salvo que sean inválidas (0,0) o caigan dentro del radio de una
+ * sede MESS, en cuyo caso se usan las coordenadas registradas del cliente.
+ * @return array{lat:float,lng:float,fuente:string}|null
+ */
+function resolverDestino(mysqli $conn, ?float $actLat, ?float $actLng, int $id_cliente): ?array {
+    if ($actLat !== null && $actLng !== null && !($actLat == 0.0 && $actLng == 0.0)) {
+        if (!dentroDeSede($conn, $actLat, $actLng)) {
+            return ['lat' => $actLat, 'lng' => $actLng, 'fuente' => 'actividad'];
+        }
+    }
+    $c = obtenerCoordsCliente($conn, $id_cliente);
+    if ($c !== null) $c['fuente'] = 'cliente';
+    return $c;
+}
+
+function buscarLineaInegi(float $lng, float $lat, string $key, int $escala = 250000): ?array {
     $ch = curl_init('https://gaia.inegi.org.mx/sakbe_v3.1/buscalinea');
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => http_build_query([
-            'x' => $lng, 'y' => $lat, 'escala' => 250000,
+            'x' => $lng, 'y' => $lat, 'escala' => $escala,
             'type' => 'json', 'proj' => 'GRS80', 'key' => $key,
         ]),
         CURLOPT_RETURNTRANSFER => true,
@@ -93,83 +202,282 @@ function calcularRutaInegi(array $origen, array $destino, string $key): ?array {
 }
 
 function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float {
-    $R = 6371.0;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLng = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-    $kmRecta = 2 * $R * asin(sqrt($a));
-    return round($kmRecta * HAVERSINE_FACTOR, 3);
+    return round(haversineRectaKm($lat1, $lng1, $lat2, $lng2) * HAVERSINE_FACTOR, 3);
 }
 
-function registrarKm(mysqli $conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $id_usuario): void {
+/**
+ * Ruta INEGI probando escalas de fina a gruesa hasta que origen y destino
+ * resuelvan en el MISMO escala y /libre devuelva distancia. Devuelve
+ * ['km','tiempo','escala'] o null si ningún escala funciona.
+ */
+function rutaInegiCascada(float $oLat, float $oLng, float $dLat, float $dLng, string $key): ?array {
+    foreach (ESCALAS_INEGI as $e) {
+        $lo = buscarLineaInegi($oLng, $oLat, $key, $e);
+        if (!isset($lo['data']['id_routing_net'])) continue;
+        $ld = buscarLineaInegi($dLng, $dLat, $key, $e);
+        if (!isset($ld['data']['id_routing_net'])) continue;
+        $ruta = calcularRutaInegi($lo['data'], $ld['data'], $key);
+        if (isset($ruta['data']['long_km'])) {
+            return [
+                'km'     => floatval($ruta['data']['long_km']),
+                'tiempo' => isset($ruta['data']['tiempo_min']) ? floatval($ruta['data']['tiempo_min']) : null,
+                'escala' => $e,
+            ];
+        }
+    }
+    return null;
+}
+
+function registrarKm(mysqli $conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $id_usuario, int $id_actividad = 0): void {
+    // Si este check-in ya dejó un placeholder 'sin_actividad', se RELLENA esa misma
+    // fila (no se duplica) — es lo que pasa cuando el batch encuentra la actividad.
+    if ($id_actividad > 0) {
+        $q = $conn->prepare("SELECT id FROM km_calculados WHERE id_actividad = ? AND estatus = 'sin_actividad' ORDER BY id DESC LIMIT 1");
+        $q->bind_param("i", $id_actividad);
+        $q->execute();
+        $row = $q->get_result()->fetch_assoc();
+        $q->close();
+        if ($row) {
+            $u = $conn->prepare("UPDATE km_calculados
+                SET ov_ot = ?, id_cliente = ?, destino_lat = ?, destino_lng = ?, long_km = ?, tiempo_min = ?, metodo = ?, estatus = ?, error_msg = ?
+                WHERE id = ?");
+            $u->bind_param("siddddsssi", $ov_ot, $id_cliente, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $row['id']);
+            $u->execute();
+            $u->close();
+            return;
+        }
+    }
+
     $stmt = $conn->prepare("INSERT INTO km_calculados
-        (ov_ot, id_cliente, origen_lat, origen_lng, destino_lat, destino_lng, long_km, tiempo_min, metodo, estatus, error_msg, id_usuario)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        (ov_ot, id_cliente, origen_lat, origen_lng, destino_lat, destino_lng, long_km, tiempo_min, metodo, estatus, error_msg, id_usuario, id_actividad)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param(
-        "siddddddsssi",
-        $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $id_usuario
+        "siddddddsssii",
+        $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $id_usuario, $id_actividad
     );
     $stmt->execute();
     $stmt->close();
 }
 
-$id_cliente = resolverCliente($conn, $ov_ot);
-if ($id_cliente === null) {
-    echo json_encode(['status' => 'error', 'message' => "OV/OT '$ov_ot' no encontrada"]);
-    exit;
-}
+/**
+ * Calcula la ruta INEGI (fallback haversine) entre origen y destino y registra
+ * la fila en km_calculados. Reutilizable por el endpoint y por el batch.
+ * @return array{km:?float,tiempo_min:?float,metodo:string,estatus:string,aviso:?string}
+ */
+function calcularYRegistrar(mysqli $conn, $ov_ot, int $id_cliente, float $oLat, float $oLng, array $destino, ?int $id_usuario, int $id_actividad = 0): array {
+    $key   = tokenInegi();
+    $dLat  = $destino['lat'];
+    $dLng  = $destino['lng'];
+    $metodo = 'inegi'; $estatus = 'ok'; $error = null; $km = null; $tiempo = null;
 
-$destino = obtenerCoordsCliente($conn, $id_cliente);
-if ($destino === null) {
-    registrarKm($conn, $ov_ot, $id_cliente, $origen_lat, $origen_lng,
-        null, null, null, null, 'haversine', 'sin_destino',
-        'Cliente sin lat/lng en BD', $id_usuario);
-    echo json_encode([
-        'status'  => 'error',
-        'message' => 'El cliente no tiene coordenadas registradas',
-        'id_cliente' => $id_cliente,
-    ]);
-    exit;
-}
+    $ruta = $key ? rutaInegiCascada($oLat, $oLng, $dLat, $dLng, $key) : null;
 
-$destino_lat = $destino['lat'];
-$destino_lng = $destino['lng'];
-
-$metodo    = 'inegi';
-$estatus   = 'ok';
-$error_msg = null;
-$km        = null;
-$tiempo    = null;
-
-$linea_o = $INEGI_KEY ? buscarLineaInegi($origen_lng, $origen_lat, $INEGI_KEY) : null;
-$linea_d = $INEGI_KEY ? buscarLineaInegi($destino_lng, $destino_lat, $INEGI_KEY) : null;
-
-if (isset($linea_o['data']['id_routing_net'], $linea_d['data']['id_routing_net'])) {
-    $ruta = calcularRutaInegi($linea_o['data'], $linea_d['data'], $INEGI_KEY);
-    if (isset($ruta['data']['long_km'])) {
-        $km     = floatval($ruta['data']['long_km']);
-        $tiempo = isset($ruta['data']['tiempo_min']) ? floatval($ruta['data']['tiempo_min']) : null;
+    if ($ruta !== null) {
+        $km     = $ruta['km'];
+        $tiempo = $ruta['tiempo'];
     } else {
-        $metodo    = 'haversine';
-        $estatus   = 'error_api';
-        $error_msg = 'INEGI /libre sin long_km';
-        $km        = haversineKm($origen_lat, $origen_lng, $destino_lat, $destino_lng);
+        $metodo = 'haversine'; $estatus = 'error_api';
+        $error  = $key === '' ? 'Token INEGI ausente' : 'INEGI sin ruta en ninguna escala';
+        $km     = haversineKm($oLat, $oLng, $dLat, $dLng);
     }
-} else {
-    $metodo    = 'haversine';
-    $estatus   = 'error_api';
-    $error_msg = $INEGI_KEY === '' ? 'Token INEGI ausente' : 'INEGI /buscalinea sin id_routing_net';
-    $km        = haversineKm($origen_lat, $origen_lng, $destino_lat, $destino_lng);
+
+    registrarKm($conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $tiempo, $metodo, $estatus, $error, $id_usuario, $id_actividad);
+    return ['km' => $km, 'tiempo_min' => $tiempo, 'metodo' => $metodo, 'estatus' => $estatus, 'aviso' => $error];
 }
 
-registrarKm($conn, $ov_ot, $id_cliente, $origen_lat, $origen_lng,
-    $destino_lat, $destino_lng, $km, $tiempo, $metodo, $estatus, $error_msg, $id_usuario);
+/**
+ * Reconciliación batch (se llama al importar el CSV de Actividades).
+ *
+ * Busca check-ins "incompletos" — registros de actividad_vehiculo tipo INICIO,
+ * con GPS, cuyo km aún no se calculó (order_code IS NULL) — y los empareja con
+ * la actividad OTROS del MISMO DÍA del usuario que acaba de llegar en el CSV.
+ * Cubre el caso en que el chofer sube su registro de actividad después del
+ * check-in. Los check-ins de OV/OT se ignoran (ya se calculan en vivo).
+ *
+ * @return array contadores: revisados, calculados, sin_actividad, sin_destino, ovot
+ */
+function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30): array {
+    $res = ['revisados' => 0, 'calculados' => 0, 'sin_actividad' => 0, 'sin_destino' => 0, 'ovot' => 0];
 
-echo json_encode([
-    'status'     => 'success',
-    'km'         => $km,
-    'tiempo_min' => $tiempo,
-    'metodo'     => $metodo,
-    'aviso'      => $error_msg,
-    'id_cliente' => $id_cliente,
-]);
+    $stmt = $conn->prepare("SELECT id_actividad, id_usuario, coordenadas, ot, fecha_actividad
+        FROM actividad_vehiculo
+        WHERE order_code IS NULL
+          AND tipo_actividad = 'INICIO'
+          AND coordenadas IS NOT NULL AND coordenadas <> ''
+          AND fecha_actividad >= (NOW() - INTERVAL ? DAY)
+        ORDER BY id_actividad");
+    if (!$stmt) return $res;
+    $stmt->bind_param("i", $diasAtras);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    foreach ($rows as $row) {
+        $res['revisados']++;
+
+        $partes = explode(',', (string) $row['coordenadas']);
+        if (count($partes) < 2) continue;
+        $oLat = floatval(trim($partes[0]));
+        $oLng = floatval(trim($partes[1]));
+        if ($oLat == 0.0 && $oLng == 0.0) continue;
+
+        // Si el ot resuelve como OV/OT, ya se manejó en vivo: saltar.
+        $ot = trim((string) $row['ot']);
+        if ($ot !== '' && resolverCliente($conn, $ot) !== null) { $res['ovot']++; continue; }
+
+        $id_usuario = intval($row['id_usuario']);
+        $otros = resolverClienteOtros($conn, $id_usuario, (string) $row['fecha_actividad']);
+        if ($otros === null) { $res['sin_actividad']++; continue; }
+
+        $destino = resolverDestino($conn, $otros['lat'], $otros['lng'], $otros['id_cliente']);
+        if ($destino === null) { $res['sin_destino']++; continue; }
+
+        calcularYRegistrar($conn, $otros['actividad'], $otros['id_cliente'], $oLat, $oLng, $destino, $id_usuario, (int) $row['id_actividad']);
+
+        // Marca el check-in: tipo de actividad, order_code de SCOT y limpia `ot`.
+        marcarCheckin($conn, (int) $row['id_actividad'], [
+            'detalle'    => $otros['actividad'],
+            'order_code' => $otros['marca'],
+            'limpiar_ot' => true,
+        ]);
+        $res['calculados']++;
+    }
+    return $res;
+}
+
+/**
+ * Orquesta el cálculo de km de UN check-in: resuelve cliente (OV/OT u OTROS del
+ * día), resuelve destino (coords de actividad validadas vs sedes, o del cliente),
+ * registra km_calculados y marca order_code en el check-in. Reutilizable por el
+ * endpoint QR y por el check-in del modal global (acciones_kilometraje.php).
+ *
+ * @param string $fechaRef fecha/hora del check-in ('Y-m-d H:i:s') para el match OTROS.
+ * @return array resultado con 'status' => 'success'|'error'.
+ */
+/** Tipos de actividad SCOT (no son OV/OT). Si llegan en `ot`, NO son códigos
+ *  válidos: se limpian de `ot` y el tipo va a detalle_tipo_uso. */
+const TIPOS_ACTIVIDAD = ['VISITA', 'APPVISITA', 'OTRO'];
+
+function esTipoActividad(string $v): bool {
+    return in_array(strtoupper(trim($v)), TIPOS_ACTIVIDAD, true);
+}
+
+/**
+ * Marca el check-in (actividad_vehiculo) tras resolver su km:
+ *  - 'order_code': el de la actividad OTROS (link a SCOT + "ya calculado").
+ *  - 'limpiar_ot': deja `ot` vacío cuando NO es OV/OT (ot SOLO guarda OV/OT).
+ *  - 'detalle'   : tipo de actividad (VISITA/APPVISITA/OTRO); va a detalle_tipo_uso
+ *    SOLO si está vacío (no pisa el tipoServicio real del modal global).
+ */
+function marcarCheckin(mysqli $conn, int $idActividad, array $c): void {
+    if ($idActividad <= 0) return;
+
+    if (!empty($c['order_code'])) {
+        $s = $conn->prepare("UPDATE actividad_vehiculo SET order_code = ? WHERE id_actividad = ?");
+        $s->bind_param("si", $c['order_code'], $idActividad);
+        $s->execute(); $s->close();
+    }
+    if (!empty($c['limpiar_ot'])) {
+        $s = $conn->prepare("UPDATE actividad_vehiculo SET ot = '' WHERE id_actividad = ?");
+        $s->bind_param("i", $idActividad);
+        $s->execute(); $s->close();
+    }
+    if (!empty($c['detalle'])) {
+        $s = $conn->prepare("UPDATE actividad_vehiculo SET detalle_tipo_uso = ?
+            WHERE id_actividad = ? AND (detalle_tipo_uso IS NULL OR detalle_tipo_uso = '')");
+        $s->bind_param("si", $c['detalle'], $idActividad);
+        $s->execute(); $s->close();
+    }
+}
+
+function procesarKmCheckin(mysqli $conn, string $ov_ot, ?float $oLat, ?float $oLng, ?int $id_usuario, int $id_actividad, string $fechaRef): array {
+    if ($oLat === null || $oLng === null) {
+        return ['status' => 'error', 'message' => 'Sin coordenadas de origen'];
+    }
+
+    // Si `ot` trae un TIPO de actividad (VISITA/APPVISITA/OTRO), no es un OV/OT:
+    // lo capturamos para detalle_tipo_uso y lo limpiamos de `ot`.
+    $tipoActividad = esTipoActividad($ov_ot) ? strtoupper(trim($ov_ot)) : null;
+    if ($tipoActividad !== null) $ov_ot = '';
+
+    $id_cliente = $ov_ot !== '' ? resolverCliente($conn, $ov_ot) : null;
+    $esOvOt     = $id_cliente !== null;      // el ot capturado SÍ es un OV/OT válido
+    $otros      = null;
+
+    // Fallback OTROS: si no es OV/OT, tomar la actividad del usuario del día.
+    if ($id_cliente === null && $id_usuario) {
+        $otros = resolverClienteOtros($conn, $id_usuario, $fechaRef);
+        if ($otros !== null) $id_cliente = $otros['id_cliente'];
+    }
+
+    // Sin OV/OT y sin actividad OTROS: no hay destino. Igual:
+    //  - guardamos el TIPO de actividad en detalle_tipo_uso y limpiamos `ot`;
+    //  - dejamos un registro/indicador en km_calculados con estatus 'sin_actividad'
+    //    (origen sí, destino/km no) para que ningún check-in quede sin huella.
+    if ($id_cliente === null) {
+        marcarCheckin($conn, $id_actividad, ['detalle' => $tipoActividad, 'limpiar_ot' => $tipoActividad !== null]);
+        registrarKm($conn, (string) ($tipoActividad ?? ''), null, $oLat, $oLng,
+            null, null, null, null, 'haversine', 'sin_actividad',
+            'Sin OV/OT ni actividad OTROS del día', $id_usuario, $id_actividad);
+        return ['status' => 'error', 'message' => $ov_ot !== '' ? "OV/OT '$ov_ot' no encontrada" : 'Sin actividad OTROS para el usuario'];
+    }
+
+    // En km_calculados.ov_ot va el código OV/OT, o el tipo de actividad si es OTROS.
+    $ovOtKm = $esOvOt ? $ov_ot : (string) $otros['actividad'];
+
+    // Destino: OTROS usa coords de la actividad (validadas vs sedes) o del
+    // cliente; OV/OT usa siempre las del cliente.
+    $destino = $otros !== null
+        ? resolverDestino($conn, $otros['lat'], $otros['lng'], $id_cliente)
+        : obtenerCoordsCliente($conn, $id_cliente);
+
+    if ($destino === null) {
+        registrarKm($conn, $ovOtKm, $id_cliente, $oLat, $oLng,
+            null, null, null, null, 'haversine', 'sin_destino',
+            'Cliente sin lat/lng en BD', $id_usuario, $id_actividad);
+        if ($otros !== null) {
+            marcarCheckin($conn, $id_actividad, ['detalle' => $otros['actividad'], 'order_code' => $otros['marca'], 'limpiar_ot' => true]);
+        }
+        return ['status' => 'error', 'message' => 'El cliente no tiene coordenadas registradas', 'id_cliente' => $id_cliente];
+    }
+
+    $r = calcularYRegistrar($conn, $ovOtKm, $id_cliente, $oLat, $oLng, $destino, $id_usuario, $id_actividad);
+
+    // OTROS: tipo de actividad -> detalle_tipo_uso, order_code de SCOT, y se limpia
+    // `ot` (solo guarda OV/OT). OV/OT: se respeta el `ot` capturado.
+    if ($otros !== null) {
+        marcarCheckin($conn, $id_actividad, ['detalle' => $otros['actividad'], 'order_code' => $otros['marca'], 'limpiar_ot' => true]);
+    }
+
+    return [
+        'status'     => 'success',
+        'km'         => $r['km'],
+        'tiempo_min' => $r['tiempo_min'],
+        'metodo'     => $r['metodo'],
+        'aviso'      => $r['aviso'],
+        'id_cliente' => $id_cliente,
+    ];
+}
+
+// ---------------------------------------------------------------------------
+// Endpoint AJAX (solo cuando se invoca este archivo directamente)
+// ---------------------------------------------------------------------------
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
+    include __DIR__ . '/conn.php';
+    header('Content-Type: application/json');
+    mysqli_set_charset($conn, "utf8mb4");
+    date_default_timezone_set('America/Mexico_City');
+
+    $ov_ot        = isset($_POST['ov_ot']) ? trim($_POST['ov_ot']) : '';
+    $origen_lat   = isset($_POST['lat'])   ? floatval($_POST['lat']) : null;
+    $origen_lng   = isset($_POST['lng'])   ? floatval($_POST['lng']) : null;
+    $id_actividad = isset($_POST['id_actividad']) ? intval($_POST['id_actividad']) : 0;
+    $id_usuario   = intval($_COOKIE['id_usuarioL'] ?? $_COOKIE['id_usuario'] ?? 0) ?: null;
+
+    if ($origen_lat === null || $origen_lng === null) {
+        echo json_encode(['status' => 'error', 'message' => 'Parámetros incompletos']);
+        exit;
+    }
+
+    echo json_encode(procesarKmCheckin($conn, $ov_ot, $origen_lat, $origen_lng, $id_usuario, $id_actividad, date('Y-m-d H:i:s')));
+}

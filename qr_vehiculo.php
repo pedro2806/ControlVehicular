@@ -750,9 +750,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                             }, { once: true });
                             bootstrap.Modal.getInstance(modalEl).hide();
 
-                            // Si el usuario capturó OT/OV y tenemos GPS, registramos km en paralelo
-                            if (otOv && latNum != null && lngNum != null) {
-                                calcularRutaAsync(otOv, latNum, lngNum);
+                            // Con GPS registramos km en paralelo. Si hay OV/OT se usa ese cliente;
+                            // si no, calcular_ruta.php cae a la actividad del usuario (tabla otros).
+                            // id_actividad liga el km a este check-in (marca order_code).
+                            if (latNum != null && lngNum != null) {
+                                calcularRutaAsync(otOv, latNum, lngNum, resp.id_actividad);
                             }
                         } else {
                             Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo registrar.', confirmButtonText: 'Aceptar' });
@@ -767,22 +769,30 @@ if (empty($_COOKIE['noEmpleado'])) {
                 });
             }
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (pos) { enviar(pos.coords.latitude, pos.coords.longitude); },
-                    function () { enviar(null, null); },
-                    { timeout: 5000, maximumAge: 60000 }
-                );
-            } else {
-                enviar(null, null);
+            // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-in.
+            function gpsFallo() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Activa tu ubicación',
+                    text: 'No pudimos obtener tu ubicación, que es obligatoria para registrar el check-in. Habilita el GPS y el permiso de ubicación del navegador e inténtalo de nuevo.',
+                    confirmButtonText: 'Reintentar'
+                });
+                $('#btnGuardarCheckinKM').prop('disabled', false).text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
             }
+
+            if (!navigator.geolocation) { gpsFallo(); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (pos) { enviar(pos.coords.latitude, pos.coords.longitude); },
+                function () { gpsFallo(); },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
         }
 
-        function calcularRutaAsync(otOv, lat, lng) {
+        function calcularRutaAsync(otOv, lat, lng, idActividad) {
             $.ajax({
                 url: 'calcular_ruta.php',
                 method: 'POST',
-                data: { ov_ot: otOv, lat: lat, lng: lng }
+                data: { ov_ot: otOv, lat: lat, lng: lng, id_actividad: idActividad || 0 }
             });
         }
 

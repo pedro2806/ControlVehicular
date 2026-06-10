@@ -1,5 +1,7 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/reportes/importar_otros.php'; // define importarOtros() sin ejecutar su CLI
+require_once __DIR__ . '/calcular_ruta.php';           // define reconciliarKmPendientes() sin ejecutar el endpoint
 header('Content-Type: application/json');
 mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
@@ -59,37 +61,40 @@ if ($accion === 'ejecutar') {
 
     $inicio = microtime(true);
 
-    $campos = ['ventas', 'tiempo_sitio', 'sin_tiempo'];
-    foreach ($campos as $c) {
-        if (!isset($_FILES[$c]) || $_FILES[$c]['error'] !== UPLOAD_ERR_OK) {
-            echo json_encode(['success' => false, 'error' => "Falta archivo: $c"]);
-            exit;
-        }
-        $ext = strtolower(pathinfo($_FILES[$c]['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'csv') {
-            echo json_encode(['success' => false, 'error' => "Archivo $c no es .csv"]);
-            exit;
-        }
-    }
-
-    // Guardar archivos con nombre canonico (sobreescribe la version anterior)
+    // Cada archivo es opcional; se requiere al menos uno (incluido 'otros').
     $dirReportes = __DIR__ . DIRECTORY_SEPARATOR . 'reportes';
     if (!is_dir($dirReportes)) mkdir($dirReportes, 0777, true);
 
     $stamp = date('Ymd_His');
-    $destinos = [
-        'ventas'       => "$dirReportes/VENTAS_$stamp.csv",
-        'tiempo_sitio' => "$dirReportes/DETALLE-TIEMPO-SITIO_$stamp.csv",
-        'sin_tiempo'   => "$dirReportes/DETALLE-SIN-TIEMPO_$stamp.csv",
+    $mapaNombres = [
+        'ventas'       => "VENTAS_$stamp.csv",
+        'tiempo_sitio' => "DETALLE-TIEMPO-SITIO_$stamp.csv",
+        'sin_tiempo'   => "DETALLE-SIN-TIEMPO_$stamp.csv",
+        'otros'        => "DETALLE-OTROS_$stamp.csv",
     ];
 
-    foreach ($destinos as $key => $ruta) {
-        if (!move_uploaded_file($_FILES[$key]['tmp_name'], $ruta)) {
-            echo json_encode(['success' => false, 'error' => "No se pudo guardar $key"]);
+    $destinos = [];
+    foreach ($mapaNombres as $campo => $nombre) {
+        if (!isset($_FILES[$campo]) || $_FILES[$campo]['error'] !== UPLOAD_ERR_OK) continue;
+        $ext = strtolower(pathinfo($_FILES[$campo]['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            echo json_encode(['success' => false, 'error' => "Archivo $campo no es .csv"]);
             exit;
         }
+        $ruta = "$dirReportes/$nombre";
+        if (!move_uploaded_file($_FILES[$campo]['tmp_name'], $ruta)) {
+            echo json_encode(['success' => false, 'error' => "No se pudo guardar $campo"]);
+            exit;
+        }
+        $destinos[$campo] = $ruta;
     }
 
+    if (empty($destinos)) {
+        echo json_encode(['success' => false, 'error' => 'Sube al menos un archivo CSV.']);
+        exit;
+    }
+
+    $rutaOtros = $destinos['otros'] ?? null;
     $separador = ',';
 
     // Crear tablas si no existen (igual que el script CLI)
@@ -115,46 +120,46 @@ if ($accion === 'ejecutar') {
         ];
 
         // --- OV (VENTAS) ---
-        $stmtOV = $conn->prepare("INSERT IGNORE INTO OV (OV, id_cliente) VALUES (?, ?)");
-        $r = importarCsvWeb($destinos['ventas'], $separador, function ($datos) use ($stmtOV) {
-            $ov         = isset($datos[11]) ? trim($datos[11]) : '';
-            $id_cliente = isset($datos[1])  ? trim($datos[1])  : '';
-            if ($ov === '') return false;
-            $stmtOV->bind_param("ss", $ov, $id_cliente);
-            return $stmtOV->execute();
-        }, $conn);
-        $stmtOV->close();
-        $resumen['ov_ok']  = $r['ok'];
-        $resumen['ov_err'] = $r['err'];
+        if (isset($destinos['ventas'])) {
+            $stmtOV = $conn->prepare("INSERT IGNORE INTO OV (OV, id_cliente) VALUES (?, ?)");
+            $r = importarCsvWeb($destinos['ventas'], $separador, function ($datos) use ($stmtOV) {
+                $ov         = isset($datos[11]) ? trim($datos[11]) : '';
+                $id_cliente = isset($datos[1])  ? trim($datos[1])  : '';
+                if ($ov === '') return false;
+                $stmtOV->bind_param("ss", $ov, $id_cliente);
+                return $stmtOV->execute();
+            }, $conn);
+            $stmtOV->close();
+            $resumen['ov_ok']  = $r['ok'];
+            $resumen['ov_err'] = $r['err'];
+        }
 
-        // --- OT (DETALLE-TIEMPO-SITIO) ---
-        $stmtOT = $conn->prepare("INSERT INTO OT (OT, id_cliente) VALUES (?, ?)
-            ON DUPLICATE KEY UPDATE id_cliente = VALUES(id_cliente)");
-        $r = importarCsvWeb($destinos['tiempo_sitio'], $separador, function ($datos) use ($stmtOT) {
-            $id_cliente = isset($datos[12]) ? trim($datos[12]) : '';
-            $oType      = isset($datos[13]) ? trim($datos[13]) : '';
-            $pos = strpos($oType, '_');
-            $ot  = $pos !== false ? substr($oType, 0, $pos) : $oType;
-            if ($ot === '') return false;
-            $stmtOT->bind_param("ss", $ot, $id_cliente);
-            return $stmtOT->execute();
-        }, $conn);
-        $resumen['ot_ts_ok']  = $r['ok'];
-        $resumen['ot_ts_err'] = $r['err'];
+        // --- OT (DETALLE-TIEMPO-SITIO / DETALLE-SIN-TIEMPO) ---
+        if (isset($destinos['tiempo_sitio']) || isset($destinos['sin_tiempo'])) {
+            $stmtOT = $conn->prepare("INSERT INTO OT (OT, id_cliente) VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE id_cliente = VALUES(id_cliente)");
+            $cbOT = function ($datos) use ($stmtOT) {
+                $id_cliente = isset($datos[12]) ? trim($datos[12]) : '';
+                $oType      = isset($datos[13]) ? trim($datos[13]) : '';
+                $pos = strpos($oType, '_');
+                $ot  = $pos !== false ? substr($oType, 0, $pos) : $oType;
+                if ($ot === '') return false;
+                $stmtOT->bind_param("ss", $ot, $id_cliente);
+                return $stmtOT->execute();
+            };
 
-        // --- OT (DETALLE-SIN-TIEMPO) ---
-        $r = importarCsvWeb($destinos['sin_tiempo'], $separador, function ($datos) use ($stmtOT) {
-            $id_cliente = isset($datos[12]) ? trim($datos[12]) : '';
-            $oType      = isset($datos[13]) ? trim($datos[13]) : '';
-            $pos = strpos($oType, '_');
-            $ot  = $pos !== false ? substr($oType, 0, $pos) : $oType;
-            if ($ot === '') return false;
-            $stmtOT->bind_param("ss", $ot, $id_cliente);
-            return $stmtOT->execute();
-        }, $conn);
-        $stmtOT->close();
-        $resumen['ot_st_ok']  = $r['ok'];
-        $resumen['ot_st_err'] = $r['err'];
+            if (isset($destinos['tiempo_sitio'])) {
+                $r = importarCsvWeb($destinos['tiempo_sitio'], $separador, $cbOT, $conn);
+                $resumen['ot_ts_ok']  = $r['ok'];
+                $resumen['ot_ts_err'] = $r['err'];
+            }
+            if (isset($destinos['sin_tiempo'])) {
+                $r = importarCsvWeb($destinos['sin_tiempo'], $separador, $cbOT, $conn);
+                $resumen['ot_st_ok']  = $r['ok'];
+                $resumen['ot_st_err'] = $r['err'];
+            }
+            $stmtOT->close();
+        }
 
     } catch (Throwable $e) {
         echo json_encode(['success' => false, 'error' => 'Error en importacion: ' . $e->getMessage()]);
@@ -168,6 +173,25 @@ if ($accion === 'ejecutar') {
             $resumen['geo'] = geocodificarClientesNuevos($conn);
         } catch (Throwable $e) {
             $resumen['geo'] = ['error' => $e->getMessage(), 'ok' => 0, 'cp' => 0, 'err' => 0];
+        }
+    }
+
+    // --- Importar Actividades (OTROS) a la tabla `otros` ---
+    // El km en vivo se calcula al hacer check-in por QR (calcular_ruta.php). Aquí,
+    // tras importar, se reconcilian los check-ins que quedaron sin km porque la
+    // actividad se subió después.
+    $resumen['otros'] = null;
+    $resumen['reconciliacion'] = null;
+    if ($rutaOtros !== null) {
+        try {
+            $resumen['otros'] = importarOtros($conn, $rutaOtros);
+        } catch (Throwable $e) {
+            $resumen['otros'] = ['error' => $e->getMessage(), 'ok' => 0, 'ignoradas' => 0, 'dup' => 0, 'err' => 0];
+        }
+        try {
+            $resumen['reconciliacion'] = reconciliarKmPendientes($conn);
+        } catch (Throwable $e) {
+            $resumen['reconciliacion'] = ['error' => $e->getMessage()];
         }
     }
 

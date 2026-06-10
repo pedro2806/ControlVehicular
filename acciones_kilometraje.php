@@ -1,8 +1,25 @@
 <?php
 include 'conn.php';
+require_once __DIR__ . '/calcular_ruta.php'; // define procesarKmCheckin() sin ejecutar el endpoint
 header('Content-Type: application/json');
 mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
+
+// Calcula el km de un check-in del modal global. Origen = GPS capturado en
+// `coordenadas` ("lat, lng"); destino = actividad OTROS del día o cliente OV/OT.
+// Síncrono (no async) porque el front redirige tras el éxito y mataría la
+// petición. Se envuelve en try/catch para no romper el check-in si falla.
+function calcularKmCheckinGlobal(mysqli $conn, ?string $coordenadas, ?string $ovOt, $idActividad): void {
+    try {
+        $p    = array_map('trim', explode(',', (string) $coordenadas));
+        $oLat = isset($p[0]) && $p[0] !== '' ? floatval($p[0]) : null;
+        $oLng = isset($p[1]) && $p[1] !== '' ? floatval($p[1]) : null;
+        $idUsuario = intval($_COOKIE['id_usuarioL'] ?? $_COOKIE['id_usuario'] ?? 0) ?: null;
+        if ($oLat !== null && $oLng !== null && intval($idActividad) > 0) {
+            procesarKmCheckin($conn, (string) $ovOt, $oLat, $oLng, $idUsuario, intval($idActividad), date('Y-m-d H:i:s'));
+        }
+    } catch (Throwable $e) { /* el cálculo de km nunca debe tumbar el check-in */ }
+}
 
 // Obtener datos del POST
 $id_vehiculo = isset($_POST['vehiculoAsignado']) ? $_POST['vehiculoAsignado'] : null;
@@ -175,7 +192,10 @@ if($accion == 'CapturaCheckIn'){
                 //exit;
             }
 
-        echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.']);
+            // Calcular km recorrido de este check-in (origen GPS -> destino actividad/cliente)
+            calcularKmCheckinGlobal($conn, $coordenadas, $otRelacionada, $idUltimaActividad);
+
+        echo json_encode(['status' => 'success', 'message' => 'Check-in realizado correctamente.', 'id_actividad' => $idUltimaActividad]);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-in: ' . $conn->error]);
     }
@@ -188,7 +208,6 @@ if($accion == 'CapturaCheckOut'){
             VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'FINALIZACION', '$notas', '$patron', '$gasActual', '$otRelacionada', '$tipoServicio', '$coordenadas', '$ruta', '$costoOv')";
 
     if ($conn->query($sql) === TRUE) {
-        echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.']);
         // Actualizar el estatus del préstamo a 'FINALIZADO'
         $updatePrestamo = "UPDATE prestamos SET estatus = 'FINALIZADO' WHERE id_prestamo = '$id_prestamo'";
         if (!empty($id_prestamo) && $finalizarPrestamo == 'Si') {
@@ -218,6 +237,11 @@ if($accion == 'CapturaCheckOut'){
                 //echo json_encode(['status' => 'error', 'message' => 'Error al actualizar el vehículo asignado: ' . $conn->error]);
                 //exit;
             }
+
+            // Calcular km recorrido de este check-out (origen GPS -> destino actividad/cliente)
+            calcularKmCheckinGlobal($conn, $coordenadas, $otRelacionada, $idUltimaActividad);
+
+        echo json_encode(['status' => 'success', 'message' => 'Check-out realizado correctamente.', 'id_actividad' => $idUltimaActividad]);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Error al realizar el check-out: ' . $conn->error]);
     }

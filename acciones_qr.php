@@ -299,6 +299,7 @@ if ($accion === 'checkInQR') {
     $stmt->bind_param("iiisss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot);
 
     if ($stmt->execute()) {
+        $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-in
         $conn->query("UPDATE inventario SET asignado = 'SI' WHERE id_vehiculo = " . $id_vehiculo);
         if ($km_actual > 0) {
             $stmtKm = $conn->prepare("INSERT INTO kilometrajes (id_vehiculo, km, fecha) VALUES (?, ?, NOW())");
@@ -306,7 +307,7 @@ if ($accion === 'checkInQR') {
             $stmtKm->execute();
             $stmtKm->close();
         }
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'id_actividad' => $id_actividad]);
     } else {
         echo json_encode(['error' => 'Error al registrar check-in.']);
     }
@@ -334,6 +335,7 @@ if ($accion === 'checkOutQR') {
     $stmt->bind_param("iiisss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot);
 
     if ($stmt->execute()) {
+        $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-out
         $conn->query("UPDATE inventario SET asignado = 'NO' WHERE id_vehiculo = " . $id_vehiculo);
         $conn->query("UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW() WHERE id_usuario = " . $id_usuario_cookie . " AND id_vehiculo = " . $id_vehiculo . " AND estatus = 'EN CURSO'");
         if ($km_actual > 0) {
@@ -342,7 +344,7 @@ if ($accion === 'checkOutQR') {
             $stmtKm->execute();
             $stmtKm->close();
         }
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'id_actividad' => $id_actividad]);
     } else {
         echo json_encode(['error' => 'Error al registrar check-out.']);
     }

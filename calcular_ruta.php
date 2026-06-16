@@ -244,6 +244,7 @@ function registrarKm(mysqli $conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dL
             $u->bind_param("siddddsssi", $ov_ot, $id_cliente, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $row['id']);
             $u->execute();
             $u->close();
+            refrescarKpiKm($conn, (int) $row['id']);   // KPI Power BI
             return;
         }
     }
@@ -256,7 +257,239 @@ function registrarKm(mysqli $conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dL
         $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $min, $metodo, $estatus, $error, $id_usuario, $id_actividad
     );
     $stmt->execute();
+    $nuevoId = $conn->insert_id;
     $stmt->close();
+    refrescarKpiKm($conn, (int) $nuevoId);   // KPI Power BI
+}
+
+// ---------------------------------------------------------------------------
+// reporte_km — tabla denormalizada (fact table) para el KPI de Power BI.
+//
+// Grano: una fila por trayecto calculado (= una fila de km_calculados),
+// enriquecida con dimensiones de vehículo, usuario y cliente. Power BI se
+// conecta directo a esta tabla. Se mantiene viva por dos vías:
+//   - upsert por fila tras cada cálculo (hook en registrarKm, arriba);
+//   - reconstrucción total con reportes/refrescar_reporte_km.php (cron/manual).
+// ---------------------------------------------------------------------------
+
+// Columnas destino, en el MISMO orden que las expresiones de sqlSelectReporteKm().
+const COLS_REPORTE_KM = 'id_km, id_actividad, fecha, anio, mes, id_vehiculo, placa, marca, modelo, anio_vehiculo, area, id_usuario, nombre_usuario, no_empleado, region, departamento, ov_ot, tipo_ref, id_cliente, cliente, estado, municipio, km, tiempo_min, costo_ov, metodo, estatus, km_valido';
+
+function crearTablaReporteKm(mysqli $conn): void {
+    $conn->query("CREATE TABLE IF NOT EXISTS reporte_km (
+        id_reporte     INT AUTO_INCREMENT PRIMARY KEY,
+        id_km          INT NOT NULL,
+        id_actividad   INT NULL,
+        fecha          DATETIME NULL,
+        anio           SMALLINT NULL,
+        mes            TINYINT NULL,
+        id_vehiculo    INT NULL,
+        placa          VARCHAR(9) NULL,
+        marca          VARCHAR(50) NULL,
+        modelo         VARCHAR(50) NULL,
+        anio_vehiculo  INT NULL,
+        area           VARCHAR(100) NULL,
+        id_usuario     INT NULL,
+        nombre_usuario VARCHAR(150) NULL,
+        no_empleado    VARCHAR(11) NULL,
+        region         INT NULL,
+        departamento   INT NULL,
+        ov_ot          VARCHAR(100) NULL,
+        tipo_ref       ENUM('OV','OT','OTROS','SIN') NULL,
+        id_cliente     INT NULL,
+        cliente        VARCHAR(255) NULL,
+        estado         VARCHAR(100) NULL,
+        municipio      VARCHAR(100) NULL,
+        km             DECIMAL(10,3) NULL,
+        tiempo_min     DECIMAL(10,2) NULL,
+        costo_ov       VARCHAR(50) NULL,
+        metodo         ENUM('inegi','haversine') NULL,
+        estatus        ENUM('ok','sin_destino','error_api','sin_actividad') NULL,
+        km_valido      TINYINT(1) NOT NULL DEFAULT 0,
+        actualizado    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_id_km (id_km),
+        KEY idx_fecha (fecha),
+        KEY idx_vehiculo (id_vehiculo),
+        KEY idx_usuario (id_usuario),
+        KEY idx_cliente (id_cliente),
+        KEY idx_tipo (tipo_ref),
+        KEY idx_km_valido (km_valido)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+// SELECT denormalizado reutilizado por el upsert y el rebuild. $where es código
+// fijo interno ('WHERE k.id = ?'), nunca datos del usuario.
+//
+// usuarios.id_usuario NO es único (hay duplicados y 0/NULL): se empareja con la
+// fila de mayor id por id_usuario para no multiplicar el grano del fact table.
+function sqlSelectReporteKm(string $where = ''): string {
+    return "SELECT
+            k.id, k.id_actividad,
+            COALESCE(av.fecha_actividad, k.fecha),
+            YEAR(COALESCE(av.fecha_actividad, k.fecha)),
+            MONTH(COALESCE(av.fecha_actividad, k.fecha)),
+            av.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.anio, inv.area,
+            k.id_usuario, u.nombre, u.noEmpleado, u.region, u.departamento,
+            k.ov_ot,
+            CASE WHEN ot.OT IS NOT NULL THEN 'OT'
+                 WHEN ov.OV IS NOT NULL THEN 'OV'
+                 WHEN k.estatus = 'sin_actividad' OR k.ov_ot IS NULL OR k.ov_ot = '' THEN 'SIN'
+                 ELSE 'OTROS' END,
+            k.id_cliente, c.CLIENTE, c.ESTADO, c.MUNICIPIO,
+            k.long_km, k.tiempo_min, av.costoOv, k.metodo, k.estatus,
+            CASE WHEN k.estatus = 'ok' AND k.long_km IS NOT NULL THEN 1 ELSE 0 END
+        FROM km_calculados k
+        LEFT JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
+        LEFT JOIN inventario inv        ON inv.id_vehiculo = av.id_vehiculo
+        LEFT JOIN usuarios u            ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = k.id_usuario)
+        LEFT JOIN clientes c            ON c.IDCLTE = k.id_cliente
+        LEFT JOIN OT ot                 ON ot.OT = k.ov_ot
+        LEFT JOIN OV ov                 ON ov.OV = k.ov_ot
+        $where";
+}
+
+// Refresca reporte_km. Con $idKm: reemplaza esa única fila (hook por check-in).
+// Sin $idKm: reconstrucción total. Nunca lanza: el KPI jamás debe tumbar el
+// flujo de km (check-in / importación).
+function refrescarReporteKm(mysqli $conn, int $idKm = 0): void {
+    try {
+        crearTablaReporteKm($conn);
+        $cols = COLS_REPORTE_KM;
+        if ($idKm > 0) {
+            $d = $conn->prepare("DELETE FROM reporte_km WHERE id_km = ?");
+            $d->bind_param("i", $idKm);
+            $d->execute();
+            $d->close();
+            $ins = $conn->prepare("INSERT INTO reporte_km ($cols) " . sqlSelectReporteKm("WHERE k.id = ?"));
+            $ins->bind_param("i", $idKm);
+            $ins->execute();
+            $ins->close();
+        } else {
+            $conn->query("DELETE FROM reporte_km");
+            $conn->query("INSERT INTO reporte_km ($cols) " . sqlSelectReporteKm());
+        }
+    } catch (Throwable $e) { /* el KPI nunca debe tumbar el flujo de km */ }
+}
+
+// ---------------------------------------------------------------------------
+// reporte_km_vehiculo — resumen por VEHÍCULO × SEMANA (ISO 8601) para el KPI
+// de uso (Power BI).
+//
+// El QR es el registro único; NO se depende del par INICIO/FINALIZACION.
+//  Por vehículo y semana:
+//   - km_registrado:         km reales de ODÓMETRO = Σ diferencias entre lecturas
+//                            de km_actual CONSECUTIVAS del vehículo (por tiempo,
+//                            sin importar el tipo de actividad).
+//   - km_trabajo_calculado:  km calculados por INEGI/API de las actividades de
+//                            trabajo de la semana (de reporte_km, km_valido=1).
+//   - porcentaje_uso_trabajo = km_trabajo_calculado / km_registrado * 100.
+//
+// El delta de odómetro se descarta si es negativo o > KM_VIAJE_MAX (reseteos de
+// tablero, p. ej. 192k→25k, y typos de captura, p. ej. 95152 entre 29k). Cada
+// delta se asigna a la semana de su lectura inicial.
+//
+// La semana es ISO 8601 (lunes-domingo, vía YEARWEEK(fecha, 3)): `anio` es el
+// año ISO de esa semana, que puede diferir del año calendario en los bordes de
+// diciembre/enero — por eso siempre se decompone YEARWEEK() combinado en vez de
+// usar YEAR()+WEEK() por separado. `semana_inicio` es el lunes de esa semana.
+// ---------------------------------------------------------------------------
+
+const COLS_REPORTE_KM_VEHICULO = 'id_vehiculo, anio, semana, semana_inicio, placa, marca, modelo, area, segmentos_odo, km_registrado, actividades_trabajo, km_trabajo_calculado, porcentaje_uso_trabajo';
+
+// Tope de km por tramo (lectura a lectura) para considerar válido el delta de
+// odómetro: descarta reseteos de tablero y errores de captura.
+const KM_VIAJE_MAX = 2000;
+
+function crearTablaReporteKmVehiculo(mysqli $conn): void {
+    $conn->query("CREATE TABLE IF NOT EXISTS reporte_km_vehiculo (
+        id_resumen             INT AUTO_INCREMENT PRIMARY KEY,
+        id_vehiculo            INT NOT NULL,
+        anio                   SMALLINT NOT NULL,
+        semana                 TINYINT NOT NULL,
+        semana_inicio          DATE NULL,
+        placa                  VARCHAR(9) NULL,
+        marca                  VARCHAR(50) NULL,
+        modelo                 VARCHAR(50) NULL,
+        area                   VARCHAR(100) NULL,
+        segmentos_odo          INT NOT NULL DEFAULT 0,
+        km_registrado          DECIMAL(12,3) NOT NULL DEFAULT 0,
+        actividades_trabajo    INT NOT NULL DEFAULT 0,
+        km_trabajo_calculado   DECIMAL(12,3) NOT NULL DEFAULT 0,
+        porcentaje_uso_trabajo DECIMAL(6,2) NULL,
+        actualizado            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_veh_periodo (id_vehiculo, anio, semana),
+        KEY idx_periodo (anio, semana)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+// Agregación vehículo×semana (reconstrucción total). Combina dos fuentes por (vehículo,
+// año ISO, semana ISO): el odómetro real (lecturas consecutivas de actividad_vehiculo) y
+// el km de trabajo calculado (reporte_km). Se unen por la UNIÓN de sus llaves, porque una
+// semana puede tener movimiento sin trabajo calculado o viceversa.
+function sqlAggReporteKmVehiculo(): string {
+    $max = KM_VIAJE_MAX;
+    return "
+        WITH odo AS (
+            SELECT id_vehiculo, anio, semana, MIN(semana_inicio) AS semana_inicio,
+                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN delta ELSE 0 END) AS km_total,
+                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN 1    ELSE 0 END) AS segmentos
+            FROM (
+                SELECT av.id_vehiculo,
+                       FLOOR(YEARWEEK(av.fecha_actividad, 3) / 100) AS anio,
+                       MOD(YEARWEEK(av.fecha_actividad, 3), 100)    AS semana,
+                       DATE_SUB(DATE(av.fecha_actividad), INTERVAL WEEKDAY(av.fecha_actividad) DAY) AS semana_inicio,
+                       (LEAD(av.km_actual) OVER (PARTITION BY av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) - av.km_actual) AS delta
+                FROM actividad_vehiculo av
+                WHERE av.km_actual > 0
+            ) d
+            GROUP BY id_vehiculo, anio, semana
+        ),
+        trab AS (
+            SELECT id_vehiculo,
+                   FLOOR(YEARWEEK(fecha, 3) / 100) AS anio,
+                   MOD(YEARWEEK(fecha, 3), 100)    AS semana,
+                   MIN(DATE_SUB(DATE(fecha), INTERVAL WEEKDAY(fecha) DAY)) AS semana_inicio,
+                   COUNT(*)              AS actividades,
+                   ROUND(SUM(km), 3)     AS km_trabajo
+            FROM reporte_km
+            WHERE km_valido = 1 AND id_vehiculo IS NOT NULL AND fecha IS NOT NULL
+            GROUP BY id_vehiculo, anio, semana
+        ),
+        base AS (
+            SELECT id_vehiculo, anio, semana FROM odo
+            UNION
+            SELECT id_vehiculo, anio, semana FROM trab
+        )
+        SELECT base.id_vehiculo, base.anio, base.semana,
+               COALESCE(odo.semana_inicio, trab.semana_inicio) AS semana_inicio,
+               i.placa, i.marca, i.modelo, i.area,
+               COALESCE(odo.segmentos, 0)   AS segmentos_odo,
+               COALESCE(odo.km_total, 0)    AS km_registrado,
+               COALESCE(trab.actividades, 0) AS actividades_trabajo,
+               COALESCE(trab.km_trabajo, 0)  AS km_trabajo_calculado,
+               ROUND(COALESCE(trab.km_trabajo, 0) / NULLIF(odo.km_total, 0) * 100, 2) AS porcentaje_uso_trabajo
+        FROM base
+        LEFT JOIN odo  USING (id_vehiculo, anio, semana)
+        LEFT JOIN trab USING (id_vehiculo, anio, semana)
+        LEFT JOIN inventario i ON i.id_vehiculo = base.id_vehiculo";
+}
+
+// Refresca reporte_km_vehiculo (reconstrucción total — es un agregado pequeño).
+// Nunca lanza: el KPI no debe tumbar el flujo de km.
+function refrescarReporteKmVehiculo(mysqli $conn): void {
+    try {
+        crearTablaReporteKmVehiculo($conn);
+        $conn->query("DELETE FROM reporte_km_vehiculo");
+        $conn->query("INSERT INTO reporte_km_vehiculo (" . COLS_REPORTE_KM_VEHICULO . ") " . sqlAggReporteKmVehiculo());
+    } catch (Throwable $e) { /* el KPI nunca debe tumbar el flujo de km */ }
+}
+
+// Refresca ambos KPIs tras un cambio de km. Lo llama registrarKm en sus dos
+// rutas (rellenar placeholder / insertar): el fact por trayecto (esa fila) y el
+// resumen vehículo×semana (reconstrucción completa, es pequeño).
+function refrescarKpiKm(mysqli $conn, int $idKm): void {
+    refrescarReporteKm($conn, $idKm);
+    refrescarReporteKmVehiculo($conn);
 }
 
 /**

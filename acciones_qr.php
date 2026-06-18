@@ -376,20 +376,14 @@ if ($accion === 'registrarPrestamoQR') {
         exit;
     }
 
-    // Verificar si ya existe un préstamo EN CURSO para este usuario+vehículo
-    $stmt = $conn->prepare(
-        "SELECT id_prestamo FROM prestamos
-         WHERE id_usuario = ? AND id_vehiculo = ? AND estatus = 'EN CURSO' LIMIT 1"
+    // Finalizar préstamos QR previos de este usuario en cualquier vehículo
+    $stmtCierre = $conn->prepare(
+        "UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW()
+         WHERE id_usuario = ? AND estatus = 'EN CURSO' AND motivo_us = 'Escaneo QR'"
     );
-    $stmt->bind_param("ii", $id_usuario_cookie, $id_vehiculo);
-    $stmt->execute();
-    $existente = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    if ($existente) {
-        echo json_encode(['success' => true, 'necesitoPrestamo' => true, 'yaTenia' => true]);
-        exit;
-    }
+    $stmtCierre->bind_param("i", $id_usuario_cookie);
+    $stmtCierre->execute();
+    $stmtCierre->close();
 
     // Crear préstamo automático EN CURSO
     $stmt = $conn->prepare(

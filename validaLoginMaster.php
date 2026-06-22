@@ -41,13 +41,6 @@ $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
         echo '<script>document.cookie = "navSesion=Navegador; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
         echo '<script>window.location.assign("inicio")</script>';
 
-        session_start();
-        $_SESSION['nombredelusuario'] = $nombreEmpleado;
-        $_SESSION['noEmpleado'] = $noEmpleado;
-        $_SESSION['rol'] = $rol;
-        $_SESSION['correo'] = $usuario;
-        $_SESSION['id_usuario'] = $id_usuario;
-
         echo json_encode(['success' => true]);
         exit;
     }

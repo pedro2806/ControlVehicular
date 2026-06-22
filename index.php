@@ -79,8 +79,7 @@
         </div>
     </div>
     <?php
-        session_start();
-        if(isset($_SESSION['nombredelusuario']))
+        if(isset($_COOKIE['noEmpleado']) && $_COOKIE['noEmpleado'] != '')
         {
             header('location: inicio');
         }

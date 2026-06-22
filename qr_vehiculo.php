@@ -314,6 +314,11 @@ if (empty($_COOKIE['noEmpleado'])) {
         var ultimoKMVehiculo = 0;
 
         $(document).ready(function () {
+            if ($(window).width() < 768) {
+                $('.sidebar').addClass('toggled');
+                $('body').addClass('sidebar-toggled');
+            }
+
             cargarVehiculo();
 
             // Preview de foto al seleccionar
@@ -463,9 +468,6 @@ if (empty($_COOKIE['noEmpleado'])) {
                     $('#loadingQR').hide();
                     $('#cardVehiculo, #cardAcciones, #cardEstatus, #cardDocumentacion').show();
 
-                    // Registrar préstamo automático si el vehículo no es del usuario
-                    $.post('acciones_qr.php', { accion: 'registrarPrestamoQR', id_vehiculo: idVehiculo }, function () {}, 'json')
-                        .fail(function () { console.warn('No se pudo registrar préstamo automático.'); });
                 },
                 error: function () {
                     $('#loadingQR').html('<div class="alert alert-danger">No se pudo cargar la información del vehículo.</div>');
@@ -778,6 +780,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                             if (latNum != null && lngNum != null) {
                                 calcularRutaAsync(otOv, latNum, lngNum, resp.id_actividad);
                             }
+
+                            $.post('acciones_qr.php', { accion: 'registrarPrestamoQR', id_vehiculo: idVehiculo }, function () {}, 'json');
                         } else {
                             Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo registrar.', confirmButtonText: 'Aceptar' });
                         }

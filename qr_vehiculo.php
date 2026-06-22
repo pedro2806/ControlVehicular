@@ -309,7 +309,7 @@ if (empty($_COOKIE['noEmpleado'])) {
 
     <script>
         var idVehiculo = <?php echo $id_vehiculo; ?>;
-        var idUsuarioActual = <?php echo intval($_COOKIE['id_usuarioL'] ?? 0); ?>;
+        var idUsuarioActual = <?php echo intval($_COOKIE['id_usuario'] ?? 0); ?>;
         var vehiculoQR = { id: 0, placa: '', modelo: '' };
         var checkinEstado = { tieneCheckinActivo: false };
         var ultimoKMVehiculo = 0;

@@ -213,12 +213,7 @@ if ($accion === 'verificarEstadoCheckin') {
     $stmtKm = $conn->prepare("
         SELECT 1 FROM actividad_vehiculo
         WHERE id_vehiculo = ? AND km_actual > 0
-          AND DATE(fecha_actividad) IN (
-              SELECT FECHA FROM dimtiempo
-              WHERE SEMANA = (
-                  SELECT SEMANA FROM dimtiempo WHERE FECHA = CURDATE()
-              )
-          )
+          AND YEARWEEK(fecha_actividad, 1) = YEARWEEK(CURDATE(), 1)
         LIMIT 1
     ");
     $stmtKm->bind_param("i", $id_vehiculo);
@@ -429,7 +424,7 @@ if ($accion === 'registrarKMSemanal') {
         move_uploaded_file($_FILES['foto']['tmp_name'], $ruta_foto);
     }
 
-    $id_usuario = intval($_COOKIE['id_usuarioL'] ?? 0);
+    $id_usuario = intval($_COOKIE['id_usuario'] ?? 0);
     $stmt = $conn->prepare(
         "INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas)
          VALUES (?, ?, ?, ?, NOW(), 'KM_SEMANAL', ?)"

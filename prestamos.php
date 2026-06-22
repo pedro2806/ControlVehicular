@@ -101,7 +101,7 @@
                         </div>
                         <br>
                         <input type="hidden" id = "id_checklist" name = "id_checklist">
-                        <input type="hidden" id = "id_usuario" name = "id_usuario" value="<?php echo $_SESSION['id_usuario']; ?>">
+                        <input type="hidden" id = "id_usuario" name = "id_usuario" value="<?php echo $_COOKIE['id_usuario']; ?>">
                         <center>
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarPrestamo()">Guardar</button>
                         </center>

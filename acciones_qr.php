@@ -5,11 +5,16 @@ mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
 
 $accion = $_POST['accion'] ?? '';
-    $id_vehiculo = intval($_POST['id_vehiculo'] ?? 0);
-    $km_actual   = intval($_POST['km_actual'] ?? 0);
-    $notas        = trim($_POST['notas'] ?? '');
-    $coordenadas  = trim($_POST['coordenadas'] ?? '');
-    $noEmpleado   = intval($_COOKIE['noEmpleado'] ?? 0);
+$id_vehiculo = intval($_POST['id_vehiculo'] ?? 0);
+$km_actual   = intval($_POST['km_actual'] ?? 0);
+$notas        = trim($_POST['notas'] ?? '');
+$coordenadas  = trim($_POST['coordenadas'] ?? '');
+$noEmpleado   = intval($_COOKIE['noEmpleado'] ?? 0);
+
+if ($noEmpleado === 0) {
+    echo json_encode(['error' => 'Sesión expirada. Inicia sesión nuevamente.']);
+    exit;
+}
 
 // Obtener datos completos del vehículo para la vista QR
 if ($accion === 'obtenerDatosVehiculo') {
@@ -265,12 +270,14 @@ if ($accion === 'obtenerUltimoKM') {
 
 function subirFotoKM($placa, $prefijo) {
     if (!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK) return null;
+    $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
+    $permitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    if (!in_array($ext, $permitidas)) return null;
     $carpeta = "img_control_vehicular/$placa/km";
     if (!file_exists($carpeta)) mkdir($carpeta, 0777, true);
-    $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
     $nombre = $placa . '_' . $prefijo . '_' . date('Ymd_His') . '.' . $ext;
     $ruta = "$carpeta/$nombre";
-    move_uploaded_file($_FILES['foto']['tmp_name'], $ruta);
+    if (!move_uploaded_file($_FILES['foto']['tmp_name'], $ruta)) return null;
     return $ruta;
 }
 
@@ -295,7 +302,10 @@ if ($accion === 'checkInQR') {
 
     if ($stmt->execute()) {
         $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-in
-        $conn->query("UPDATE inventario SET asignado = 'SI' WHERE id_vehiculo = " . $id_vehiculo);
+        $stmtUpd = $conn->prepare("UPDATE inventario SET asignado = 'SI' WHERE id_vehiculo = ?");
+        $stmtUpd->bind_param("i", $id_vehiculo);
+        $stmtUpd->execute();
+        $stmtUpd->close();
         if ($km_actual > 0) {
             $stmtKm = $conn->prepare("INSERT INTO kilometrajes (id_vehiculo, km, fecha) VALUES (?, ?, NOW())");
             $stmtKm->bind_param("ii", $id_vehiculo, $km_actual);
@@ -331,8 +341,14 @@ if ($accion === 'checkOutQR') {
 
     if ($stmt->execute()) {
         $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-out
-        $conn->query("UPDATE inventario SET asignado = 'NO' WHERE id_vehiculo = " . $id_vehiculo);
-        $conn->query("UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW() WHERE id_usuario = " . $id_usuario_cookie . " AND id_vehiculo = " . $id_vehiculo . " AND estatus = 'EN CURSO'");
+        $stmtUpd = $conn->prepare("UPDATE inventario SET asignado = 'NO' WHERE id_vehiculo = ?");
+        $stmtUpd->bind_param("i", $id_vehiculo);
+        $stmtUpd->execute();
+        $stmtUpd->close();
+        $stmtPrest = $conn->prepare("UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW() WHERE id_usuario = ? AND id_vehiculo = ? AND estatus = 'EN CURSO'");
+        $stmtPrest->bind_param("ii", $id_usuario_cookie, $id_vehiculo);
+        $stmtPrest->execute();
+        $stmtPrest->close();
         if ($km_actual > 0) {
             $stmtKm = $conn->prepare("INSERT INTO kilometrajes (id_vehiculo, km, fecha) VALUES (?, ?, NOW())");
             $stmtKm->bind_param("ii", $id_vehiculo, $km_actual);
@@ -391,7 +407,7 @@ if ($accion === 'registrarPrestamoQR') {
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'necesitoPrestamo' => true, 'creado' => true]);
     } else {
-        echo json_encode(['error' => 'No se pudo registrar el préstamo: ' . $conn->error]);
+        echo json_encode(['error' => 'No se pudo registrar el préstamo.']);
     }
     $stmt->close();
     exit;
@@ -404,25 +420,19 @@ if ($accion === 'registrarKMSemanal') {
         exit;
     }
 
-    // Obtener placa para la ruta de la foto
-    $stmt = $conn->prepare("SELECT placa FROM inventario WHERE id_vehiculo = ? LIMIT 1");
-    $stmt->bind_param("i", $id_vehiculo);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    $placa = $row['placa'] ?? 'SIN_PLACA';
-
-    $ruta_foto = null;
-    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $carpeta = "img_control_vehicular/$placa/km";
-        if (!file_exists($carpeta)) {
-            mkdir($carpeta, 0777, true);
-        }
-        $ext = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
-        $nombre = $placa . '_km_' . date('Ymd_His') . '.' . $ext;
-        $ruta_foto = "$carpeta/$nombre";
-        move_uploaded_file($_FILES['foto']['tmp_name'], $ruta_foto);
+    if ($km_actual <= 0) {
+        echo json_encode(['error' => 'El KM debe ser mayor a 0.']);
+        exit;
     }
+
+    $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
+    if ($ultimoKM > 0 && $km_actual < $ultimoKM) {
+        echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al último registrado ($ultimoKM)."]);
+        exit;
+    }
+
+    $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
+    $ruta_foto = subirFotoKM($placa, 'km');
 
     $id_usuario = intval($_COOKIE['id_usuario'] ?? 0);
     $stmt = $conn->prepare(
@@ -432,6 +442,10 @@ if ($accion === 'registrarKMSemanal') {
     $stmt->bind_param("iiiss", $id_vehiculo, $id_usuario, $km_actual, $ruta_foto, $notas);
 
     if ($stmt->execute()) {
+        $stmtKm = $conn->prepare("INSERT INTO kilometrajes (id_vehiculo, km, fecha) VALUES (?, ?, NOW())");
+        $stmtKm->bind_param("ii", $id_vehiculo, $km_actual);
+        $stmtKm->execute();
+        $stmtKm->close();
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['error' => 'No se pudo guardar el registro.']);

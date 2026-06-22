@@ -1,5 +1,4 @@
 <?php
-session_start();
 
 $id_vehiculo = intval($_GET['v'] ?? 0);
 if (!$id_vehiculo) {
@@ -120,7 +119,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     </div>
 
                     <!-- Disclaimer checklist incompleto -->
-                    <div class="alert alert-warning d-flex gap-3 align-items-start mb-3" id="disclaimerChecklist" style="display:none !important;">
+                    <div class="alert alert-warning d-flex gap-3 align-items-start mb-3" id="disclaimerChecklist" style="display:none;">
                         <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
                         <div class="flex-grow-1">
                             <div class="fw-semibold mb-1">Checklist incompleto</div>
@@ -336,6 +335,16 @@ if (empty($_COOKIE['noEmpleado'])) {
                 $('#checkinMensaje').text('Verificando estado...');
                 $('#btnGuardarCheckinKM').prop('disabled', true).text('Verificando...');
 
+                var ajaxListo = { estado: false, km: false };
+                function habilitarSiListo() {
+                    if (ajaxListo.estado && ajaxListo.km) {
+                        var esCheckout = checkinEstado.tieneCheckinActivo;
+                        $('#btnGuardarCheckinKM')
+                            .prop('disabled', false)
+                            .text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
+                    }
+                }
+
                 $.ajax({
                     url: 'acciones_qr.php',
                     method: 'POST',
@@ -351,9 +360,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                                 : '¿Confirmas tu entrada para este vehículo?'
                         );
                         $('#checkinFotoSection').toggle(resp.primerKMDeLaSemana === true);
-                        $('#btnGuardarCheckinKM')
-                            .prop('disabled', false)
-                            .text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
+                        ajaxListo.estado = true;
+                        habilitarSiListo();
                     },
                     error: function () {
                         $('#checkinMensaje').text('Error al verificar el estado. Intenta de nuevo.');
@@ -373,6 +381,12 @@ if (empty($_COOKIE['noEmpleado'])) {
                         } else {
                             $('#checkinKM').attr('min', 0);
                         }
+                        ajaxListo.km = true;
+                        habilitarSiListo();
+                    },
+                    error: function () {
+                        ajaxListo.km = true;
+                        habilitarSiListo();
                     }
                 });
             });
@@ -450,7 +464,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                     $('#cardVehiculo, #cardAcciones, #cardEstatus, #cardDocumentacion').show();
 
                     // Registrar préstamo automático si el vehículo no es del usuario
-                    $.post('acciones_qr.php', { accion: 'registrarPrestamoQR', id_vehiculo: idVehiculo });
+                    $.post('acciones_qr.php', { accion: 'registrarPrestamoQR', id_vehiculo: idVehiculo }, function () {}, 'json')
+                        .fail(function () { console.warn('No se pudo registrar préstamo automático.'); });
                 },
                 error: function () {
                     $('#loadingQR').html('<div class="alert alert-danger">No se pudo cargar la información del vehículo.</div>');
@@ -467,7 +482,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                 img.onerror = function () {
                     $('#fotoVehiculo').html('<div class="vehicle-photo-placeholder"><i class="fas fa-car fa-2x"></i></div>');
                 };
-                img.src = escapeHtml(v.foto_general);
+                img.src = v.foto_general;
                 $('#fotoVehiculo').empty().append(img);
             }
 
@@ -586,7 +601,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     select.val(idVeh);
                     // Disparar el onchange para que verPlaca() cargue km, gasolina y el último saldo en Monto
                     select.trigger('change');
-                    $('#capturaGasModal').modal('show');
+                    new bootstrap.Modal(document.getElementById('capturaGasModal')).show();
                 },
                 error: function () {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar los vehículos.', confirmButtonText: 'Aceptar' });
@@ -614,13 +629,14 @@ if (empty($_COOKIE['noEmpleado'])) {
                 return;
             }
 
+            $('#btnGuardarAnomalia').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
+
+            comprimirImagen(foto).then(function (fotoComprimida) {
             var formData = new FormData();
             formData.append('accion', 'registrarAnomalia');
             formData.append('id_vehiculo', idVehiculo);
             formData.append('descripcion', descripcion);
-            formData.append('foto', foto);
-
-            $('#btnGuardarAnomalia').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
+            formData.append('foto', fotoComprimida, 'foto.jpg');
 
             $.ajax({
                 url: 'acciones_anomalias.php',
@@ -653,9 +669,10 @@ if (empty($_COOKIE['noEmpleado'])) {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.', confirmButtonText: 'Aceptar' });
                 },
                 complete: function () {
-                    $('#btnGuardarAnomalia').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Reportar');
+                    $('#btnGuardarAnomalia').prop('disabled', false).text('Registrar Anomalía');
                 }
             });
+            }); // fin comprimirImagen.then
         }
 
         // Sobreescribe cargarVehiculos de encabezado.php para garantizar que el vehículo del QR
@@ -688,7 +705,9 @@ if (empty($_COOKIE['noEmpleado'])) {
 
                     // Pre-seleccionar el vehículo del QR
                     select.val(vehiculoQR.id);
-                    verPlaca(selectVehiculo, 'kmActual');
+                    if (typeof verPlaca === 'function') {
+                        try { verPlaca(selectVehiculo, 'kmActual'); } catch (e) { }
+                    }
                 },
                 error: function () {
                     console.error('Error al cargar los vehículos');
@@ -727,8 +746,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                 formData.append('coordenadas', coordenadas);
                 formData.append('km_actual', km);
                 formData.append('ot', otOv);
-                var foto = $('#checkinFoto')[0].files[0];
-                if (foto) formData.append('foto', foto);
+                var fotoOriginal = $('#checkinFoto')[0].files[0];
+
+                var promesaFoto = fotoOriginal ? comprimirImagen(fotoOriginal) : Promise.resolve(null);
+                promesaFoto.then(function (fotoComprimida) {
+                if (fotoComprimida) formData.append('foto', fotoComprimida, 'foto.jpg');
 
                 $.ajax({
                     url: 'acciones_qr.php',
@@ -767,6 +789,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                         $('#btnGuardarCheckinKM').prop('disabled', false).text(esCheckout ? 'Registrar Salida' : 'Registrar Entrada');
                     }
                 });
+                }); // fin promesaFoto.then
             }
 
             // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-in.
@@ -792,7 +815,36 @@ if (empty($_COOKIE['noEmpleado'])) {
             $.ajax({
                 url: 'calcular_ruta.php',
                 method: 'POST',
-                data: { ov_ot: otOv, lat: lat, lng: lng, id_actividad: idActividad || 0 }
+                data: { ov_ot: otOv, lat: lat, lng: lng, id_actividad: idActividad || 0 },
+                error: function () {
+                    console.warn('No se pudo calcular la ruta para actividad ' + idActividad);
+                }
+            });
+        }
+
+        function comprimirImagen(file, maxAncho, calidad) {
+            maxAncho = maxAncho || 1280;
+            calidad  = calidad  || 0.7;
+            return new Promise(function (resolve) {
+                if (!file || !file.type.startsWith('image/')) { resolve(file); return; }
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var img = new Image();
+                    img.onload = function () {
+                        var ancho = img.width, alto = img.height;
+                        if (ancho > maxAncho) { alto = Math.round(alto * maxAncho / ancho); ancho = maxAncho; }
+                        var canvas = document.createElement('canvas');
+                        canvas.width = ancho; canvas.height = alto;
+                        canvas.getContext('2d').drawImage(img, 0, 0, ancho, alto);
+                        canvas.toBlob(function (blob) {
+                            resolve(blob || file);
+                        }, 'image/jpeg', calidad);
+                    };
+                    img.onerror = function () { resolve(file); };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function () { resolve(file); };
+                reader.readAsDataURL(file);
             });
         }
 

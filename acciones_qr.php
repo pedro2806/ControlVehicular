@@ -294,6 +294,34 @@ if ($accion === 'checkInQR') {
         exit;
     }
 
+    // Auto-cerrar check-in anterior si existe (INICIO sin FINALIZACION posterior)
+    $stmtChk = $conn->prepare("
+        SELECT id_actividad FROM actividad_vehiculo
+        WHERE id_usuario = ? AND id_vehiculo = ?
+          AND tipo_actividad = 'INICIO'
+          AND fecha_actividad = (
+              SELECT MAX(fecha_actividad) FROM actividad_vehiculo
+              WHERE id_usuario = ? AND id_vehiculo = ?
+          )
+        LIMIT 1
+    ");
+    $stmtChk->bind_param("iiii", $id_usuario_cookie, $id_vehiculo, $id_usuario_cookie, $id_vehiculo);
+    $stmtChk->execute();
+    $checkinAbierto = $stmtChk->get_result()->fetch_assoc();
+    $stmtChk->close();
+
+    if ($checkinAbierto) {
+        $stmtCierre = $conn->prepare("INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, coordenadas, fecha_actividad, tipo_actividad) VALUES (?, ?, ?, ?, NOW(), 'FINALIZACION')");
+        $stmtCierre->bind_param("iiis", $id_vehiculo, $id_usuario_cookie, $km_actual, $coordenadas);
+        $stmtCierre->execute();
+        $stmtCierre->close();
+
+        $stmtPrest = $conn->prepare("UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW() WHERE id_usuario = ? AND id_vehiculo = ? AND estatus = 'EN CURSO'");
+        $stmtPrest->bind_param("ii", $id_usuario_cookie, $id_vehiculo);
+        $stmtPrest->execute();
+        $stmtPrest->close();
+    }
+
     $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
     $ruta_foto = subirFotoKM($placa, 'checkin');
 

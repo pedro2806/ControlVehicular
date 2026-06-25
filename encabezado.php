@@ -298,7 +298,7 @@
                         <div class="mb-2 row g-2">    
                             <div class="col-4 col-md-4">
                                 <label for="monto" class="form-label">Monto</label>
-                                <input type="text" class="form-control" id="monto" name="monto" placeholder="$00.00" required>
+                                <input type="text" class="form-control" id="monto" name="monto" placeholder="$00.00" readonly required>
                             </div>
                         
                             <div class="col-4 col-md-4">
@@ -308,7 +308,7 @@
 
                             <div class="col-4 col-md-4">
                                 <label for="saldo" class="form-label">Saldo</label>
-                                <input type="number" class="form-control" id="saldo" name="saldo" placeholder="$00.00" required>
+                                <input type="number" class="form-control" id="saldo" name="saldo" placeholder="$00.00" readonly required>
                             </div>
                         </div>
                         <div class="mb-2 row g-2">

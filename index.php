@@ -13,75 +13,72 @@
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">    
     <!-- Custom styles for this template-->
     <link href = "css/sb-admin-2.min.css" rel = "stylesheet">
+
+    <link href="css/login.css" rel="stylesheet">
 </head>
-<body class = "bg-gradient-primary">
-    <div class = "container">
-        <div class = "row justify-content-center">
-            <div class = "col-xl-10 col-lg-12 col-md-9">
-                <div class = "card o-hidden border-0 shadow-lg my-5">
-                    <div class = "card-body p-0">
-                        <div class = "row justify-content-center">                                                        
-                            <div class = "p-0 text-center">                                    
-                                <img src = "img/MESS_05_Imagotipo.svg" alt = "Logo MESS" width = "300px">
-                            </div>                            
-                        </div>      
-                        <div class = "row">
-                            <!--LOGIN-->
-                            <div class = "col-sm-2"></div>
-                            <div class = "col-sm-8 d-flex flex-column align-items-center">
-                                <div class = "p-0 w-100">
-                                    <div class = "text-center">
-                                        <b>
-                                            Control Vehicular
-                                        </b>
-                                        <h1 class = "h4 text-gray-900 mb-4">Bienvenido</h1>
+<body>    
+    <div class = "fb-container">
+        <div class = "fb-content">
+            <div class = "fb-inner">
+                <!--LOGIN-->
+                <div class="fb-left">
+                    <img src="img/QRide_grande.png" alt="Messbook" class="fb-logo-img">
+                    <h2 class="fb-tagline" style="font-size: 18px !important;">
+                        
+                    </h2>
+                </div>
+                <div class = "fb-right">                                
+                    <div class="fb-card">
+                        <div class="fb-card-body">
+                            <div class="fb-card-title">Iniciar sesión con tu cuenta de Messbook</div>
+                            
+                            <form class = "user" method = "POST">
+                                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                <div class="fb-input-group">
+                                    <i class="fas fa-user fb-input-icon"></i>
+                                    <input type="text" class="fb-input" id="InputEmail" name="InputEmail" aria-describedby="emailHelp" placeholder="Correo electrónico">
+                                    <div class="fb-domain-text"></div>
+                                </div>
+                                
+                                <div class="fb-input-group">
+                                    <i class="fas fa-lock fb-input-icon"></i>
+                                    <input type="password" class="fb-input" id="InputPassword" name="InputPassword" placeholder="Contraseña">
+                                </div>
+                                <div class="fb-check-wrap">
+                                    <div class="custom-control custom-checkbox small">
+                                        <input type="checkbox" class="custom-control-input" id="customCheck">
+                                        <label class="custom-control-label" for="customCheck">Recordar mis datos</label>
                                     </div>
-                                    <form class = "user" method = "POST">
-                                        <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                        <div class = "form-group">
-                                            <input type = "text" class = "form-control form-control-user" id = "InputEmail" name = "InputEmail" aria-describedby = "emailHelp" placeholder = "Usuario">
-                                            <span>@mess.com.mx</span>
-                                        </div>
-                                        <div class = "form-group">
-                                            <input type = "password" class = "form-control form-control-user" id = "InputPassword" name = "InputPassword" placeholder = "Contraseña">
-                                        </div>
-                                        <div class = "form-group">
-                                            <div class = "custom-control custom-checkbox small">
-                                                <input type = "checkbox" class = "custom-control-input" id = "customCheck">
-                                                <label class = "custom-control-label" for = "customCheck">Recordar usuario y contraseña</label>
-                                            </div>
-                                        </div>
-                                        <div class="text-center">
-                                            <input class = "btn btn-primary" type = "submit" name = "btningresar" value = "   Acceder   "/>
-                                        </div>
-                                        <!--<a class = "small" href = "forgot-password">Olvide mi contraseña</a>-->
-                                        <br>
-                                        <br>
-                                        <br>
-                                    </form>
                                 </div>
-                            </div>
-                        </div>
-                        <!--BARRA DE SOPORTE-->
-                        <div class="row">  
-                            <div class = "col-lg-12 mx-auto">
                                 <div class="text-center">
-                                    <p class="alert alert-info" style="font-size: 0.9em;">
-                                        Soporte del sistema:                                        
-                                        <a href="mailto:pedro.martinez@mess.com.mx">pedro.martinez@mess.com.mx</a>
-                                    </p>
+                                    <input class = "fb-login-btn" type = "submit" name = "btningresar" value = "   Acceder   "/>
                                 </div>
-                            </div>          
+                                <!--<a class = "small" href = "forgot-password">Olvide mi contraseña</a>-->
+                                <br>
+                                <br>
+                                <br>
+                            </form>                                
                         </div>
                     </div>
                 </div>
+            </div>                        
+        </div>
+        <div class="fb-footer">
+            <div class="fb-footer-inner">
+               
+                
+                <img src="../loginMaster/img/mess-desarrollo-b1.png" alt="Grupo Mess" class="fb-footer-logo">
+                
+                <div class="fb-footer-links">
+                   Business Intelligence | Messbook ©️ <?php echo date("Y"); ?>
+                </div>
             </div>
         </div>
-    </div>
+    </div>            
     <?php
         if(isset($_COOKIE['noEmpleado']) && $_COOKIE['noEmpleado'] != '')
         {
-            header('location: inicio');
+           // header('location: inicio');
         }
 
         if(isset($_POST['btningresar']))
@@ -111,9 +108,20 @@
                     $gps = $row2["gps"];
                 }
             }
+
+
             
             if($nr == 1)
             {
+                 // $fila es el resultado de tu query SQL
+                $passwordIngresado = $pass;
+                $hashAlmacenado = $fila['hash_almacenado'];
+
+                if (password_verify($passwordIngresado, $hashAlmacenado)) {
+                    // ¡Contraseña correcta! Iniciar sesión.
+                } else {
+                    // Contraseña incorrecta.
+                }
 
                 if ($gps == "1") {                    
                     echo '<script>document.cookie = "gps=activo; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
@@ -155,7 +163,7 @@
 
     <script>
     $(document).ready(function () {
-        validarNavegadorChrome();    
+        //validarNavegadorChrome();    
     });        
 
     function validarNavegadorChrome() {

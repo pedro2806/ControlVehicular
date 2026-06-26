@@ -1,44 +1,36 @@
 <?php
-include 'conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
 
-$accion = $_POST["accion"];
+$accion = $_POST["accion"] ?? '';
 
-$id_mantenimiento = $_POST["id_mantenimiento"];
-$id_vehiculo = $_POST["id_vehiculo"];
+$id_mantenimiento = $_POST["id_mantenimiento"] ?? null;
+$id_vehiculo = $_POST["id_vehiculo"] ?? null;
 $fecha_registro = date("Y-m-d H:i:s");
-$kilometraje = $_POST["kilometraje"];
-$gasolina = $_POST["gasolina"];
-$tipo_mantenimiento = $_POST["tipo_mantenimiento"];
-$descripcion = $_POST["descripcion"];
-$solicitante = $_POST["solicitante"];
-$VoBo_jefe = $_POST["VoBo_jefe"];
-$fecha_proxi = $_POST["fecha_proxi"];
-$km_proxi = $_POST["km_proxi"];
-$tipo_carro = $_POST["tipo_carro"];
-$id_dueno = $_POST["id_dueno"];
+$kilometraje = $_POST["kilometraje"] ?? null;
+$gasolina = $_POST["gasolina"] ?? null;
+$tipo_mantenimiento = $_POST["tipo_mantenimiento"] ?? null;
+$descripcion = $_POST["descripcion"] ?? null;
+$solicitante = $_POST["solicitante"] ?? null;
+$VoBo_jefe = $_POST["VoBo_jefe"] ?? null;
+$fecha_proxi = $_POST["fecha_proxi"] ?? null;
+$km_proxi = $_POST["km_proxi"] ?? null;
+$tipo_carro = $_POST["tipo_carro"] ?? null;
+$id_dueno = $_POST["id_dueno"] ?? null;
 
-$noEmpleado = $_COOKIE['noEmpleado'];
-$id_usuario = $_COOKIE['id_usuario'];
-$rol = $_COOKIE['rol'];
+$noEmpleado = $_COOKIE['noEmpleado'] ?? null;
+$id_usuario = $_COOKIE['id_usuario'] ?? null;
+$rol = $_COOKIE['rol'] ?? null;
 
-$foto = $_POST["rutaImagen"];
-$placa = $_POST["placa"];
-$foto = $_POST["rutaImagen"];
-$folioOC = $_POST["folioOC"];
+$foto = $_POST["rutaImagen"] ?? null;
+$placa = $_POST["placa"] ?? null;
+$folioOC = $_POST["folioOC"] ?? null;
 $costo = $_POST["costo"] ?? null;
 $proveedor = $_POST["proveedor"] ?? null;
 $contacto_proveedor = $_POST["contacto_proveedor"] ?? null;
 
-/*---------------------------------------------*/
-$id_mantenimiento = $_POST["id_mantenimiento"];
-$notas = $_POST['comentario'];
-$fecha_programada = $_POST['fecha_programada'];
-
-$estatus = $_POST['estatus'];
-/*---------------------------------------------*/
+$notas = $_POST['comentario'] ?? null;
+$fecha_programada = $_POST['fecha_programada'] ?? null;
+$estatus = $_POST['estatus'] ?? null;
 
 
 //Registro de Mantenimiento

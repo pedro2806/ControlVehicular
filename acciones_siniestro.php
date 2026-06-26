@@ -1,78 +1,40 @@
 <?php
-include 'conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
 
-$accion = $_POST["accion"];
+$accion = $_POST["accion"] ?? '';
 
-$id_vehiculo = $_POST["id_vehiculo"];
-$fecha = $_POST["fecha"];
-$hora = $_POST["hora"];
-$kilometraje = $_POST["kilometraje"];
-$gasolina = $_POST["gasolina"];
-$origen = $_POST["origen"];
-$destino = $_POST["destino"];
-$lugar = $_POST["lugar"];
-$empresa = $_POST["empresa"];
-$servicio = $_POST["servicio"];
-$coordenadas = $_POST["coordenadas"];
-$descripcion = $_POST["descripcion"];
-$partes_dañadas = $_POST["daños"];
-$ubicacion_vehiculo = $_POST["ubicacion"];
-$contacto = $_POST["contacto"];
+$id_vehiculo = $_POST["id_vehiculo"] ?? null;
+$fecha = $_POST["fecha"] ?? null;
+$hora = $_POST["hora"] ?? null;
+$kilometraje = $_POST["kilometraje"] ?? null;
+$gasolina = $_POST["gasolina"] ?? null;
+$origen = $_POST["origen"] ?? null;
+$destino = $_POST["destino"] ?? null;
+$lugar = $_POST["lugar"] ?? null;
+$empresa = $_POST["empresa"] ?? null;
+$servicio = $_POST["servicio"] ?? null;
+$coordenadas = $_POST["coordenadas"] ?? null;
+$descripcion = $_POST["descripcion"] ?? null;
+$partes_dañadas = $_POST["daños"] ?? null;
+$ubicacion_vehiculo = $_POST["ubicacion"] ?? null;
+$contacto = $_POST["contacto"] ?? null;
 
-$tipo_carro = $_POST["tipo_carro"];
-$id_dueno = $_POST["id_dueno"];
+$tipo_carro = $_POST["tipo_carro"] ?? null;
+$id_dueno = $_POST["id_dueno"] ?? null;
 $fecha_registro = date("Y-m-d H:i:s");
-$placa = $_POST["placa"];
-$marca = $_POST["marca"];
-$modelo = $_POST["modelo"];
-$color = $_POST["color"];
-$anio = $_POST["anio"];
-$noEmpleado = $_COOKIE['noEmpleado'];
-$id_usuario = $_COOKIE['id_usuario'];
-$rutasImagenes = $_POST["rutasImagenes"];
+$placa = $_POST["placa"] ?? null;
+$marca = $_POST["marca"] ?? null;
+$modelo = $_POST["modelo"] ?? null;
+$color = $_POST["color"] ?? null;
+$anio = $_POST["anio"] ?? null;
+$noEmpleado = $_COOKIE['noEmpleado'] ?? null;
+$id_usuario = $_COOKIE['id_usuario'] ?? null;
+$rutasImagenes = $_POST["rutasImagenes"] ?? null;
 
-$id_formato = $_POST["id_formato"];
+$id_formato = $_POST["id_formato"] ?? null;
 $formato = (isset($_POST["formato"]) && $_POST["formato"] !== null && $_POST["formato"] !== '') ? $_POST["formato"] : null;
 /*----------------------------------------------------------------------------*/
-
-function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
-
-    // Crear carpeta principal y subcarpeta "Actividades"
-    $carpetaPlaca = "img_control_vehicular/$placa";
-    if (!file_exists($carpetaPlaca)) {
-        mkdir($carpetaPlaca, 0777, true);
-    }
-    $carpetaActividad = "$carpetaPlaca/Siniestro";
-    if (!file_exists($carpetaActividad)) {
-        mkdir($carpetaActividad, 0777, true);
-    }
-
-    if (!isset($imagenes) || !is_array($imagenes)) {
-        return;
-    }
-    foreach ($imagenes['tmp_name'] as $key => $tmp_name) {
-        if ($imagenes['error'][$key] === UPLOAD_ERR_OK) {
-            
-            static $consecutivo = 1;
-            $extension = pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
-            $nombreArchivo = $placa . '_' . $actividad . '_' . $consecutivo . '.' . $extension;
-            $consecutivo++;
-            $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
-
-            if (move_uploaded_file($tmp_name, $ruta_destino)) {
-                // Guardar la ruta de la imagen en la base de datos
-                $stmt = $conn->prepare("INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("ssis", $actividad, $id_actividad, $id_vehiculo, $ruta_destino);
-                $stmt->execute();
-                $stmt->close();
-
-            }
-        }
-    }
-}
+include_once 'includes/subir_imagenes.php';
 
 //Registro de Siniestro
 if ($accion == "registroSiniestro") {
@@ -217,7 +179,7 @@ if ($accion == "consultarInventario") {
 
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
-    $rol = $_COOKIE['rol'];
+    $rol = $_COOKIE['rol'] ?? null;
     if ($rol == '3' || $rol == '4'  || $rol == '2') { // 3: Gerente, 4: Administrador
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv

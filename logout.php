@@ -36,10 +36,6 @@
 		});
 
 		//Funcion para leer cookies
-		function getCookie(name) {
-			const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-			return cookies.get(name) || undefined;
-		}
 	</script>
 
 </head>

@@ -85,7 +85,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     </a>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Bootstrap JS -->
@@ -198,7 +197,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 success: function(respuesta) {
                     TablaInventario.clear(); 
 
-                    respuesta.forEach(function (vehiculo) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
                         var botones = `
                             <button class="btn btn-outline-warning" onclick="inventario('${vehiculo.id_vehiculo}')">
                                 <i class="fas fa-eye"></i>
@@ -211,11 +210,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             `${vehiculo.color}`,
                             `${vehiculo.anio}`,
                             `${vehiculo.usuario}`,
-                            `<center>
+                            `<div class="text-center">
                                 <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                            </center>`
+                            </div>`
                         ];
                         TablaInventario.row.add(fila);
                     });
@@ -305,18 +304,18 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable();
                     TablaRegistrosSiniestros.clear();
 
-                    respuesta.forEach(function(siniestro) {
+                    Array.isArray(respuesta) && respuesta.forEach(function(siniestro) {
                         var fila = [
                             `${siniestro.fecha_registro}`,
                             `${siniestro.origen}`,
                             `${siniestro.destino}`,
                             `${siniestro.empresa}`,
                             `${siniestro.servicio}`,
-                            `<center>
+                            `<div class="text-center">
                                 <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleSiniestro(${JSON.stringify(siniestro)})'>
                                     <i class="fas fa-eye"></i> 
                                 </button>
-                            </center>`
+                            </div>`
                         ];
                         TablaRegistrosSiniestros.row.add(fila);
                     });

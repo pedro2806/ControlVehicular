@@ -85,7 +85,6 @@
         <i class="fas fa-angle-up"></i>
     </a>
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/sb-admin-2.min.js"></script>
@@ -129,16 +128,16 @@
                     var table = $('#TablaRegistrosMantenimiento').DataTable();
                             
                     table.clear().draw();                            
-                    respuesta.forEach(function(mantenimiento) { 
+                    Array.isArray(respuesta) && respuesta.forEach(function(mantenimiento) { 
                         table.row.add([                                    
                             mantenimiento.fecha_registro,
                             mantenimiento.placa + ' / ' + mantenimiento.modelo,
                             mantenimiento.descripcion,
-                            `<center>
+                            `<div class="text-center">
                                 <button class="btn btn-warning btn-sm" onclick='mostrarDetalleMantenimiento(${JSON.stringify(mantenimiento)})'>
                                     <i class="fas fa-eye"></i>
                                 </button>
-                            </center>`
+                            </div>`
                         ]).draw(false);
                     });
                     

@@ -1,22 +1,19 @@
 <?php
-include 'conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
 
-$accion = $_POST["accion"];
+$accion = $_POST["accion"] ?? '';
 
-$id_usuario = $_COOKIE['id_usuario'];
-$id_vehiculo = $_POST["id_vehiculo"];
+$id_usuario = $_COOKIE['id_usuario'] ?? null;
+$id_vehiculo = $_POST["id_vehiculo"] ?? null;
 $fecha_registro = date("Y-m-d H:i:s");
-$contacto = $_POST["contacto"];
-$fecha_prox = $_POST["fecha_prox"];
-$tarjeta_circulacion = $_POST["tarjeta_circulacion"];
-$refrendo_actual = $_POST['refrendo_actual'];
-$seguro_vehiculo = $_POST["seguro_vehiculo"];
-$verificacion_vigente = $_POST["verificacion_vigente"];
-$ruta_documento = $_POST["ruta_documento"];
-$placa = $_POST["placa"];
+$contacto = $_POST["contacto"] ?? null;
+$fecha_prox = $_POST["fecha_prox"] ?? null;
+$tarjeta_circulacion = $_POST["tarjeta_circulacion"] ?? null;
+$refrendo_actual = $_POST['refrendo_actual'] ?? null;
+$seguro_vehiculo = $_POST["seguro_vehiculo"] ?? null;
+$verificacion_vigente = $_POST["verificacion_vigente"] ?? null;
+$ruta_documento = $_POST["ruta_documento"] ?? null;
+$placa = $_POST["placa"] ?? null;
 
 /*---------------------------------------------*/
 //Registro de Documentos

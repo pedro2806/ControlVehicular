@@ -105,7 +105,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     </a>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Bootstrap JS -->
@@ -188,17 +187,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     var TablaRegistrosDocumentacion = $('#TablaRegistrosDocumentacion').DataTable();
                     TablaRegistrosDocumentacion.clear();
 
-                    respuesta.forEach(function(documento) {
+                    Array.isArray(respuesta) && respuesta.forEach(function(documento) {
                         var fila = [
                             `<b>${documento.placa + ' - ' + documento.modelo || 'N/A'}</b>`,
                             `${documento.fecha_registro || ''}`,
                             `${documento.usuario || ''}`,
                             `${documento.contacto || ''}`,
-                            `<center>
+                            `<div class="text-center">
                                 <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleDocumentacion(${JSON.stringify(documento)})'>
                                     <i class="fas fa-eye"></i> 
                                 </button>
-                            </center>`
+                            </div>`
                         ];
                         TablaRegistrosDocumentacion.row.add(fila);
                     });

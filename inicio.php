@@ -99,7 +99,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
@@ -124,7 +123,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         // Contenedor con Flexbox: horizontal, con espacio y permite saltos de línea
                         let html = '<div class="d-flex flex-wrap gap-4 align-items-center">';
                         
-                        response.vehiculos.forEach(function(vehiculo) {
+                        Array.isArray(response.vehiculos) && response.vehiculos.forEach(function(vehiculo) {
                             html += '<div class="p-2 rounded bg-primary">' + 
                                         '<span class="me-2 fw-bold" style="font-size: 16px; color: #ffffff;">' + vehiculo.placa + '</span>' +
                                         '<a href="../loginMaster/TENENCIAS_2026/' + vehiculo.placa + '.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white">' +

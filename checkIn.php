@@ -74,9 +74,9 @@
                                 <input type="number" class="form-control" id="kilometraje" name="kilometraje" min="0" required>
                             </div>
                         </div>
-                        <center>
+                        <div class="text-center">
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Guardar</button>
-                        </center>
+                        </div>
 
                     </form>
                     <br>
@@ -96,7 +96,6 @@
     </a>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Custom scripts for all pages-->
@@ -138,18 +137,18 @@
                 success: function (respuesta) {
                     var tabla = $("#tablaInventario tbody");
                     tabla.empty(); 
-                    respuesta.forEach(function (vehiculo) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
                         var fila = 
                             `<tr>
                                 <td><strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong></td>
                                 <td><strong>${vehiculo.modelo} ${vehiculo.marca}</strong></td>
                                 <td><strong>${vehiculo.color}</strong></td>
                                 <td>
-                                    <center>
+                                    <div class="text-center">
                                         <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                    </center>
+                                    </div>
                                 </td>
                             </tr>`;
                         tabla.append(fila);
@@ -229,7 +228,7 @@
                     var select = $("#id_dueno");
                     select.empty(); // Limpiar las opciones existentes
                     select.append('<option value="">Seleccione un propietario...</option>'); // Opción por defecto
-                    respuesta.forEach(function (usuario) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (usuario) {
                         select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
                     });
                 },

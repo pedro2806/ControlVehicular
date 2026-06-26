@@ -25,64 +25,7 @@ if (empty($_COOKIE['noEmpleado'])) {
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <style>
-        .vehicle-photo {
-            width: 110px; height: 90px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .vehicle-photo-placeholder {
-            width: 110px; height: 90px;
-            background: #e9ecef;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #adb5bd;
-        }
-        .action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 18px 10px;
-            border-radius: 12px;
-            gap: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            line-height: 1.3;
-        }
-        .action-btn i { font-size: 1.5rem; }
-
-        .foto-captura {
-            background: #dee2e6;
-            border-radius: 12px;
-            position: relative;
-            height: 220px;
-            cursor: pointer;
-            padding: 14px;
-            user-select: none;
-        }
-        .foto-captura .foto-viewfinder {
-            border: 2px dashed #9aa3ad;
-            border-radius: 6px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        .foto-captura .corner {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-color: #495057;
-            border-style: solid;
-        }
-        .foto-captura .corner.tl { top: 5px; left: 5px;   border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
-        .foto-captura .corner.tr { top: 5px; right: 5px;  border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
-        .foto-captura .corner.bl { bottom: 5px; left: 5px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
-        .foto-captura .corner.br { bottom: 5px; right: 5px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
-    </style>
+    <link href="css/app.css" rel="stylesheet">
 </head>
 <body id="page-top">
     <div id="wrapper">
@@ -300,10 +243,7 @@ if (empty($_COOKIE['noEmpleado'])) {
     </a>
 
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/sb-admin-2.min.js"></script>
+    <?php include 'includes/scripts_footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -591,7 +531,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     }
                     var select = $('#vehiculoAsignadoGas');
                     select.empty().append('<option value="">Seleccione un vehículo</option>');
-                    lista.forEach(function (item) {
+                    Array.isArray(lista) && lista.forEach(function (item) {
                         select.append($('<option>', { value: item.id_vehiculo, text: item.placa + ' - ' + item.modelo }));
                     });
                     select.val(idVeh);
@@ -695,7 +635,7 @@ if (empty($_COOKIE['noEmpleado'])) {
 
                     var select = $('#' + selectVehiculo);
                     select.empty().append('<option value="">Seleccione un vehículo</option>');
-                    lista.forEach(function (vehiculo) {
+                    Array.isArray(lista) && lista.forEach(function (vehiculo) {
                         if (vehiculo.id_prestamo) {
                             $('#PidPrestamo').val(vehiculo.id_vehiculo + ',' + vehiculo.id_prestamo);
                             select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color:#ffeeba;">PRESTAMO - ' + vehiculo.placa + ' - ' + vehiculo.modelo + ' - ' + vehiculo.estatus + '</option>');

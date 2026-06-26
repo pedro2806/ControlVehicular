@@ -133,7 +133,6 @@
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Custom scripts for all pages-->
@@ -196,7 +195,7 @@
                 var table = $('#tablaMantenimientos').DataTable();
 
                 table.clear().draw();
-                respuesta.forEach(function(mantenimiento) {
+                Array.isArray(respuesta) && respuesta.forEach(function(mantenimiento) {
 
                     var botones = "";
                     if (puedeAutorizar && estatus == "PENDIENTE") {
@@ -238,10 +237,6 @@
     }
 
     // Función para obtener el valor de una cookie
-    function getCookie(name) {
-        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-        return cookies.get(name) || undefined;
-    }
 
     // Función para autorizar un mantenimiento
     function autorizarMantenimiento(id_mantenimiento) {
@@ -257,7 +252,7 @@
         // Mostrar el contenedor del campo de fecha
         $("#fecha_programada").closest(".mb-3").show();
 
-        $("#modalMantenimiento").modal("show");
+        new bootstrap.Modal(document.getElementById('modalMantenimiento')).show();
     }
 
     // Función para denegar un mantenimiento
@@ -276,7 +271,7 @@
         // Ocultar el contenedor del campo de fecha
         $("#fecha_programada").closest(".mb-3").hide();
 
-        $("#modalMantenimiento").modal("show");
+        new bootstrap.Modal(document.getElementById('modalMantenimiento')).show();
     }
 
     // Función para guardar el comentario y la fecha programada
@@ -310,7 +305,7 @@
                     text: "El mantenimiento ha sido actualizado exitosamente.",
                     confirmButtonText: "Aceptar"
                 });
-                $("#modalMantenimiento").modal("hide"); // Cerrar el modal
+                bootstrap.Modal.getInstance(document.getElementById('modalMantenimiento')).hide(); // Cerrar el modal
                 cargarMantenimientos(); // Recargar la tabla
             },
             error: function () {

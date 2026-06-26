@@ -1,11 +1,8 @@
 <?php
-include 'conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
 
-$id_usuario = $_COOKIE['id_usuario'];
-$noEmpleado = $_COOKIE['noEmpleado'];
+$id_usuario = $_COOKIE['id_usuario'] ?? null;
+$noEmpleado = $_COOKIE['noEmpleado'] ?? null;
 $id_vehiculo = isset($_POST['id_vehiculo']) ? $_POST['id_vehiculo'] : null;
 
 $accion = isset($_POST['accion']) ? $_POST['accion'] : null;

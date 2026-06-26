@@ -147,7 +147,6 @@ if (empty($_COOKIE['noEmpleado'])) {
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/sb-admin-2.min.js"></script>

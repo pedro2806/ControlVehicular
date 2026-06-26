@@ -65,12 +65,12 @@
                         <!--BARRA DE SOPORTE-->
                         <div class="row">  
                             <div class = "col-lg-12 mx-auto">
-                                <center>
+                                <div class="text-center">
                                     <p class="alert alert-info" style="font-size: 0.9em;">
                                         Soporte del sistema:                                        
                                         <a href="mailto:pedro.martinez@mess.com.mx">pedro.martinez@mess.com.mx</a>
                                     </p>
-                                </center>
+                                </div>
                             </div>          
                         </div>
                     </div>
@@ -149,7 +149,7 @@
         }
     ?>
     <script src = "https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src = "js/sb-admin-2.min.js"></script>    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

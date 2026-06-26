@@ -160,7 +160,6 @@ if ($stmtAcc) {
 </body>
 <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Bootstrap JS -->
@@ -262,7 +261,7 @@ if ($stmtAcc) {
                     var table = $('#TVehiculosAsignados').DataTable();
                     
                     table.clear().draw();                            
-                    registros.forEach(function(Registro) {
+                    Array.isArray(registros) && registros.forEach(function(Registro) {
                         var badgeEstado;
                         if (Registro.estatusChecklist === 'completo') {
                             badgeEstado = '<span style="background-color:#198754;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">Completo</span>';
@@ -273,13 +272,13 @@ if ($stmtAcc) {
                         }
 
                         table.row.add([
-                            '<center>' + badgeEstado + '</center>',
+                            '<div class="text-center">' + badgeEstado + '</div>',
                             '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                             '<b> ' + Registro.modelo + ' </b>',
                             '<b> ' + Registro.color + ' </b>',
                             '<b> ' + Registro.anio + ' </b>',
                             '<b> ' + Registro.asignado + ' </b>',
-                            '<center><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>',
+                            '<div class="text-center"><button type="button" class="btn btn-sm btn-outline-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></div>',
                             Registro.area || ''
                         ]).draw(false);
                     });
@@ -337,12 +336,12 @@ if ($stmtAcc) {
             success: function(registros) {                
                 var table = $('#TChecksVehiculo').DataTable();
                 table.clear().draw();
-                registros.forEach(function(Registro) { 
+                Array.isArray(registros) && registros.forEach(function(Registro) { 
                     table.row.add([                           
                         '<b> ' + Registro.estatus + ' </b>',
                         '<b> ' + Registro.fecha + ' </b>',
                         '<b> ' + Registro.motivo + ' </b>',
-                        '<center><button type="button" class="btn btn-sm btn-outline-primary" onclick=\'VerCheck(' + JSON.stringify(Registro.id) + ')\'><i class="fas fa-eye fa-1x"></i></button></center>'
+                        '<div class="text-center"><button type="button" class="btn btn-sm btn-outline-primary" onclick=\'VerCheck(' + JSON.stringify(Registro.id) + ')\'><i class="fas fa-eye fa-1x"></i></button></div>'
                     ]).draw(false);
                 });
             },
@@ -599,7 +598,7 @@ if ($stmtAcc) {
         const contenedorTarjetas = document.getElementById('contenedorTarjetas');
         //contenedorTarjetas.innerHTML = ''; // Limpiar el contenedor antes de agregar nuevas tarjetas
 
-        registros.forEach(function(registro) {
+        Array.isArray(registros) && registros.forEach(function(registro) {
             // Crear el div principal de la tarjeta
             const tarjetaDiv = document.createElement('div');
             tarjetaDiv.classList.add('col-lg-3', 'col-md-3', 'col-sm-6', 'col-6');

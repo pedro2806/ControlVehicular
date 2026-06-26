@@ -1,19 +1,16 @@
 <?php
-include 'conn.php';
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
 
-$accion = $_POST["accion"];
+$accion = $_POST["accion"] ?? '';
 
-$id_vehiculo = $_POST["id_vehiculo"];
+$id_vehiculo = $_POST["id_vehiculo"] ?? null;
 $fecha_registro = date("Y-m-d H:i:s");
-$id_dueno = $_POST["id_dueno"];
-$noEmpleado = $_COOKIE['noEmpleado'];
-$id_usuario = $_COOKIE['id_usuario'];
-$foto = $_POST["rutaImagen"];
-$placa = $_POST["placa"];
-$estatus = $_POST["estatus"];
+$id_dueno = $_POST["id_dueno"] ?? null;
+$noEmpleado = $_COOKIE['noEmpleado'] ?? null;
+$id_usuario = $_COOKIE['id_usuario'] ?? null;
+$foto = $_POST["rutaImagen"] ?? null;
+$placa = $_POST["placa"] ?? null;
+$estatus = $_POST["estatus"] ?? null;
 
 /*---------------------------------------------*/
 // Consulta para obtener los vehículos del inventario
@@ -175,7 +172,7 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
 
 // Consulta para obtener los registros de mantenimiento
 if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
-    $id_vehiculo = intval($_POST['id_vehiculo']);
+    $id_vehiculo = intval($id_vehiculo);
     $sql = "SELECT mant.*,  inv.usuario, inv.id_us_asignado, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
             FROM mantenimientos mant
             LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo

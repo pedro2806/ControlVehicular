@@ -1,10 +1,7 @@
 <?php
-include 'conn.php';
-require_once __DIR__ . '/reportes/importar_otros.php'; // define importarOtros() sin ejecutar su CLI
-require_once __DIR__ . '/calcular_ruta.php';           // define reconciliarKmPendientes() sin ejecutar el endpoint
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
+require_once __DIR__ . '/reportes/importar_otros.php';
+require_once __DIR__ . '/calcular_ruta.php';
 
 // Detectar POST overflow: si Content-Length > 0 pero $_POST/$_FILES estan
 // vacios significa que el body excedio post_max_size o upload_max_filesize.

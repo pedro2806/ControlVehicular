@@ -1,9 +1,6 @@
 <?php
-include 'conn.php';
-require_once __DIR__ . '/calcular_ruta.php'; // define procesarKmCheckin() sin ejecutar el endpoint
-header('Content-Type: application/json');
-mysqli_set_charset($conn, "utf8mb4");
-date_default_timezone_set('America/Mexico_City');
+include 'includes/api_bootstrap.php';
+require_once __DIR__ . '/calcular_ruta.php';
 
 // Calcula el km de un check-in del modal global. Origen = GPS capturado en
 // `coordenadas` ("lat, lng"); destino = actividad OTROS del día o cliente OV/OT.
@@ -38,41 +35,7 @@ $finalizarPrestamo = isset($_POST['finalizarPrestamo']) ? $_POST['finalizarPrest
 $ruta = isset($_POST['ruta']) ? $_POST['ruta'] : null;
 $costoOv = isset($_POST['costoOv']) ? $_POST['costoOv'] : null;
 
-function subirImagenesCheckin($imagenes, $id_actividad, $id_vehiculo, $conn, $placa, $actividad) {
-
-    // Crear carpeta principal y subcarpeta "Actividades"
-    $carpetaPlaca = "img_control_vehicular/$placa";
-    if (!file_exists($carpetaPlaca)) {
-        mkdir($carpetaPlaca, 0777, true);
-    }
-    $carpetaActividad = "$carpetaPlaca/Actividades";
-    if (!file_exists($carpetaActividad)) {
-        mkdir($carpetaActividad, 0777, true);
-    }
-
-    if (!isset($imagenes) || !is_array($imagenes)) {
-        return;
-    }
-    foreach ($imagenes['tmp_name'] as $key => $tmp_name) {
-        if ($imagenes['error'][$key] === UPLOAD_ERR_OK) {
-            
-            static $consecutivo = 1;
-            $extension = pathinfo($imagenes['name'][$key], PATHINFO_EXTENSION);
-            $nombreArchivo = $placa . '_' . $actividad . '_' . $consecutivo . '.' . $extension;
-            $consecutivo++;
-            $ruta_destino = $carpetaActividad.'/' . $nombreArchivo;
-
-            if (move_uploaded_file($tmp_name, $ruta_destino)) {
-                // Guardar la ruta de la imagen en la base de datos
-                $stmt = $conn->prepare("INSERT INTO fotos (formato, id_formato, id_vehiculo, imagen) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("ssis", $actividad, $id_actividad, $id_vehiculo, $ruta_destino);
-                $stmt->execute();
-                $stmt->close();
-
-            }
-        }
-    }
-}
+include_once 'includes/subir_imagenes.php';
 
 // Si recibes archivos (foto), puedes procesarlos aquí
 /*

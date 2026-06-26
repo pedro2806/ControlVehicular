@@ -75,7 +75,7 @@
                             <div class="col-lg-4 col-md-6 col-sm-6 col-6">
                                 <label>
                                     Fecha Próxima Verificación: <span class="text-danger">*</span>
-                                    <button type="button" class="btn btn-link p-0 ms-1" data-toggle="modal" data-target="#modalCalendarioVerificacion" title="Ver calendario de verificación">
+                                    <button type="button" class="btn btn-link p-0 ms-1" data-bs-toggle="modal" data-bs-target="#modalCalendarioVerificacion" title="Ver calendario de verificación">
                                         <i class="fas fa-info-circle text-secondary"></i>
                                     </button>
                                 </label>
@@ -149,9 +149,9 @@
                         <br>
                         <input type="hidden" id="placa" name="placa">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
-                        <center>
+                        <div class="text-center">
                             <button type="button" id="btnGuardarDocumentos" class="btn btn-outline-success" onclick="RegistrarDocumentos()" style="display:none;">Guardar</button>
-                        </center>
+                        </div>
                     </form>
 
                     <!-- Modal Calendario de Verificación -->
@@ -162,7 +162,7 @@
                                     <h5 class="modal-title text-white font-weight-bold" id="modalCalendarioVerificacionLabel">
                                         <i class="fas fa-calendar-alt me-2"></i> Calendario de Verificación
                                     </h5>
-                                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
+                                    <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Cerrar">
                                         <span aria-hidden="true">&times;</span>
                                     </button>
                                 </div>
@@ -208,7 +208,7 @@
                                     </p>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
                                 </div>
                             </div>
                         </div>
@@ -229,7 +229,6 @@
     </a>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Custom scripts for all pages-->
@@ -564,17 +563,17 @@
                 success: function (respuesta) {
                     var tabla = $("#tablaInventario").DataTable(); 
                     tabla.clear(); 
-                    respuesta.forEach(function (vehiculo) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
                         var fila = [
                             `<strong><i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
                             `<strong>${vehiculo.modelo}</strong>`,
                             `<strong>${vehiculo.marca}</strong>`,
                             `<strong>${vehiculo.color}</strong>`,
-                            `<center>
+                            `<div class="text-center">
                                 <button class="btn btn-outline-success btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}', '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.color}')">
                                     <i class="fas fa-check"></i>
                                 </button>
-                            </center>`
+                            </div>`
                         ];
                         tabla.row.add(fila); 
                     });
@@ -638,10 +637,6 @@
         })();
 
         //FUNCION PARA OBTENER LA COOKIE
-        function getCookie(name) {
-            const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-            return cookies.get(name) || undefined;
-        }
     </script>
 </body>
 </html>

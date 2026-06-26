@@ -368,7 +368,6 @@
 
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
@@ -506,10 +505,6 @@
     });
     
     // Función para obtener el valor de una cookie
-    function getCookie(name) {
-        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-        return cookies.get(name) || undefined;
-    }
 
     // Función para cargar préstamos pendientes
     function cargarPrestamos() {
@@ -522,7 +517,7 @@
             success: function (respuesta) {
                 var table = $("#tablaPrestamos").DataTable();
                 table.clear().draw();
-                respuesta.forEach(function (prestamo) {
+                Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "PENDIENTE") {
                         var botones;
                         if (prestamo.propiedad_vehiculo == 'mio') {
@@ -577,8 +572,8 @@
             success: function (data) {
                 var table = $("#tablaAutorizados").closest('table').DataTable();
                 table.clear().draw();
-                data.forEach(function(prestamo) {
-                    //respuesta.forEach(function (prestamo) {
+                Array.isArray(data) && data.forEach(function(prestamo) {
+                    //Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "AUTORIZADO") {
                         if (prestamo.id_usuario == getCookie('id_usuario')) {
                             var botones = `
@@ -633,7 +628,7 @@
             success: function (data) {
                 var table = $("#tablaDevolucion").DataTable();
                 table.clear().draw();
-                data.forEach(function(prestamo) {
+                Array.isArray(data) && data.forEach(function(prestamo) {
                     if (prestamo.estatus === "EN CURSO") {
                         if (prestamo.id_usuario == getCookie('id_usuario')) {
                             var botones = `
@@ -680,7 +675,7 @@
             success: function (respuesta) {
                 var table = $("#tablaTerminados").DataTable();
                 table.clear().draw();
-                respuesta.forEach(function (prestamo) {
+                Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
                     if (prestamo.estatus === "FINALIZADO" || prestamo.estatus === "CANCELADO") {
                         var estatus;
                         if (prestamo.estatus === "FINALIZADO") {
@@ -724,7 +719,7 @@
             success: function (respuesta) {
                 var select = $("#id_vehiculo");
                 
-                respuesta.forEach(function (vehiculo) {
+                Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
                     // Define el color según el valor de vehiculo.usuario
                     let color = "";
                     switch (vehiculo.id_usuario) {
@@ -1064,7 +1059,7 @@
                 timerProgressBar: true
                 }).then(function () {
                 $('#formCapturaKm')[0].reset();
-                $('#capturaKmModal').modal('hide');
+                bootstrap.Modal.getInstance(document.getElementById('capturaKmModal')).hide();
                 $('#msgKm').text('');
                 });
             },
@@ -1145,7 +1140,7 @@
                 var select = $("#id_recibe");
                 select.empty();
                 select.append('<option value="">Seleccione</option>');
-                usuarios.forEach(function (usuario) {
+                Array.isArray(usuarios) && usuarios.forEach(function (usuario) {
                     select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
                 });
             },
@@ -1179,10 +1174,6 @@
      * @param {string} nombre - El nombre de la cookie.
      * @returns {string|null} El valor de la cookie o null si no existe.
      */
-    function leerCookie(nombre) {
-        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-        return cookies.get(nombre) || undefined;
-    }
     </script>
 </body>
 </html>

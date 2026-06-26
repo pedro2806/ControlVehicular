@@ -140,9 +140,9 @@
                             </div>
                         </div>
 
-                        <center>
+                        <div class="text-center">
                             <button type="button" class="btn btn-outline-success" onclick="RegistrarMantenimiento()">Guardar</button>
-                        </center>
+                        </div>
                     </form>
                     <br>
                 </div>
@@ -161,7 +161,6 @@
     </a>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Core plugin JavaScript-->
     <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Custom scripts for all pages-->
@@ -188,7 +187,7 @@
                 dataType: "json",
                 success: function (respuesta) {
                     var select = $("#vehiculo_select");
-                    respuesta.forEach(function (v) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (v) {
                         select.append(`<option value="${v.id_vehiculo}" data-placa="${v.placa}">${v.placa} - ${v.modelo} ${v.marca}</option>`);
                     });
                 },
@@ -286,7 +285,7 @@
                     var select = $("#id_dueno");
                     select.empty(); // Limpiar las opciones existentes
                     select.append('<option value="">Seleccione un propietario...</option>'); // Opción por defecto
-                    respuesta.forEach(function (usuario) {
+                    Array.isArray(respuesta) && respuesta.forEach(function (usuario) {
                         select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
                     });
                 },
@@ -489,7 +488,7 @@
 
             // Ocultar el campo de fecha de registro
             $("#fecha_programada").closest(".form-group").hide();
-            $("#modalMantenimiento").modal("show");
+            new bootstrap.Modal(document.getElementById('modalMantenimiento')).show();
         }
     </script>
 </body>

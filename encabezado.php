@@ -12,6 +12,9 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- CSS personalizado -->
+    <link href="css/app.css" rel="stylesheet">
+
     <!-- Sidebar Toggle (Topbar) -->
     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
         <i class="fa fa-bars"></i>
@@ -27,7 +30,7 @@
         <div class="topbar-divider d-none d-sm-block"></div>
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="mr-0 d-lg-inline text-gray-600" style="font-size: 0.85em;">
                     <?php echo ' '.$_COOKIE['nombredelusuario'].' ';?>
                 </span>
@@ -39,7 +42,7 @@
             <!-- Dropdown - User Information -->
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModalN">
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#logoutModalN">
                     <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
                     Salir
                 </a>
@@ -53,7 +56,7 @@
             <div class="modal-content border-left-danger">
                 <div class="modal-header">
                     <h4 class="modal-title" id="exampleModalLabel"> Cerrar sesión </h4>
-                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <button class="close" type="button" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">X</span>
                     </button>
                 </div>
@@ -61,7 +64,7 @@
                     <h5><b>¿Estas seguro?</b></h5>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-warning" type="button" data-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-warning" type="button" data-bs-dismiss="modal">Cancelar</button>
                     <a class="btn btn-danger" href="logout">Salir</a>
                 </div>
             </div>
@@ -167,7 +170,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="guardarCheckIn()">Guardar</button>
                 </div>
             </div>
@@ -351,589 +354,24 @@
     </div>
 </div>
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-<script  type="text/javascript">
+<script src="js/global/utils.js"></script>
+<script src="js/global/modals.js"></script>
+<script src="js/global/vehiculos.js"></script>
+<script src="js/global/gas.js"></script>
+<script type="text/javascript">
     $(document).ready(function () {
-        // Obtener coordenadas del usuario
         obtenerCoordenadas();
-        // Aviso de permisos de ubicacion (solo si esta denegado o el usuario no ha aceptado)
         verificarPermisoUbicacion();
     });
-
-    // Banner global de permiso de geolocalizacion. Aplica el estado actual del
-    // navegador ('granted' | 'denied' | 'prompt'). Cuando es 'granted' deja un
-    // flag en localStorage para no molestar al usuario en proximas visitas.
-    function verificarPermisoUbicacion() {
-        if (!navigator.geolocation) return;
-        var banner = document.getElementById('avisoUbicacion');
-        if (!banner) return;
-        var titulo = document.getElementById('avisoUbicacionTitulo');
-        var msg    = document.getElementById('avisoUbicacionMsg');
-        var btn    = document.getElementById('btnAceptarUbicacion');
-
-        var TEXTOS = {
-            denied: ['Ubicación bloqueada', 'Tu navegador tiene bloqueada la ubicación para este sitio.'],
-            prompt: ['Habilita el acceso a tu ubicación', 'Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.']
-        };
-
-        function aplicar(state) {
-            if (state === 'granted') {
-                localStorage.setItem('cv_ubicacion_aceptada', '1');
-                banner.classList.add('d-none');
-                return;
-            }
-            if (state === 'prompt' && localStorage.getItem('cv_ubicacion_aceptada')) {
-                banner.classList.add('d-none');
-                return;
-            }
-            var t = TEXTOS[state] || TEXTOS.prompt;
-            titulo.textContent = t[0];
-            msg.textContent    = t[1];
-            banner.classList.remove('d-none');
-        }
-
-        if (navigator.permissions && navigator.permissions.query) {
-            navigator.permissions.query({ name: 'geolocation' }).then(function (status) {
-                aplicar(status.state);
-                status.onchange = function () { aplicar(status.state); };
-            }).catch(function () { aplicar('prompt'); });
-        } else {
-            aplicar('prompt');
-        }
-
-        if (btn) {
-            btn.addEventListener('click', function () {
-                navigator.geolocation.getCurrentPosition(
-                    function ()    { aplicar('granted'); },
-                    function (err) { if (err && err.code === err.PERMISSION_DENIED) aplicar('denied'); },
-                    { timeout: 8000, maximumAge: 0 }
-                );
-            });
-        }
-    }
-
-    // Función para obtener las coordenadas del usuario
-    function obtenerCoordenadas() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const lat = position.coords.latitude.toFixed(6); 
-                    const lon = position.coords.longitude.toFixed(6); 
-                    $("#coordenadasCheck").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo                
-                },
-                function (error) {
-                    //console.error("Error al obtener la ubicación: ", error);                        
-                }
-            );
-        } else {
-            //console.error("Geolocalización no es soportada por este navegador.");
-        }
-    }
-    
-    // Pide la ubicación de forma OBLIGATORIA al registrar un check-in/out.
-    // Resuelve con {lat, lng} o rechaza si no se pudo obtener.
-    function obtenerUbicacionObligatoria() {
-        return new Promise(function (resolve, reject) {
-            if (!navigator.geolocation) { reject(); return; }
-            navigator.geolocation.getCurrentPosition(
-                function (pos) {
-                    resolve({
-                        lat: parseFloat(pos.coords.latitude.toFixed(6)),
-                        lng: parseFloat(pos.coords.longitude.toFixed(6))
-                    });
-                },
-                function () { reject(); },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
-        });
-    }
-
-    // Aviso reutilizable cuando la ubicación es obligatoria y no se obtuvo.
-    function avisoUbicacionObligatoria() {
-        Swal.fire({
-            icon: 'error',
-            title: 'Ubicación obligatoria',
-            text: 'No pudimos obtener tu ubicación. Habilita el GPS y el permiso de ubicación del navegador e inténtalo de nuevo.',
-            confirmButtonText: 'Entendido'
-        });
-    }
-
-    // Función para cargar y mostrar actividades pendientes en el modal
-    // Sobrescribe la función para mostrar actividades en tabla
-    function mostrarActividadesPendientes() {
-        $('#actividadesPendientesModal').modal('show');
-        $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center"><span class="spinner-border" role="status" aria-hidden="true"></span> Cargando actividades...</td></tr>');
-        $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            dataType: 'json',
-            data: { accion: 'ActividadesPendientes' },
-            success: function (data) {
-                if (data.length > 0) {
-                    var html = '';
-                    var botonCerrarActividad = '';
-                    data.forEach(function (actividad, idx) {
-                        // Si la actividad tiene los datos necesarios, guarda el botón en una variable aparte (no en la tabla)
-                        botonCerrarActividad = '<button type="button" class="btn btn-success" onclick="CapturaCheckOut()">' + '<i class="fas fa-check"></i> Captura CheckOut</button>';
-                        
-                        if (!actividad.id_prestamo) {
-                            $('#divFinalizarPrestamo').hide();
-                        } else {
-                            $('#divFinalizarPrestamo').show();
-                        }
-
-                        html += '<tr>';
-                        html += '<td>' + (idx + 1) + '</td>';
-                        html += '<td>' + (actividad.titulo || 'Actividad') + '</td>';
-                        html += '<td>' + (actividad.notas || '') + '</td>';
-                        html += '<td>' + (actividad.vehiculo || actividad.placa || '') + '</td>';                        
-                        html += '</tr>';
-
-                        // Asignar los valores a los campos del formulario
-                        $('#kmActualNuevo').val(actividad.km_actual);
-                        $('#gasActualNuevo').val(actividad.gasolina_actual);
-                        $('#PidPrestamo').val(actividad.id_prestamo);
-                        $('#PidVehiculo').val(actividad.id_vehiculo);
-                        $('#PtipoActividad').val(actividad.detalle_tipo_uso);
-                        $('#Ppatron').val(actividad.patron);
-                        $('#Pot').val(actividad.ot);
-                        $('#placaElegida').val(actividad.placa);
-                    });
-                    $('#tablaActividadesPendientes').html(html);
-                    $('#cerrarActividadPendiente').html(botonCerrarActividad);
-                } else {
-                    $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center text-success">No tienes actividades pendientes.</td></tr>');
-                }
-            },
-            error: function () {
-                $('#tablaActividadesPendientes').html('<tr><td colspan="4" class="text-center text-danger">Error al cargar las actividades pendientes.</td></tr>');
-            }
-        });
-    }
-
-    function guardarCheckIn() {
-        // Obtener los valores de los campos del formulario
-        var vehiculoAsignado = $('#vehiculoAsignado').val();
-        var otRelacionada = $('#otRelacionada').val();
-        var kmActual = $('#kmActual').val();
-        var patronRelacionado = $('#patronRelacionado').val();
-        var notasCheckin = $('#notasCheckin').val();
-        var gasActual = $('#gasActual').val();            
-        var placaElegida = $('#placaElegida').val();
-        var tipoServicio = $('#tipoServicio').val();
-        var coordenadas = $('#coordenadasCheck').val();
-        var ruta = $('#ruta').val();
-        var costoOv = $('#costoOv').val();
-        
-        // Validar que el tipo de servicio sea válido               
-        // Validar que los campos no estén vacíos
-        if (!vehiculoAsignado || !kmActual || !gasActual || !tipoServicio) {
-            $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
-            return;
-        }
-
-        
-        var pidPrestamoVal = $('#PidPrestamo').val();            
-            var partes = pidPrestamoVal.split(',');
-            var idVehiculo = partes[0];
-            var idPrestamo = partes[1];
-        if (idVehiculo == vehiculoAsignado) {
-            $('#PidPrestamo').val(idPrestamo);
-        }
-        else{
-            $('#PidPrestamo').val('');
-        }
-        
-        // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-in.
-        obtenerUbicacionObligatoria().then(function (geo) {
-        coordenadas = geo.lat + ', ' + geo.lng;
-        $('#coordenadasCheck').val(coordenadas);
-
-        var formData = new FormData();
-        formData.append('id_prestamo', $('#PidPrestamo').val()); // Asignar un ID de préstamo por defecto
-        formData.append('accion', 'CapturaCheckIn');
-        formData.append('vehiculoAsignado', vehiculoAsignado);
-        formData.append('otRelacionada', otRelacionada);
-        formData.append('kmActual', kmActual);
-        formData.append('patronRelacionado', patronRelacionado);
-        formData.append('notasCheckin', notasCheckin);
-        formData.append('gasActual', gasActual);
-        formData.append('tipoServicio', tipoServicio);
-        formData.append('placa', placaElegida);
-        formData.append('coordenadas', coordenadas);
-        formData.append('ruta', ruta);
-        formData.append('costoOv', costoOv);
-
-        // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
-        var archivos = document.querySelectorAll('input[name="imgCheckin[]"]');
-        archivos.forEach(function(input) {
-            if (input.files.length > 0) {
-                for (var i = 0; i < input.files.length; i++) {
-                    formData.append('imgCheckin[]', input.files[i]);
-                }
-            }
-        });
-        
-
-        // Mostrar mensaje de procesando y ocultar el modal mientras se procesa la solicitud
-        Swal.fire({
-            title: "Procesando...",
-            text: "Por favor espera mientras se guarda la información.",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        $('#capturaKmModal').modal('hide');
-
-        $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            dataType: 'json',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function (resp) {
-                Swal.fire({
-                    title: "¡Guardado!",
-                    text: "Kilometraje registrado correctamente.",
-                    icon: "success",
-                    timer: 2000,
-                    timerProgressBar: true
-                }).then(function () {
-                    $('#formCapturaKm')[0].reset();
-                    $('#msgKm').text('');
-                });
-                window.location.replace("autorizar_prestamo");
-            },
-            error: function () {
-                Swal.close();
-                $('#msgKm').text('Error al guardar el kilometraje, vuelva a intentarlo. Si el problema persiste, contacte al administrador.');
-                $('#capturaKmModal').modal('show');
-            }
-        });
-        }).catch(function () { avisoUbicacionObligatoria(); });
-    }
-
-    // Función para capturar el check-out
-    function CapturaCheckOut() {
-
-        var id_prestamo = $('#PidPrestamo').val();
-        var vehiculoAsignado = $('#PidVehiculo').val();
-        var otRelacionada = $('#Pot').val();
-        var kmActual = $('#kmActualNuevo').val();
-        var patronRelacionado = $('#Ppatron').val();
-        var notasCheckin = $('#notasCheckinNuevo').val();
-        var gasActual = $('#gasActualNuevo').val();                        
-        var tipoServicio = $('#PtipoActividad').val();
-        var coordenadas = $('#coordenadasCheck').val();
-        var placaElegida = $('#placaElegida').val();
-        var ruta = $('#rutaNuevo').val();
-        var costoOv = $('#costoOvNuevo').val();
-
-        // Validar que los campos no estén vacíos
-        if (!vehiculoAsignado || !kmActual || !gasActual) {
-        $('#msgKm').text('Por favor, complete todos los campos obligatorios.');
-        return;
-        }
-
-        // La ubicación es OBLIGATORIA: sin coords de origen no se registra el check-out.
-        obtenerUbicacionObligatoria().then(function (geo) {
-        coordenadas = geo.lat + ', ' + geo.lng;
-        $('#coordenadasCheck').val(coordenadas);
-
-        var formData = new FormData();
-        formData.append('accion', 'CapturaCheckOut');
-        formData.append('id_prestamo', id_prestamo);
-        formData.append('vehiculoAsignado', vehiculoAsignado);
-        formData.append('otRelacionada', otRelacionada);
-        formData.append('kmActual', kmActual);
-        formData.append('patronRelacionado', patronRelacionado);
-        formData.append('notasCheckin', notasCheckin);
-        formData.append('gasActual', gasActual);
-        formData.append('tipoServicio', tipoServicio);
-        formData.append('coordenadas', coordenadas);
-        formData.append('placa', placaElegida);
-        formData.append('finalizarPrestamo', $('#finalizarPrestamo').is(':checked') ? 'Si' : 'No');
-        formData.append('ruta', ruta);
-        formData.append('costoOv', costoOv);
-        // Adjuntar la imagen del check-in si existe
-        // Adjuntar todos los archivos de imagen seleccionados (incluyendo los inputs adicionales)
-        var archivos = document.querySelectorAll('input[name="imgCheckinNuevo[]"]');
-        archivos.forEach(function(input) {
-            if (input.files.length > 0) {
-                for (var i = 0; i < input.files.length; i++) {
-                    formData.append('imgCheckinNuevo[]', input.files[i]);
-                }
-            }
-        });
-
-        $.ajax({
-        url: 'acciones_kilometraje.php',
-        method: 'POST',
-        dataType: 'json',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (resp) {
-            Swal.fire({
-            title: "¡Guardado!",
-            text: "Kilometraje registrado correctamente.",
-            icon: "success",
-            timer: 2000,
-            timerProgressBar: true
-            }).then(function () {
-            $('#formCapturaKm')[0].reset();
-            $('#actividadesPendientesModal').modal('hide');                
-            $('#msgKm').text('');
-            });
-            window.location.replace("autorizar_prestamo");
-        },
-        error: function () {
-            $('#msgKm').text('Error al guardar el kilometraje.');
-        }
-        });
-        }).catch(function () { avisoUbicacionObligatoria(); });
-    }
-
-    // Función para agregar otro input de archivo, hasta un máximo de 4
-    function agregarInputImagen() {
-        // Contenedor donde están los inputs de imagen
-        var contenedor = document.getElementById('contenedorImgCheckin');
-        // Contar cuántos inputs hay actualmente
-        var inputs = contenedor.querySelectorAll('input[type="file"]');
-        if (inputs.length < 3) {
-            // Crear un nuevo input
-            var nuevoInput = document.createElement('input');
-            nuevoInput.type = 'file';
-            nuevoInput.className = 'form-control mt-1';
-            nuevoInput.name = 'imgCheckin[]';
-            nuevoInput.accept = '.jpg,.jpeg,.png';
-            contenedor.appendChild(nuevoInput);
-        } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Límite alcanzado',
-                text: 'Solo puedes subir hasta 4 imágenes.'
-            });
-        }
-    }
-
-    // Función para agregar otro input de archivo, hasta un máximo de 4
-    function agregarInputImagenOut() {
-        // Contenedor donde están los inputs de imagen
-        var contenedor = document.getElementById('contenedorImgCheckout');
-        // Contar cuántos inputs hay actualmente
-        var inputs = contenedor.querySelectorAll('input[name="imgCheckinNuevo[]"]');
-        if (inputs.length < 3) {
-            // Crear un nuevo input
-            var nuevoInput = document.createElement('input');
-            nuevoInput.type = 'file';
-            nuevoInput.className = 'form-control mt-1';
-            nuevoInput.name = 'imgCheckinNuevo[]';
-            nuevoInput.accept = '.jpg,.jpeg,.png';
-            contenedor.appendChild(nuevoInput);
-        } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Límite alcanzado',
-                text: 'Solo puedes subir hasta 4 imágenes.'
-            });
-        }
-    }
-
-    // Cargar vehículos al select
-    function cargarVehiculos(selectVehiculo) {
-        
-        $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            dataType: 'json',
-            data: { accion: 'CargarVehiculos' },
-            success: function (data) {
-                var select = $('#' + selectVehiculo);
-                select.empty();
-
-                var vehiculos = Array.isArray(data) ? data : (data.vehiculos || []);
-                select.append('<option value="">Seleccione un vehículo</option>');
-                data.forEach(function (vehiculo) {
-                    if (vehiculo.id_prestamo !== null && vehiculo.id_prestamo !== '') {
-                        $('#PidPrestamo').val(vehiculo.id_vehiculo+','+vehiculo.id_prestamo);
-                        select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;" selected>PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  '+ vehiculo.estatus+'</option>');
-                    } else {
-                        select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
-                    }
-                });
-
-                verPlaca('vehiculoAsignado', 'kmActual');
-            },
-            error: function () {
-                console.error('Error al cargar los vehículos');
-            }
-        });
-    }
-
-    //valida actividades pendientes
-    function validarActividadesPendientes() {
-        
-        $.ajax({
-            url: 'acciones_kilometraje.php',
-            method: 'POST',
-            dataType: 'json',
-            data: { accion: 'ActividadesPendientes' },
-            success: function (data) {
-                if (data.length > 0) {
-                    Swal.fire({
-                        title: "¡Atención!",
-                        text: "Tienes actividades pendientes de inicio.",
-                        icon: "warning",
-                        confirmButtonText: "Ver Actividades"
-                    }).then(function () {
-                        $('#actividadesPendientesModal').modal('show'); // Mostrar el modal de captura de km
-                        mostrarActividadesPendientes(); // Cargar vehículos al select
-                    });
-                }
-                else{
-                    cargarVehiculos('vehiculoAsignado'); // Cargar vehículos al select si no hay actividades pendientes
-                    $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
-                }
-            },
-            error: function () {
-                cargarVehiculos('vehiculoAsignado');
-                $('#capturaKmModal').modal('show'); // Mostrar el modal de captura de km
-                console.error('Error al verificar actividades pendientes');
-            }
-        });
-    }
-
-    function cambiaLabelTServicio() {
-        var tipoServicio = document.getElementById("tipoServicio").value;
-        var labelTServicio = document.getElementById("labelTServicio");
-        if (tipoServicio === "OV") {
-            labelTServicio.innerHTML = "OV Relacionada";                
-            document.getElementById("otRelacionada").placeholder = "Ej. 0000-2025";
-            $('#labelpatronRelacionado').text('Patron');
-            document.getElementById("patronRelacionado").type = "show";
-        } else if (tipoServicio === "OT") {
-            labelTServicio.innerHTML = "OT Relacionada";
-            document.getElementById("otRelacionada").placeholder = "Ej. XX25-00X-000";
-            $('#labelpatronRelacionado').text('Patron');
-            document.getElementById("patronRelacionado").type = "show";
-        } else if (tipoServicio === "Proyecto") {
-            labelTServicio.innerHTML = "Proyecto Relacionado";
-            document.getElementById("otRelacionada").placeholder = "0000";
-            $('#labelpatronRelacionado').text('');
-            document.getElementById("patronRelacionado").type = "hidden";
-        } else {
-            labelTServicio.innerHTML = "Detalle"; // Valor por defecto
-            document.getElementById("otRelacionada").placeholder = "Si aplica, OV/OT/Proyecto";
-            $('#labelpatronRelacionado').text('');
-            document.getElementById("patronRelacionado").type = "hidden";
-        }
-    }
-    
-    function verPlaca(selectVehiculo, inputKm, saldo) {
-        var IDvehiculoAsignado = document.getElementById(selectVehiculo).value;
-        var accion = "tomaKm";
-        if (IDvehiculoAsignado) {
-            var vehiculoAsignado = document.getElementById(selectVehiculo).options[document.getElementById(selectVehiculo).selectedIndex].text;
-            var primerValor = (vehiculoAsignado.split('-')[1] || '').trim();
-            primerValor = primerValor.replace("Seleccione un vehículo", "");
-            document.getElementById("placaElegida").value = primerValor;
-
-            $.ajax({
-                url: 'acciones_kilometraje.php',
-                method: 'POST',
-                async: false,
-                dataType: 'json',
-                data: { accion, IDvehiculoAsignado },
-                success: function (Registros) {
-                    if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
-                        $('#' + inputKm).val(Registros[0].kmMax);
-                        $('#gasActual').val(Registros[0].gasolina_actual);
-                        $('#monto').val(Registros[0].saldo);
-                    }
-                }
-            });
-        }
-    }
-
-    function verPlacaCheckOut() {
-        var vehiculoAsignado = document.getElementById("vehiculoAsignado").textContent;
-        if (vehiculoAsignado) {
-            // Tomar solo el primer valor antes del guion "-"
-            var primerValor = vehiculoAsignado.split('-')[0].trim();
-            primerValor = primerValor.replace("Seleccione un vehículo", "");
-            // Asignar el valor al input oculto
-            document.getElementById("placaElegida").value = primerValor;
-        }
-    }
-
-    //Función para registrar gasolina
-    function registrarGas(){
-        var accion = "registraGas";
-        var id_vehiculo = $('#vehiculoAsignadoGas').val();
-        var monto = $('#monto').val();
-        var pagos = $('#pagos').val();
-        var saldo = $('#saldo').val();
-        var fecha_carga = $('#fechaCarga').val();
-        var km_actual = $('#kmActualGas').val();
-
-        $.ajax({
-            url: 'acciones_gas.php',
-            method: 'POST',
-            async: false,
-            dataType: 'json',
-            data: { accion, id_vehiculo, monto, pagos, saldo, fecha_carga, km_actual },
-            success: function (Registros) {                    
-                Swal.fire({
-                    title: "¡Guardado!",
-                    text: "Carga de gasolina registrada correctamente.",
-                    icon: "success",
-                    timer: 1000,
-                    timerProgressBar: true
-                }).then(function () {
-                    $('#formCapturaGas')[0].reset();
-                    $('#capturaGasModal').modal('hide');
-                });
-            }, error: function (jqXHR, textStatus, errorThrown) {
-                console.error('Error al registrar la carga de gasolina', error);
-            }
-        });
-    }
-
-    //FUNCION PARA CALCULAR SALDO
-    function calcularSaldo(){
-        var monto = parseFloat($('#monto').val().replace(/[^0-9.-]+/g,""));
-        var pagos = parseFloat($('#pagos').val().replace(/[^0-9.-]+/g,""));
-        if (isNaN(monto)) monto = 0;
-        if (isNaN(pagos)) pagos = 0;
-        var saldo = monto - pagos;
-        $('#saldo').val(saldo.toFixed(2));
-    }
-
-    //Funcion para leer cookies
-    function getCookie(name) {
-        const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-        return cookies.get(name) || undefined;
-    }
-    // Asignar el valor de la cookie al input
-    window.onload = function () {
-        //Obtener fecha y hora actual
-        const ahora = new Date();
+    window.addEventListener('load', function () {
+        var ahora = new Date();
         var fechaCargaInput = document.getElementById("fechaCarga");
-        if (fechaCargaInput) {
-            fechaCargaInput.value = ahora.toISOString().slice(0,16);
-        }
-        
-        var cookieValue = getCookie("noEmpleado"); // Aquí "noEmpleadoCookie" es el nombre de la cookie
-        // Verificar si la cookie existe y asignar el valor al input
+        if (fechaCargaInput) fechaCargaInput.value = ahora.toISOString().slice(0,16);
+        var cookieValue = getCookie("noEmpleado");
         if (cookieValue) {
             var noEmpleadoInput = document.getElementById("noEmpleado");
-            if (noEmpleadoInput) {
-                noEmpleadoInput.value = cookieValue;
-            }
+            if (noEmpleadoInput) noEmpleadoInput.value = cookieValue;
         }
-    };        
+    });
 </script>
 

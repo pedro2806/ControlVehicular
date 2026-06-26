@@ -376,7 +376,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <!-- Removed duplicate Bootstrap script to avoid conflicts -->    
     <!-- Core plugin JavaScript-->
     <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src = "vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- Custom scripts for all pages-->
     <script src = "js/sb-admin-2.min.js"></script>    
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
@@ -436,13 +435,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             var table = $('#TVehiculosAsignados').DataTable();
                             
                             table.clear().draw();                            
-                            registros.forEach(function(Registro) {
+                            Array.isArray(registros) && registros.forEach(function(Registro) {
                                 var asignado = Registro.asignado || Registro.usuario || '-';
                                 table.row.add([
                                     '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                                     '<b> ' + Registro.modelo + ' </b>',
                                     asignado,
-                                    '<center><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></center>'
+                                    '<div class="text-center"><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></div>'
                                 ]).draw(false);
                             });
 
@@ -889,10 +888,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         });
 
         // Función para obtener el valor de una cookie por su nombre
-        function getCookie(name) {
-            const cookies = new URLSearchParams(document.cookie.replace(/; /g, '&'));
-            return cookies.get(name) || undefined;
-        }
 
         // funcion para ocultar el DivVehiculosAsignados
         function OcultaDivVehiculosAsignados() {

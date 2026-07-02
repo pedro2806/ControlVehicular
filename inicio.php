@@ -61,6 +61,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     <hr>
                     <!-- Content Row -->
                     <div class="row">
+                        <div id="seccionVehiculo" style="display:none;" class="col-12 mb-3">
+                            <div id="contenedorVehiculos"></div>
+                        </div>
                         <div class="stat-box mb-1">
                             <h3>Tenencia 2026</h3>
                             <h4 id ="vehiculosAsignados" name="vehiculosAsignados" style="color:#fff; margin-bottom: 0.1rem"></h4>
@@ -108,7 +111,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
     <script type="text/javascript">
         $(document).ready(function() {
-            cargarVehiculosInicio('');
+            //cargarVehiculosInicio('');
+            cargarVehiculosDocs();
         });
 
         // Cargar vehículos prestados
@@ -141,6 +145,85 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 error: function () {
                     console.error('Error al cargar los vehículos');
                 }
+            });
+        }
+
+        // ===== Tab Vehículo: semáforo de documentación =====
+        // 1) Obtiene los vehículos del usuario (getPlaca → ../incidencias/validaLoginMaster.php).
+        // 2) Para cada vehículo consulta su documentación (obtenerDatosVehiculo → ../ControlVehicular/acciones_qr.php).
+        // 3) Renderiza una card por vehículo con check verde / cruz roja por documento.
+        function cargarVehiculosDocs() {
+            var $cont = $('#contenedorVehiculos');
+            var noEmp = getCookie('noEmpleadoL') || '';
+            if (!noEmp) {
+                $cont.html('<div class="alert alert-info">No hay sesión válida.</div>');
+                return;
+            }
+
+            $.ajax({
+                url: '../incidencias/validaLoginMaster.php',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    accion: 'getPlaca',
+                    noEmpleado: noEmp
+                }
+            }).done(function(resp) {
+                if (!resp || !resp.success || !resp.vehiculos || resp.vehiculos.length === 0) {
+                    vehiculosDocsCargados = true;
+                    return;
+                }
+
+                $('#seccionVehiculo').show();
+
+                var html = '<div class="accordion" id="accordionVehiculos">';
+                resp.vehiculos.forEach(function(v, idx){
+                    var idv = parseInt(v.id_vehiculo, 10) || 0;
+                    html += renderCardVehiculo(idv, v.placa, v.modelo, idx === 0);
+                });
+                html += '</div>';
+                $cont.html(html);
+
+                resp.vehiculos.forEach(function(v){
+                    var idv = parseInt(v.id_vehiculo, 10) || 0;
+                    if (!idv) return;
+                    syncCookieNoEmpleado();
+
+                    $.ajax({
+                        url: 'acciones_qr.php',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            accion: 'obtenerDatosVehiculo',
+                            id_vehiculo: idv
+                        }
+                    }).done(function(data) {
+                        if (!data || data.error) {
+                            $('#docsVeh-' + idv).html('<p class="text-muted small mb-0 p-3">No se pudo cargar la documentación</p>');
+                            return;
+                        }
+                        $('#docsVeh-' + idv).html(renderListaDocs(data));
+                    }).fail(function(){
+                        $('#docsVeh-' + idv).html('<p class="text-danger small mb-0 p-3">Error al obtener documentación</p>');
+                    });
+
+                    $.ajax({
+                        url: 'acciones_qr.php',
+                        type: 'POST', dataType: 'json',
+                        data: { accion: 'obtenerValidacionesVehiculo', id_vehiculo: idv }
+                    }).done(function(data){
+                        if (!data || data.error) {
+                            $('#chkVeh-' + idv).html('<p class="text-muted small mb-0 p-3">No se pudo cargar el checklist</p>');
+                            return;
+                        }
+                        $('#chkVeh-' + idv).html(renderListaChecklist(data));
+                    }).fail(function(){
+                        $('#chkVeh-' + idv).html('<p class="text-danger small mb-0 p-3">Error</p>');
+                    });
+                });
+                vehiculosDocsCargados = true;
+            }).fail(function() {
+                $cont.html('<div class="alert alert-danger">No se pudo obtener la información de vehículos.</div>');
             });
         }
     </script>

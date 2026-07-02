@@ -59,9 +59,25 @@
                         </table>
                     </div>
                     <!-- CONTENEDOR INFO AUTO -->
-                    <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
-                    <br>
+                    <div class="card shadow-sm mb-3" id="placaSeleccionada" style="display:none;">
+                        <div class="card-body py-3 px-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width:60px;height:60px;border-radius:8px;background:#e9ecef;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fas fa-car fa-2x text-muted"></i>
+                                </div>
+                                <div class="ml-3 flex-grow-1">
+                                    <h5 class="mb-0 font-weight-bold text-primary" id="infoPlacaDoc"></h5>
+                                    <span class="text-dark" id="infoModeloMarcaDoc"></span><br>
+                                    <small class="text-muted" id="infoColorDoc"></small>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cambiarVehiculo()">
+                                        <i class="fas fa-exchange-alt me-1"></i> Cambiar Vehículo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- FORMULARIO DEL DOCUMENTACION    -->
                     <form id="formRegistroDocumentacion" style="display: none;">
                         <!-- Content Row -->
@@ -150,7 +166,7 @@
                         <input type="hidden" id="placa" name="placa">
                         <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
                         <div class="text-center">
-                            <button type="button" id="btnGuardarDocumentos" class="btn btn-outline-success" onclick="RegistrarDocumentos()" style="display:none;">Guardar</button>
+                            <button type="button" id="btnGuardarDocumentos" class="btn btn-primary" onclick="RegistrarDocumentos()" style="display:none;">Guardar</button>
                         </div>
                     </form>
 
@@ -593,27 +609,19 @@
 
         //FUNCION PARA MANEJAR EL BOTÓN "CHECK"
         function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
-            $("#placaSeleccionada")
-                .html(`
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span><strong>Placa:</strong> <span style="font-weight: normal;">${placa}</span></span>
-                        <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
-                        <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
-                        <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
-                    </div>
-                `)
-                .show();
+            $("#infoPlacaDoc").text(placa);
+            $("#infoModeloMarcaDoc").text(modelo + ' ' + marca);
+            $("#infoColorDoc").text(color);
+            $("#placaSeleccionada").show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#placa").val(placa);
-            $("#btnCambiarVehiculo").show();
             $("#tablaInventario").closest(".container").hide();
             $("#formRegistroDocumentacion").show();
         }
-        
+
         //FUNCION PARA CAMBIAR DE VEHÍCULO
         function cambiarVehiculo() {
             $("#placaSeleccionada").hide();
-            $("#btnCambiarVehiculo").hide();
             $("#tablaInventario").closest(".container").show();
             $("#formRegistroDocumentacion").hide();
         }

@@ -43,9 +43,13 @@ if ($_POST['accion'] == 'ver_inventario') {
 
 // Consulta para obtener los documentos del vehículo
 if ($_POST['accion'] == 'documentosVehiculo') {
-    $sql = "SELECT inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, 
-                doc.verificacion_vigente, doc.fecha_registro,doc.fecha_prox, doc.contacto
+    $sql = "SELECT inv.placa, inv.modelo, inv.marca, inv.anio, inv.color,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario,
+                   doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo,
+                   doc.verificacion_vigente, doc.fecha_registro, doc.fecha_prox, doc.contacto
             FROM inventario inv
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             LEFT JOIN documentacion doc ON inv.id_vehiculo = doc.id_vehiculo
             WHERE inv.id_vehiculo = $id_vehiculo
             ORDER BY doc.fecha_registro DESC
@@ -63,9 +67,13 @@ if ($_POST['accion'] == 'documentosVehiculo') {
 
 // Consulta para obtener los mantenimiento del vehículo 
 if ($_POST['accion'] == 'mantenimientoVehiculo') {
-    $sql = "SELECT m.fecha_registro, m.tipo_mantenimiento, m.descripcion, m.foto, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario
+    $sql = "SELECT m.fecha_registro, m.tipo_mantenimiento, m.descripcion, m.foto,
+                   inv.placa, inv.modelo, inv.marca, inv.anio, inv.color,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM mantenimientos m
             JOIN inventario inv ON m.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE m.id_vehiculo = $id_vehiculo
             ORDER BY m.fecha_registro DESC
             LIMIT 1";
@@ -82,11 +90,14 @@ if ($_POST['accion'] == 'mantenimientoVehiculo') {
 
 // Consulta para obtener los siniestros del vehículo 
 if ($_POST['accion'] == 'siniestrosVehiculo') {
-    $sql="SELECT s.fecha_registro, s.fecha, FORMAT(s.hora, 'HH:mm:ss') AS hora, s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, f.imagen, 
-                inv.placa, inv.modelo, inv.marca, inv.anio, inv.color, inv.usuario
+    $sql = "SELECT s.fecha_registro, s.fecha, FORMAT(s.hora, 'HH:mm:ss') AS hora, s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, f.imagen,
+                   inv.placa, inv.modelo, inv.marca, inv.anio, inv.color,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM siniestros s
             LEFT JOIN fotos f ON s.id_siniestro = f.id_formato
             LEFT JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE s.id_vehiculo = $id_vehiculo
             ORDER BY s.fecha_registro DESC
             LIMIT 4";
@@ -152,10 +163,12 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
 
     $sql = "SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.id_usuario_registro, doc.contacto,
                    doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente,
-                   inv.usuario, inv.id_usuario, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
+                   inv.id_usuario, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM documentacion doc
             LEFT JOIN inventario inv ON doc.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios u ON doc.id_usuario_registro = u.id_usuario
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             $whereClause
             ORDER BY doc.fecha_registro ASC";
     $result = $conn->query($sql);
@@ -173,9 +186,12 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
 // Consulta para obtener los registros de mantenimiento
 if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
     $id_vehiculo = intval($id_vehiculo);
-    $sql = "SELECT mant.*,  inv.usuario, inv.id_us_asignado, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color
+    $sql = "SELECT mant.*, mant.VoBo_jefe, inv.id_us_asignado, inv.placa, inv.modelo, inv.marca, inv.anio, inv.color,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM mantenimientos mant
             LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE mant.solicitante = $id_usuario AND mant.VoBo_jefe = '$estatus'
             ORDER BY mant.fecha_registro DESC";
     $result = $conn->query($sql);

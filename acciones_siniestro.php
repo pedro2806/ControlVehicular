@@ -38,13 +38,13 @@ include_once 'includes/subir_imagenes.php';
 
 //Registro de Siniestro
 if ($accion == "registroSiniestro") {
-    $sqlregistro = "INSERT INTO siniestros 
-                                (id_vehiculo, fecha_registro, fecha, hora, tipo_carro, id_dueno, kilometraje, gasolina, origen, destino, lugar, 
-                                empresa, servicio, coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo, contacto) 
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$hora', '$tipo_carro', '$id_usuario', '$kilometraje', '$gasolina', '$origen', 
-                            '$destino', '$lugar', '$empresa', '$servicio', '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo', '$contacto')";      
+    $sqlregistro = "INSERT INTO siniestros
+                                (id_vehiculo, fecha_registro, fecha, hora, tipo_carro, id_dueno, lugar,
+                                coordenadas, descripcion, partes_dañadas, ubicacion_vehiculo)
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$fecha', '$hora', '$tipo_carro', '$id_usuario', '$lugar',
+                            '$coordenadas', '$descripcion', '$partes_dañadas', '$ubicacion_vehiculo')";
     if ($conn->query($sqlregistro) === TRUE) {
-        
+
             $consultaUltimaActividad = "SELECT id_siniestro FROM siniestros WHERE id_dueno = '" . $_COOKIE['id_usuario'] . "' ORDER BY fecha_registro DESC, id_siniestro DESC LIMIT 1";
             $resultUltimaActividad = $conn->query($consultaUltimaActividad);
             $idUltimaActividad = null;
@@ -52,10 +52,9 @@ if ($accion == "registroSiniestro") {
             if ($resultUltimaActividad && $resultUltimaActividad->num_rows > 0) {
                 $rowUltimaActividad = $resultUltimaActividad->fetch_assoc();
                 $idUltimaActividad = $rowUltimaActividad['id_siniestro'];
-                // Ahora $idUltimaActividad contiene solo el id de la última actividad
             }
-            // Procesar imágenes de check-in si existen
-            if (isset($_FILES['foto'])) {
+            // Procesar imágenes solo si se enviaron archivos
+            if (isset($_FILES['foto']) && !empty($_FILES['foto']['name'][0])) {
                 subirImagenesCheckin($_FILES['foto'], $idUltimaActividad, $id_vehiculo, $conn, $placa, 'siniestro');
             }
 
@@ -214,12 +213,12 @@ if ($accion == "consultarInventarioGeneral") {
 }
 
 // Consulta para obtener los vehiculos en general
-if ($accion == "consultarInventarioAutoriza") {    
+if ($accion == "consultarInventarioAutoriza") {
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
-                            FROM inventario inv                            
+                            FROM inventario inv
                             WHERE inv.id_usuario = $id_usuario";
-    
-    
+
+
 
     $result = $conn->query($sqlConsultaVehiculosG);
 
@@ -230,6 +229,82 @@ if ($accion == "consultarInventarioAutoriza") {
         }
     }
     echo json_encode($vehiculos);
+}
+
+// Feed cronológico de todos los siniestros
+if ($accion == "obtenerFeedSiniestros") {
+    $rol = $_COOKIE['rol'] ?? null;
+
+    $whereClause = '';
+    if ($rol == '1') {
+        $idU = intval($id_usuario);
+        $whereClause = "WHERE s.id_vehiculo IN (
+            SELECT inv.id_vehiculo FROM inventario inv WHERE inv.id_us_asignado = $idU OR inv.id_usuario = $idU
+            UNION
+            SELECT p.id_vehiculo FROM prestamos p WHERE p.id_usuario = $idU AND p.estatus = 'AUTORIZADO'
+        )";
+    }
+
+    $sql = "SELECT s.id_siniestro, s.fecha, s.hora, s.fecha_registro,
+                   s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, s.coordenadas,
+                   inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.id_vehiculo,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), u.nombre) AS nombre_usuario,
+                   COUNT(f.id_foto) AS num_fotos
+            FROM siniestros s
+            INNER JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios u ON s.id_dueno = u.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+            LEFT JOIN fotos f ON f.formato = 'Siniestro' AND f.id_formato = s.id_siniestro
+            $whereClause
+            GROUP BY s.id_siniestro
+            ORDER BY s.fecha_registro DESC";
+
+    $result = $conn->query($sql);
+    $siniestros = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $siniestros[] = $row;
+        }
+    }
+    echo json_encode($siniestros);
+    exit;
+}
+
+// Detalle completo de un siniestro (con imágenes)
+if ($accion == "obtenerDetallesSiniestro") {
+    $id_sin = intval($_POST['id_siniestro'] ?? 0);
+    if (!$id_sin) { echo json_encode(["error" => "ID inválido"]); exit; }
+
+    $stmt = $conn->prepare(
+        "SELECT s.id_siniestro, s.fecha, s.hora, s.fecha_registro,
+                s.lugar, s.descripcion, s.partes_dañadas, s.ubicacion_vehiculo, s.coordenadas,
+                inv.placa, inv.modelo, inv.marca, inv.color, inv.anio,
+                IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), u.nombre) AS nombre_usuario
+         FROM siniestros s
+         INNER JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
+         LEFT JOIN usuarios u ON s.id_dueno = u.id_usuario
+         LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+         WHERE s.id_siniestro = ?"
+    );
+    if (!$stmt) { echo json_encode(["error" => "Error DB"]); exit; }
+    $stmt->bind_param("i", $id_sin);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row) { echo json_encode(["error" => "No encontrado"]); exit; }
+
+    $stmtF = $conn->prepare("SELECT imagen FROM fotos WHERE formato = 'Siniestro' AND id_formato = ?");
+    $stmtF->bind_param("i", $id_sin);
+    $stmtF->execute();
+    $resF = $stmtF->get_result();
+    $imagenes = [];
+    while ($fRow = $resF->fetch_assoc()) { $imagenes[] = $fRow['imagen']; }
+    $stmtF->close();
+
+    $row['imagenes'] = $imagenes;
+    echo json_encode($row);
+    exit;
 }
 
 ?>

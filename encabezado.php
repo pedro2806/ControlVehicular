@@ -22,7 +22,7 @@
 
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-0">
-        <h6 class="h6 mb-0 text-gray-800">Control Vehicular</h6>
+        <img src="img/QRide_grande.png" height="36" alt="QRide" style="max-width:160px;object-fit:contain;">
     </div>
 
     <!-- Topbar Navbar -->
@@ -32,7 +32,7 @@
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <span class="mr-0 d-lg-inline text-gray-600" style="font-size: 0.85em;">
-                    <?php echo ' '.$_COOKIE['nombredelusuario'].' ';?>
+                    <?php echo ' '.($_COOKIE['nombredelusuarioL'] ?? $_COOKIE['nombredelusuario'] ?? '').' ';?>
                 </span>
                 <img class="img-profile rounded-circle" src="img/undraw_profile.svg" style="width: 100%;">
             </a>

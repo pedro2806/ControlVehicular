@@ -273,7 +273,7 @@ if($accion == 'Actividades'){
                 i.fecha_actividad AS Fecha_Inicio,
                 f.fecha_actividad AS Fecha_Fin,
                 inv.placa, inv.marca, inv.modelo,
-                inv.usuario,
+                IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario,
                 f.notas AS notasF, 
                 i.notas AS notasI,
                 f.ot
@@ -291,6 +291,8 @@ if($accion == 'Actividades'){
                     AND fecha_actividad > i.fecha_actividad
                 )
             INNER JOIN inventario inv ON i.id_vehiculo = inv.id_vehiculo
+            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE i.tipo_actividad = 'INICIO'
                 AND inv.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = '".$_COOKIE['id_usuario']."')";
     $result = $conn->query($sql);

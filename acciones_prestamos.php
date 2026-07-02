@@ -440,7 +440,7 @@ if ($accion == "finalizarPrestamo") {
 
 //Consulta de Usuarios con Rol 3
 if ($accion == "consultarUsuariosRecibe") {
-    $sql = "SELECT id_usuario, nombre FROM usuarios WHERE rol = 3 AND estatus = 1";
+    $sql = "SELECT id_usuario, nombre FROM usuarios WHERE rol = 3 AND estatus = 1 ORDER BY nombre ASC";
     $result = $conn->query($sql);
 
     $usuarios = [];

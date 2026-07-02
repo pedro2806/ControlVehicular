@@ -43,37 +43,22 @@
                     </div>
                     <!-- FORMULARIO DEL PRESTAMO-->
                     <form id="formRegistroPrestamo">
-                        <!-- Content Row -->
-                        <div class = "row">                            
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">                                
-                                <input type = "hidden" class = "form-control" id = "fecha" name = "fecha" readonly>
-                                <label>Seleccionar Vehículo:</label>
+                        <input type="hidden" id="fecha" name="fecha">
+                        <input type="hidden" id="id_checklist" name="id_checklist">
+                        <input type="hidden" id="id_usuario" name="id_usuario" value="<?php echo $_COOKIE['id_usuario']; ?>">
+
+                        <!-- Vehículo + Tipo de uso -->
+                        <div class="row mb-3">
+                            <div class="col-lg-5 col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-semibold">Vehículo</label>
                                 <select id="id_vehiculo" name="id_vehiculo" class="form-select select2" required>
-                                    <option value="">Seleccione...</option>                                
+                                    <option value="">Seleccione...</option>
                                 </select>
                             </div>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto Tel:</label>  
-                                <input class="form-control" id="contacto" name="contacto" type="tel" required>
-                            </div>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Inicio Prestamo:</label>
-                                <input type="datetime-local" class="form-control" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
-                            </div>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Fecha Fin Prestamo:</label>
-                                <input type="datetime-local" class="form-control" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
-                            </div>
-                            <br>
-                        </div>
-                        <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Tipo de uso:</label>
-                                <select class="form-select" id="visita_vinculada" name="visita_vinculada" required>
-                                    <option value="" disabled selected>Seleccione una opción</option>
+                            <div class="col-lg-4 col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-semibold">Tipo de uso</label>
+                                <select class="form-select" id="visita_vinculada" name="visita_vinculada" required onchange="toggleDato()">
+                                    <option value="" disabled selected>Seleccione...</option>
                                     <option value="Entrega">Entrega</option>
                                     <option value="Recoleccion">Recolección</option>
                                     <option value="Prospeccion">Prospección</option>
@@ -83,27 +68,50 @@
                                     <option value="OT">OT</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>OV/Cliente/OT/Proyecto:</label>
-                                <input type="text" id = "dato" name = "dato" class="form-control" required>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Destino:</label>
-                                <input type="text" id = "destino" name = "destino" class="form-control" required>
+                            <div class="col-lg-3 col-md-6" id="colDato" style="display:none;">
+                                <label class="form-label fw-semibold" id="labelDato">OV / Cliente / OT / Proyecto</label>
+                                <input type="text" id="dato" name="dato" class="form-control" placeholder="Número o nombre...">
                             </div>
                         </div>
-                        <br>
-                        <div class = "row">
-                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
-                                <label>Motivo:</label>
-                                <textarea class = "form-control" id = "motivo" name = "motivo" required></textarea>
+
+                        <!-- Bloque de fechas compacto -->
+                        <div class="row mb-3">
+                            <div class="col-lg-7 col-md-12">
+                                <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1 text-primary"></i>Período del préstamo</label>
+                                <div class="card border-primary">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                                            <div>
+                                                <small class="text-muted d-block mb-1">Inicio</small>
+                                                <input type="datetime-local" class="form-control form-control-sm" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
+                                            </div>
+                                            <i class="fas fa-arrow-right text-primary mt-3"></i>
+                                            <div>
+                                                <small class="text-muted d-block mb-1">Fin</small>
+                                                <input type="datetime-local" class="form-control form-control-sm" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 col-md-12">
+                                <label class="form-label fw-semibold">Destino</label>
+                                <input type="text" id="destino" name="destino" class="form-control" placeholder="Ciudad / dirección..." required>
                             </div>
                         </div>
-                        <br>
-                        <input type="hidden" id = "id_checklist" name = "id_checklist">
-                        <input type="hidden" id = "id_usuario" name = "id_usuario" value="<?php echo $_COOKIE['id_usuario']; ?>">
+
+                        <!-- Motivo -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Motivo</label>
+                                <textarea class="form-control" id="motivo" name="motivo" rows="3" placeholder="Describe el motivo del préstamo..." required></textarea>
+                            </div>
+                        </div>
+
                         <div class="text-center">
-                            <button type="button" class="btn btn-outline-success" onclick="RegistrarPrestamo()">Guardar</button>
+                            <button type="button" class="btn btn-primary px-4" onclick="RegistrarPrestamo()">
+                                <i class="fas fa-save me-1"></i> Guardar solicitud
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -139,20 +147,14 @@
 
     <script type="text/javascript">
         $(document).ready(function() {
-            infoVehiculos(); 
-            // Llenar automáticamente los campos de fecha y hora
+            $('#id_vehiculo')
+                .select2({ placeholder: 'Cargando vehículos...', width: '100%', allowClear: true })
+                .prop('disabled', true);
+
+            infoVehiculos();
+
             const now = new Date();
-            const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-            const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
-
-            $("#fecha").val(fecha); // Establecer la fecha actual
-            $("#hora").val(hora); // Establecer la hora actual
-
-            // Inicializa Select2 en el campo de vehículos
-            $('#id_vehiculo').select2({
-                placeholder: "Seleccione...",
-                width: '100%'
-            });
+            $("#fecha").val(now.toISOString().split('T')[0]);
         });
 
         //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS
@@ -164,37 +166,39 @@
                 dataType: "json",
                 success: function (respuesta) {
                     var select = $("#id_vehiculo");
-                    
                     Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
-                        // Define el color según el valor de vehiculo.usuario
-                        let color = "";
-                        if(vehiculo.tipo === 'AREA') {
-                                color = "background-color: #ffeeba;";
-                        } else if(vehiculo.tipo === 'EXTERNO') {
-                                color = "background-color:rgb(186, 201, 255);";
-                        }
-                        var option = `<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`;
-                        select.append(option);
+                        var color = vehiculo.tipo === 'AREA' ? 'background-color:#ffeeba;'
+                                  : vehiculo.tipo === 'EXTERNO' ? 'background-color:rgb(186,201,255);' : '';
+                        select.append(`<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`);
                     });
+                    select.prop('disabled', false)
+                          .select2({ placeholder: 'Buscar vehículo...', width: '100%', allowClear: true });
                 },
-                error: function (xhr, status, error) {
-                    
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "Hubo un problema al cargar los datos.",
-                        confirmButtonText: "Aceptar"
-                    });
+                error: function () {
+                    Swal.fire({ icon: "error", title: "Error", text: "Hubo un problema al cargar los datos.", confirmButtonText: "Aceptar" });
                 }
             });
+        }
+
+        function toggleDato() {
+            var tipo = $("#visita_vinculada").val();
+            var necesitaDato = ['OV', 'OT', 'Proyecto'].includes(tipo);
+            var labels = { OV: 'Número de OV', OT: 'Número de OT', Proyecto: 'Nombre del proyecto' };
+            if (necesitaDato) {
+                $("#labelDato").text(labels[tipo] || 'OV / Cliente / OT / Proyecto');
+                $("#colDato").show();
+                $("#dato").prop('required', true);
+            } else {
+                $("#colDato").hide();
+                $("#dato").prop('required', false).val('');
+            }
         }
 
         //FUNCION REGISTRO DEl PRESTAMO
         function RegistrarPrestamo() {
             var fecha_registro = $("#fecha").val();
-            var contacto = $("#contacto").val();
             var fecha_inc_prestamo = $("#fecha_inc_prestamo").val();
-            var fecha_fin_prestamo = $("#fecha_fin_prestamo").val();            
+            var fecha_fin_prestamo = $("#fecha_fin_prestamo").val();
             var id_usuario = getCookie("id_usuario");
             var id_checklist = $("#id_checklist").val();
             var motivo = $("#motivo").val();
@@ -204,20 +208,24 @@
             var destino = $("#destino").val();
             var id_vehiculo = $("#id_vehiculo").val();
             // Validar campos obligatorios generales
-            if (!contacto || !fecha_inc_prestamo || !fecha_fin_prestamo || !id_vehiculo) {
+            if (!fecha_inc_prestamo || !fecha_fin_prestamo || !id_vehiculo || !tipo_uso || !destino || !motivo) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Algun campo no seleccionado',
-                    text: 'Por favor, completa el formulario antes de continuar.',
+                    title: 'Campos incompletos',
+                    text: 'Por favor, completa todos los campos antes de continuar.',
                     confirmButtonText: 'Aceptar'
                 });
+                return;
+            }
+            if (fecha_fin_prestamo <= fecha_inc_prestamo) {
+                Swal.fire({ icon: 'warning', title: 'Fechas inválidas', text: 'La fecha de fin debe ser posterior a la de inicio.', confirmButtonText: 'Aceptar' });
                 return;
             }
 
             $.ajax({
                 type: "POST",
                 url: "acciones_prestamos",
-                data: { fecha_registro, contacto, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino, id_vehiculo },
+                data: { fecha_registro, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino, id_vehiculo },
                 dataType: "json",
                 success: function (respuesta) {
                     Swal.fire({

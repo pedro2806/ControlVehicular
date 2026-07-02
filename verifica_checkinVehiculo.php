@@ -83,22 +83,18 @@ if ($stmtAcc) {
                         </div>
                     </div>                    
                     
-                    <div class="row alert alert-primary" id="DivInfoVehiculo" style="display: none;">                                                
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                            <label for="marca"><b>Marca:</b></label>
-                            <label id="marca" name="marca"></label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                            <label for="modelo"><b>Modelo:</b></label>
-                            <label type="text" id="modelo" name="modelo"></label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                            <label for="color"><b>Color:</b></label>
-                            <label id="color" name="color"></label>
-                        </div>
-                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                            <label for="placa"><b>Placa:</b></label>
-                            <label id="placa" name="placa"></label>
+                    <div class="card shadow-sm mb-3" id="DivInfoVehiculo" style="display:none;">
+                        <div class="card-body py-3 px-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width:60px;height:60px;border-radius:8px;background:#e9ecef;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fas fa-car fa-2x text-muted"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h5 class="mb-0 font-weight-bold text-primary" id="placa"></h5>
+                                    <span class="text-dark" id="modeloMarca"></span><br>
+                                    <small class="text-muted" id="color"></small>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -299,12 +295,11 @@ if ($stmtAcc) {
             });
     }
 
-    function SeleccionaVehiculo(Registro) {                
-        $('#marca').text(Registro.marca); // Asignar valor a la etiqueta de marca
-        $('#modelo').text(Registro.modelo); // Asignar valor a la etiqueta de modelo
-        $('#color').text(Registro.color); // Asignar valor a la etiqueta de color
-        $('#placa').text(Registro.placa); // Asignar valor a la etiqueta de placa
-        verChecks(Registro.idCoche); // Llamar a la función verChecks con el idCoche del registro seleccionado
+    function SeleccionaVehiculo(Registro) {
+        $('#placa').text(Registro.placa);
+        $('#modeloMarca').text(Registro.modelo + ' ' + Registro.marca);
+        $('#color').text(Registro.color);
+        verChecks(Registro.idCoche);
         $('#DivVehiculosAsignados').hide();
         $('#DivInfoVehiculo').show();
         $('#btnSeleccionarOtro').show();
@@ -316,10 +311,9 @@ if ($stmtAcc) {
         $('#DivInfoVehiculo').hide();
         $('#btnSeleccionarOtro').hide();
         $('#DivChecksVehiculo').hide();
-        $('#marca').text('');
-        $('#modelo').text('');
-        $('#color').text('');
         $('#placa').text('');
+        $('#modeloMarca').text('');
+        $('#color').text('');
 
         var checksTable = $('#TChecksVehiculo').DataTable();
         checksTable.clear().draw();

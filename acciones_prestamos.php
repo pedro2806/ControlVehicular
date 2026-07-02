@@ -40,8 +40,8 @@ $destino = $_POST["destino"] ?? null;
 //Registro de Prestamo
 if ($accion == "RegistrarPrestamo") {
     $sqlregistro = "INSERT INTO prestamos
-                    (fecha_registro, id_usuario, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, detalle_tipo_uso, destino, id_vehiculo)
-                    VALUES (NOW(), '$id_usuario', '$fecha_inc_prestamo', '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso', '$detalle_tipo_uso', '$destino', '$id_vehiculo')";
+                    (fecha_registro, id_usuario, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, destino, id_vehiculo)
+                    VALUES (NOW(), '$id_usuario', '$fecha_inc_prestamo', '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso',  '$destino', '$id_vehiculo')";
     $resultregistro = $conn->query($sqlregistro); 
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Préstamo registrado exitosamente."]);
@@ -53,55 +53,58 @@ if ($accion == "RegistrarPrestamo") {
 
 // Función genérica para consultar préstamos por estatus
 function consultarPrestamosPorEstatus($conn, $estatus, $id_usuario, $noEmpleado, $usarFechasActividad = false) {
-    $estatusArray = is_array($estatus) ? $estatus : [$estatus];
-    $estatusStr = "'" . implode("','", $estatusArray) . "'";
-    $esPendiente = (count($estatusArray) === 1 && $estatusArray[0] === 'PENDIENTE');
 
-    // Detectar si es jefe por jerarquía (sin depender de cookie rol)
-    $stmtJefe = $conn->prepare("SELECT 1 FROM usuarios WHERE jefe = ? LIMIT 1");
-    $stmtJefe->bind_param("s", $noEmpleado);
-    $stmtJefe->execute();
-    $esJefe = $stmtJefe->get_result()->num_rows > 0;
-    $stmtJefe->close();
-
-    $selectFechas = $usarFechasActividad
-        ? "(SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS fecha_inc_prestamo,
-           (SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'FINALIZACION') AS fecha_fin_prestamo,"
-        : "prest.fecha_inc_prestamo, prest.fecha_fin_prestamo,";
-
-    $camposExtra = $esPendiente ? "" : ", prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                    (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km";
-
-    $propiedadCol = $esJefe
-        ? ", CASE WHEN inv.id_usuario = $id_usuario THEN 'mio' ELSE 'otro' END AS propiedad_vehiculo"
-        : "";
-
-    if ($esJefe) {
-        $whereRol = "(prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
-                     OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario))";
-    } else {
-        $whereRol = "prest.id_usuario = $id_usuario";
-    }
-
-    $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
-                    $selectFechas
-                    prest.estatus, prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                    IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
-                    inv.usuario AS valida, prest.fecha_registro
-                    $propiedadCol $camposExtra
-            FROM prestamos prest
-            LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
-            WHERE $whereRol AND prest.estatus IN ($estatusStr)
-            ORDER BY prest.id_prestamo DESC";
-
-    $result = $conn->query($sqlConsulta);
-    $prestamos = [];
-    if ($result) { while ($row = $result->fetch_assoc()) { $prestamos[] = $row; } }
-    echo json_encode($prestamos);
 }
 
 if ($accion == "consultarPrestamos") {
-    consultarPrestamosPorEstatus($conn, 'PENDIENTE', $id_usuario, $noEmpleado);
+    ///$estatus, $id_usuario, $noEmpleado, 
+        $usarFechasActividad = false;
+        $estatusArray = is_array($estatus) ? $estatus : [$estatus];
+        $estatusStr = "'" . implode("','", $estatusArray) . "'";
+        $esPendiente = (count($estatusArray) === 1 && $estatusArray[0] === 'PENDIENTE');
+
+        // Detectar si es jefe por jerarquía (sin depender de cookie rol)
+        $stmtJefe = $conn->prepare("SELECT 1 FROM usuarios WHERE jefe = ? LIMIT 1");
+        $stmtJefe->bind_param("s", $noEmpleado);
+        $stmtJefe->execute();
+        $esJefe = $stmtJefe->get_result()->num_rows > 0;
+        $stmtJefe->close();
+
+        $selectFechas = $usarFechasActividad
+            ? "(SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS fecha_inc_prestamo,
+            (SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'FINALIZACION') AS fecha_fin_prestamo,"
+            : "prest.fecha_inc_prestamo, prest.fecha_fin_prestamo,";
+
+        $camposExtra = $esPendiente ? "" : ", prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
+                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km";
+
+        $propiedadCol = $esJefe
+            ? ", CASE WHEN inv.id_usuario = $id_usuario THEN 'mio' ELSE 'otro' END AS propiedad_vehiculo"
+            : "";
+
+        if ($esJefe) {
+            $whereRol = "(prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+                        OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario))";
+        } else {
+            $whereRol = "prest.id_usuario = $id_usuario";
+        }
+
+        $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
+                        $selectFechas
+                        prest.estatus, prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
+                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
+                        inv.usuario AS valida, prest.fecha_registro
+                        $propiedadCol $camposExtra
+                FROM prestamos prest
+                LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
+                WHERE $whereRol
+                ORDER BY prest.id_prestamo DESC";
+                //WHERE $whereRol AND prest.estatus IN ($estatusStr)
+        //echo $sqlConsulta; // Para depuración, puedes eliminarlo después
+        $result = $conn->query($sqlConsulta);
+        $prestamos = [];
+        if ($result) { while ($row = $result->fetch_assoc()) { $prestamos[] = $row; } }
+        echo json_encode($prestamos);
 }
 
 //Consulta de Prestamos
@@ -114,9 +117,6 @@ if ($accion == "consultarPrestamosDetalle") {
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_prestamo = $id_prestamo
                 ORDER BY prest.id_prestamo DESC";
-    
-//echo $sqlConsulta;
-    // Ejecutar la consulta
     $result = $conn->query($sqlConsulta);
     $prestamos = [];
     while ($row = $result->fetch_assoc()) {
@@ -231,21 +231,13 @@ LEFT JOIN Duplicated d ON cp.id_prestamo = d.id_prestamo";
     echo json_encode($prestamos);
 }
 
-if ($accion == "prestamosAutorizados") {
-    consultarPrestamosPorEstatus($conn, 'AUTORIZADO', $id_usuario, $noEmpleado);
-}
-
-if ($accion == "consultarPrestamosEnCurso") {
-    consultarPrestamosPorEstatus($conn, 'EN CURSO', $id_usuario, $noEmpleado);
-}
-
 //Aprobar Prestamo
 if ($accion == "autorizarPrestamo") {    
 
     $parts = explode(',', $id_vehiculo);
 
-    $idV = $parts[0];
-    $tipo = $parts[1];
+    $idV =  $_POST["id_vehiculo"];// $parts[0];
+    $tipo =  $_POST["tipo_uso"];// $parts[1];
 
     if($tipo_uso == '1'){
         $sqlAutoriza = "UPDATE prestamos 
@@ -293,10 +285,6 @@ if ($accion == "denegarPrestamo") {
         echo json_encode(["success" => false, "message" => "Error al denegar el préstamo: " . $conn->error]);
     }
     exit;
-}
-
-if ($accion == "consultarPrestamosTerminados") {
-    consultarPrestamosPorEstatus($conn, ['FINALIZADO', 'CANCELADO'], $id_usuario, $noEmpleado, true);
 }
 
 //Cambia información de un vehículo en el modal de préstamo

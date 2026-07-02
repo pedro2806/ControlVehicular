@@ -41,121 +41,28 @@
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class = "h3 mb-0 text-black-800">Lista de Solicitudes</h1>                        
                     </div>
-                    <!-- FORMULARIO DE REGISTROS DE PRESTAMOS -->
-                    <!-- Pestañas de navegación -->
-                    <ul class="nav nav-tabs">
-                        <li class="nav-item active">
-                            <a class="btn btn-outline-warning" id="tabPendientes" data-bs-toggle="tab" href="#pendientes">Pendientes</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-outline-success" id="tabAutorizados" data-bs-toggle="tab" href="#autorizados">Autorizados</a>
-                        </li>
-                        <!-- Nueva pestaña para Devolución -->
-                        <li class="nav-item">
-                            <a class="btn btn-outline-primary" id="tabDevolucion" data-bs-toggle="tab" href="#devolucion">Devolución</a>
-                        </li>
-                        <!-- Nueva pestaña para Terminados -->
-                        <li class="nav-item">
-                            <a class="btn btn-outline-danger" id="tabTerminados" data-bs-toggle="tab" href="#terminados">Terminados</a>
-                        </li>                        
-                    </ul>
                     <!-- Contenedor de las tablas -->
-                    <div class="tab-content mt-3">
+                    <div class="tab-content mt-4">
                         <!-- Tabla de préstamos pendientes -->
                         <div class="tab-pane fade show active" id="pendientes">
                             <div class="table-responsive">
-                                <table id="tablaPrestamos" class="table table-striped table-bordered">
-                                    <thead class="table-warning">
+                                <table id="tablaPrestamos" class="table table-hover align-middle">
+                                    <thead class=" table-primary text-secondary border-bottom">
                                         <tr>
-                                            <th>Fecha Solicitud</th>
-                                            <th>Solicita</th>
-                                            <th>Valida Vehiculo</th>
-                                            <th>Inicio Préstamo</th>    
-                                            <th>Fin Préstamo</th>
-                                            <th>Tipo de Uso</th>
-                                            <th>Notas</th>
-                                            <th>Motivo</th>
-                                            <th>Acción</th>
+                                            <th class="fw-normal pb-3" style="width: 15%;">Solicita/Fecha Solicitud</th>                                            
+                                            <th class="fw-normal pb-3" style="width: 15%;">Vehículo</th>                                            
+                                            <th class="fw-normal pb-3" style="width: 15%;">Inicio/Fin Préstamo</th>
+                                            <th class="fw-normal pb-3" style="width: 15%;">Tipo de Uso</th>                                            
+                                            <th class="fw-normal pb-3" style="width: 25%;">Motivo</th>
+                                            <th class="fw-normal pb-3" style="width: 15%;">Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody class="border-light">
                                         <!-- Las filas se cargarán dinámicamente -->
                                     </tbody>
                                 </table>
                             </div>
-                        </div>                        
-                        <!-- Tabla de préstamos autorizados -->
-                        <div class="tab-pane fade" id="autorizados">
-                            <div class="table-responsive">
-                                <table id="tablaAutorizados" class="table table-striped table-bordered">
-                                    <thead class="table-success">
-                                        <tr>
-                                            <th>Fecha Solicitud</th>
-                                            <th>Solicita</th>                                            
-                                            <th>Valida Vehiculo</th>
-                                            <th>Inicio Préstamo</th>    
-                                            <th>Fin Préstamo</th>
-                                            <th>Notas del Jefe</th>
-                                            <th>Tipo de Uso</th>
-                                            <th>Notas</th>
-                                            <th>Motivo</th>
-                                            <th>Iniciar Prestamo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Las filas se cargarán dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <!-- Nueva tabla para Devolución -->
-                        <div class="tab-pane fade" id="devolucion">
-                            <div class="table-responsive">
-                                <table id="tablaDevolucion" class="table table-striped table-bordered">
-                                    <thead class="table-primary">
-                                        <tr>
-                                            <th>Fecha Solicitud</th>
-                                            <th>Solicita</th>                                            
-                                            <th>Valida Vehiculo</th>
-                                            <th>Inicio Préstamo</th>    
-                                            <th>Fin Préstamo</th>
-                                            <th>Notas del Jefe</th>
-                                            <th>Tipo de Uso</th>
-                                            <th>Notas</th>
-                                            <th>Motivo</th>
-                                            <th>Finalizar Prestamo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Las filas se cargarán dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <!-- Nueva tabla para terminados -->
-                        <div class="tab-pane fade" id="terminados">
-                            <div class="table-responsive">
-                                <table id="tablaTerminados" class="table table-striped table-bordered">
-                                    <thead class="table-danger">
-                                        <tr>
-                                            <th>Fecha Solicitud</th>
-                                            <th>Solicita</th>                                            
-                                            <th>Valida Vehiculo</th>
-                                            <th>Inicio Préstamo</th>    
-                                            <th>Fin Préstamo</th>
-                                            <th>Notas del Jefe</th>
-                                            <th>Tipo de Uso</th>
-                                            <th>Notas</th>
-                                            <th>Motivo</th>
-                                            <th>Estatus</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Las filas se cargarán dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        </div> 
                     </div>
                 <br>
             </div>
@@ -390,113 +297,31 @@
         const hora = now.toTimeString().split(' ')[0].slice(0, 5);
     $(document).ready(function() {
         infoVehiculos()
-        cargarPrestamos();
-        cargarPrestamosAutorizados();
-        cargarPrestamosDevolucion();
-        cargarPrestamosTerminados();        
+        cargarPrestamos();    
 
         $("#tablaPrestamos").DataTable({
             destroy: true,
             paging: true,
             ordering: false,
             searching: true,
-            info: true,
+            info: false,         // Oculta el texto de "Mostrando 1 a 10..."
+            lengthChange: false, // Oculta el selector de cantidad de registros           
+            dom: '<"row mb-3"<"col-sm-12 col-md-6 d-flex align-items-right justify-content-start"f>>rt<"row mt-3"<"col-sm-12 d-flex justify-content-right"p>>',
             language: {
                 decimal: ",",
                 thousands: ".",
                 processing: "Procesando...",
                 loadingRecords: "Cargando...",
                 zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
+                emptyTable: "No hay datos disponibles",
+                search: "", // Quitamos la palabra "Buscar:"
+                searchPlaceholder: "Buscar...", // Solo dejamos el placeholder
                 paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                lengthMenu: "Mostrar _MENU_ registros",
-            }
-        });
-        $("#tablaAutorizados").DataTable({
-            destroy: true,
-            paging: true,
-            ordering: false,
-            searching: true,
-            info: true,
-            language: {
-                decimal: ",",
-                thousands: ".",
-                processing: "Procesando...",
-                loadingRecords: "Cargando...",
-                zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                lengthMenu: "Mostrar _MENU_ registros",
-            }
-        });
-        $("#tablaDevolucion").DataTable({
-            destroy: true,
-            paging: true,
-            ordering: false,
-            searching: true,
-            info: true,
-            language: {
-                decimal: ",",
-                thousands: ".",
-                processing: "Procesando...",
-                loadingRecords: "Cargando...",
-                zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                lengthMenu: "Mostrar _MENU_ registros",
-            }
-        });
-        $("#tablaTerminados").DataTable({
-            destroy: true,
-            paging: true,
-            ordering: false,
-            searching: true,
-            info: true,
-            language: {
-                decimal: ",",
-                thousands: ".",
-                processing: "Procesando...",
-                loadingRecords: "Cargando...",
-                zeroRecords: "No se encontraron resultados",
-                emptyTable: "No hay datos disponibles en la tabla",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
-                search: "Buscar:",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                lengthMenu: "Mostrar _MENU_ registros",
+                    first: "«",
+                    last: "»",
+                    next: "›",
+                    previous: "‹"
+                }
             }
         });
         // Establecer la fecha y hora actuales en los campos correspondientes
@@ -517,39 +342,51 @@
             success: function (respuesta) {
                 var table = $("#tablaPrestamos").DataTable();
                 table.clear().draw();
-                Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
-                    if (prestamo.estatus === "PENDIENTE") {
+                Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {                    
                         var botones;
-                        if (prestamo.propiedad_vehiculo == 'mio') {
-                            botones = `
-                                <button class="btn btn-outline-success" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)">
-                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="abrirModalDenegar(${prestamo.id_prestamo})">
-                                    <ion-icon name="close-outline" class="fs-6"></ion-icon>
-                                </button>`;
-                        } else {
-                            botones = `<span class="text-muted">Valida ${prestamo.valida}</span>`;
+                if (prestamo.propiedad_vehiculo == 'mio' && prestamo.estatus == 'PENDIENTE') {
+                    botones = `
+                        <div class="btn-group btn-group-sm shadow-sm" role="group" aria-label="Acciones">
+                            <button type="button" class="btn btn-outline-success d-flex align-items-center justify-content-center" onclick="abrirModalAutoriza(${prestamo.id_prestamo}, 2)" title="Autorizar">
+                                <ion-icon name="checkmark-outline" style="font-size: 18px;"></ion-icon>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger d-flex align-items-center justify-content-center" onclick="abrirModalDenegar(${prestamo.id_prestamo})" title="Denegar">
+                                <ion-icon name="close-outline" style="font-size: 18px;"></ion-icon>
+                            </button>
+                        </div>`;
+                } else {
+                    botones = `<span class="badge bg-secondary text-ligth border fw-normal px-2 py-1">Valida ${prestamo.valida}</span>`;
+                }
+
+                        ctrlEstatus = '';
+                        switch(prestamo.estatus){
+                            case "PENDIENTE":
+                                ctrlEstatus = '<span class="badge bg-warning- text-dark">Pendiente</span>';
+                                break;
+                            case "AUTORIZADO":
+                                ctrlEstatus = '<span class="badge bg-success">Autorizado</span>';
+                                break;  
+                            case "DENEGADO":
+                                ctrlEstatus = '<span class="badge bg-danger">Denegado</span>';
+                                break;
                         }
+
                         table.row.add([
-                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
-                            prestamo.nombre_usuario,
-                            prestamo.valida + "<br>" + prestamo.modelo + "-" + prestamo.placa,
-                            prestamo.fecha_inc_prestamo,
-                            prestamo.fecha_fin_prestamo,
+                            prestamo.nombre_usuario + "<br><small class='text-muted'>" + prestamo.fecha_registro + "</small>",                            
+                            prestamo.modelo + "-" + prestamo.placa,
+                            "<small class='text-muted'>" + prestamo.fecha_inc_prestamo + " - <br>" + prestamo.fecha_fin_prestamo + "</small>",
                             prestamo.tipo_uso,
-                            prestamo.detalle_tipo_uso,
                             prestamo.motivo_us,
-                            botones
+                            botones + '<br>' + ctrlEstatus
                         ]);
-                    }
+                    
                 });
                 table.draw();
-                if (rol != 3) {
+                /*if (rol != 3) {
                     $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").hide();
                 } else {
                     $("#tablaPrestamos th:last-child, #tablaPrestamos td:last-child").show();
-                }
+                }*/
             },
             error: function () {
                 Swal.fire({
@@ -562,153 +399,6 @@
         });
     }
 
-    // Nueva función para cargar préstamos autorizados
-    function cargarPrestamosAutorizados() {
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: { accion: "prestamosAutorizados" },
-            dataType: "json",
-            success: function (data) {
-                var table = $("#tablaAutorizados").closest('table').DataTable();
-                table.clear().draw();
-                Array.isArray(data) && data.forEach(function(prestamo) {
-                    //Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
-                    if (prestamo.estatus === "AUTORIZADO") {
-                        if (prestamo.id_usuario == getCookie('id_usuario')) {
-                            var botones = `
-                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
-                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                </button>`;
-                                
-                        }
-                        else{
-                            var botones = '-';
-                        }
-                        /*if(prestamo.propiedad_vehiculo == 'mio'){
-                            botones += `
-                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
-                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                </button>`;
-                        }*/
-                        table.row.add([
-                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
-                            prestamo.nombre_usuario,
-                            prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
-                            prestamo.fecha_inc_prestamo,
-                            prestamo.fecha_fin_prestamo,
-                            prestamo.notas_jefe,
-                            prestamo.tipo_uso,
-                            prestamo.detalle_tipo_uso,
-                            prestamo.motivo_us,
-                            botones
-                        ]);
-                    }
-                    table.draw();
-                });
-            },
-            error: function () {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al cargar los préstamos autorizados.",
-                    confirmButtonText: "Aceptar"
-                });
-            }
-        });
-    }
-
-    // Nueva función para cargar préstamos en devolución
-    function cargarPrestamosDevolucion() {
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: { accion: "consultarPrestamosEnCurso" }, // Cambia la acción según sea necesario
-            dataType: "json",
-            success: function (data) {
-                var table = $("#tablaDevolucion").DataTable();
-                table.clear().draw();
-                Array.isArray(data) && data.forEach(function(prestamo) {
-                    if (prestamo.estatus === "EN CURSO") {
-                        if (prestamo.id_usuario == getCookie('id_usuario')) {
-                            var botones = `
-                                <button class="btn btn-outline-success" onclick="validarActividadesPendientes()">
-                                    <ion-icon name="checkmark-outline" style="font-size: 16px;"></ion-icon>
-                                </button>`;
-                        } else {
-                            var botones = '-';
-                        }
-                        table.row.add([
-                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
-                            prestamo.nombre_usuario,
-                            prestamo.valida + "<br>" + prestamo.placa + " - " + prestamo.modelo + "<br>Km: " + prestamo.km,
-                            prestamo.fecha_inc_prestamo,
-                            prestamo.fecha_fin_prestamo,
-                            prestamo.notas_jefe,
-                            prestamo.tipo_uso,
-                            prestamo.detalle_tipo_uso,
-                            prestamo.motivo_us,
-                            botones
-                        ]);
-                    }
-                });
-                table.draw();
-            },
-            error: function () {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al cargar los préstamos en devolución.",
-                    confirmButtonText: "Aceptar"
-                });
-            }
-        });
-    }
-
-    // Nueva función para cargar préstamos terminados
-    function cargarPrestamosTerminados() {
-        $.ajax({
-            type: "POST",
-            url: "acciones_prestamos",
-            data: { accion: "consultarPrestamosTerminados" }, // Cambia la acción según sea necesario
-            dataType: "json",
-            success: function (respuesta) {
-                var table = $("#tablaTerminados").DataTable();
-                table.clear().draw();
-                Array.isArray(respuesta) && respuesta.forEach(function (prestamo) {
-                    if (prestamo.estatus === "FINALIZADO" || prestamo.estatus === "CANCELADO") {
-                        var estatus;
-                        if (prestamo.estatus === "FINALIZADO") {
-                            estatus = `<span class="badge bg-success">Terminado</span>`;
-                        } else {
-                            estatus = `<span class="badge bg-danger">Cancelado</span>`;
-                        }
-                        table.row.add([
-                            "<small class='text-muted'>" + prestamo.fecha_registro + "</small>",
-                            prestamo.nombre_usuario,
-                            prestamo.valida + " <br> " + prestamo.placa + " - " + prestamo.modelo,
-                            prestamo.fecha_inc_prestamo + " <br>Km: " + prestamo.kmInicio,
-                            prestamo.fecha_fin_prestamo + " <br>Km: " + prestamo.km,
-                            prestamo.notas_jefe,
-                            prestamo.tipo_uso,
-                            prestamo.detalle_tipo_uso,
-                            prestamo.motivo_us,
-                            estatus
-                        ]);
-                    }
-                });
-                table.draw();
-            },
-            error: function () {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error",
-                    text: "Hubo un problema al cargar los préstamos terminados.",
-                    confirmButtonText: "Aceptar"
-                });
-            }
-        });
-    }
     //FUNCION PARA CARGAR INFORMACIÓN DE LOS VEHÍCULOS DE QUIEN DEBE AUTORIZAR  
     function infoVehiculos() {
         $.ajax({
@@ -1169,11 +859,7 @@
             document.getElementById("formFinalizarPrestamo").reset(); // Limpia el formulario
         }
     }
-    /**
-     * Lee el valor de una cookie por nombre.
-     * @param {string} nombre - El nombre de la cookie.
-     * @returns {string|null} El valor de la cookie o null si no existe.
-     */
+    
     </script>
 </body>
 </html>

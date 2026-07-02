@@ -1,173 +1,337 @@
 <?php
 session_start();
 include 'conn.php';
-if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
+if (empty($_COOKIE['noEmpleado'])) {
     echo '<script>window.location.assign("index")</script>';
+    exit;
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
-    <title>Control Vehicular</title>
-
-    <!-- Bootstrap CSS -->
+    <title>Control Vehicular - Historial de Gasolina</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom fonts for this template-->
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <!-- Custom styles for this template-->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.css">
-    
 </head>
 <body id="page-top">
-    <!-- Page Wrapper -->
-    <div id="wrapper">
-        <?php
-        include 'menu.php';
-        ?>
-        <!-- Content Wrapper -->
-        <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
-            <div id="content">
-                <?php
-                include 'encabezado.php';
-                ?>
-                <!-- Begin Page Content -->
-                <div class="container-fluid">
-                    <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Actividades de vehiculos</h1>
-                    </div>
-                    <!-- Content Row -->
-                    <div class="row">
-                        <ul class="nav nav-tabs" id="myTab" role="tablist">                                                        
-                            <li class="nav-item">
-                                <button class="btn btn-outline-warning btn-sm" onclick="descargarTabla()">Descargar XLSX</button>
-                            </li>
-                        </ul><br>
-                        <!-- Tabla Carga de Gas -->
-                        <div class="tab-pane fade show active" id="gas">
-                            <div class="table-responsive">
-                                <table id="tablaGas" class="table table-striped table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Vehiculo</th>
-                                            <th>Usuario</th>
-                                            <th>Monto</th>
-                                            <th>Pagos</th>
-                                            <th>Saldo</th>
-                                            <th>Km Actual</th>
-                                            <th>Fecha Carga</th>
-                                            <th>Fecha Registro</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>                    
-                <!-- /.container-fluid -->
-            </div>
-            <footer class="sticky-footer bg-white">
-                <div class="container my-auto">
-                    <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; MESS <?php echo date("Y"); ?></span>
+<div id="wrapper">
+    <?php include 'menu.php'; ?>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <?php include 'encabezado.php'; ?>
+            <div class="container-fluid">
+
+                <div class="d-sm-flex align-items-center justify-content-between mb-3">
+                    <h1 class="h3 mb-0 text-gray-800">Historial de Cargas de Gasolina</h1>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-warning btn-sm" onclick="descargarTabla()">
+                            <i class="fas fa-file-excel me-1"></i> Descargar XLSX
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="solicitarReposicionGeneral()">
+                            <i class="fas fa-gas-pump me-1"></i> Solicitar reposición de crédito
+                        </button>
                     </div>
                 </div>
-            </footer>
-        </div>
-    </div>
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
-    <!-- Bootstrap core JavaScript-->
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
-    <!-- DataTables JavaScript -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <!-- Popper.js -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-    <!-- Librería XLSX -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('#tablaGas').DataTable({
-                destroy: true,
-                paging: true,
-                pageLength: 5, 
-                lengthMenu: [5, 10, 20, 50],
-                ordering: true,
-                searching: true,
-                info: true,
-                language: {
-                    lengthMenu: "Mostrar _MENU_ registros por página",
-                    zeroRecords: "No se encontraron resultados",
-                    info: "Mostrando página _PAGE_ de _PAGES_",
-                    infoEmpty: "No hay registros disponibles",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "Siguiente",
-                        previous: "Anterior"
-                    }
+
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-white py-2">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small mb-1">Filtrar por vehículo</label>
+                                <select id="filtroVehiculo" class="form-select form-select-sm">
+                                    <option value="">Todos los vehículos</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label small mb-1">Filtrar por usuario</label>
+                                <select id="filtroUsuario" class="form-select form-select-sm">
+                                    <option value="">Todos los usuarios</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
+                                    <i class="fas fa-times me-1"></i> Limpiar filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tablaGas" class="table table-striped table-bordered w-100">
+                                <thead>
+                                    <tr>
+                                        <th>Vehículo</th>
+                                        <th>Usuario</th>
+                                        <th>Monto</th>
+                                        <th>Pagos</th>
+                                        <th>Saldo</th>
+                                        <th>Km Actual</th>
+                                        <th>Km Consumidos</th>
+                                        <th>Fecha Carga</th>
+                                        <th>Fecha Registro</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /.container-fluid -->
+        </div><!-- /#content -->
+
+        <footer class="sticky-footer bg-white">
+            <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                    <span>Copyright &copy; MESS <?php echo date("Y"); ?></span>
+                </div>
+            </div>
+        </footer>
+    </div><!-- /#content-wrapper -->
+</div><!-- /#wrapper -->
+
+<a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
+
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/sb-admin-2.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+var tabla;
+var datosGas = [];
+
+// Filtros personalizados por columna (índice 0=vehículo, 1=usuario)
+$.fn.dataTable.ext.search.push(function(settings, data) {
+    if (settings.nTable.id !== 'tablaGas') return true;
+    var filtroV = $('#filtroVehiculo').val();
+    var filtroU = $('#filtroUsuario').val();
+    if (filtroV && data[0].indexOf(filtroV) === -1) return false;
+    if (filtroU && data[1].indexOf(filtroU) === -1) return false;
+    return true;
+});
+
+$(document).ready(function () {
+    tabla = $('#tablaGas').DataTable({
+        destroy: true,
+        paging: true,
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50],
+        ordering: true,
+        searching: true,
+        info: true,
+        autoWidth: false,
+        order: [[7, 'desc']],
+        columnDefs: [{ orderable: false, targets: [9] }],
+        language: {
+            lengthMenu: "Mostrar _MENU_ registros",
+            zeroRecords: "No se encontraron resultados",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            infoEmpty: "Sin registros disponibles",
+            infoFiltered: "(filtrado de _MAX_ totales)",
+            search: "Buscar:",
+            paginate: { first: "Primero", last: "Último", next: "Siguiente", previous: "Anterior" }
+        }
+    });
+
+    cargarHistorial();
+
+    $('#filtroVehiculo, #filtroUsuario').on('change', function () {
+        tabla.draw();
+    });
+});
+
+function cargarHistorial() {
+    $.ajax({
+        url: 'acciones_gas.php',
+        type: 'POST',
+        data: { accion: 'obtenerHistorialGas' },
+        dataType: 'json',
+        success: function (data) {
+            if (!Array.isArray(data)) return;
+            datosGas = data;
+            tabla.clear();
+
+            // Registro más reciente (mayor id) por vehículo
+            var latestIdPorVehiculo = {};
+            data.forEach(function (r) {
+                var vid = String(r.id_vehiculo);
+                if (!latestIdPorVehiculo[vid] || parseInt(r.id) > parseInt(latestIdPorVehiculo[vid].id)) {
+                    latestIdPorVehiculo[vid] = r;
                 }
             });
-            //verTabla('tablaGas')            
-            cargarGas();                        
 
+            // IDs que muestran botón: son el más reciente de su vehículo Y el dueño es el usuario actual
+            var currentUserId = getCookie('id_usuario') || getCookie('id_usuarioL') || '';
+            var mostrarBoton = new Set();
+            Object.values(latestIdPorVehiculo).forEach(function (r) {
+                if (String(r.id_usuario) === String(currentUserId)) {
+                    mostrarBoton.add(String(r.id));
+                }
+            });
+
+            var vehiculos = {}, usuarios = {};
+
+            data.forEach(function (r) {
+                var saldo    = parseFloat(r.saldo) || 0;
+                var kmCons   = parseInt(r.km_consumidos) || 0;
+                var usuario  = r.nombre_usuario || r.usuario || '—';
+                var placa    = r.placa || r.Vehiculo;
+
+                vehiculos[placa]  = r.Vehiculo;
+                usuarios[usuario] = usuario;
+
+                var badgeSaldo = saldo <= 0
+                    ? '<span class="badge bg-danger">$' + saldo.toFixed(2) + '</span>'
+                    : saldo < 500
+                        ? '<span class="badge bg-warning text-dark">$' + saldo.toFixed(2) + '</span>'
+                        : '<span class="badge bg-success">$' + saldo.toFixed(2) + '</span>';
+
+                var kmBadge = kmCons > 0
+                    ? '<span class="text-primary fw-bold">' + kmCons.toLocaleString() + ' km</span>'
+                    : '<span class="text-muted">—</span>';
+
+                var btnRepos = mostrarBoton.has(String(r.id))
+                    ? '<button class="btn btn-outline-primary btn-sm" '
+                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldo.toFixed(2) + ',\'' + escHtml(placa) + '\')" '
+                        + 'title="Solicitar reposición de crédito">'
+                        + '<i class="fas fa-redo me-1"></i>Renovar</button>'
+                    : '';
+
+                tabla.row.add([
+                    escHtml(r.Vehiculo),
+                    escHtml(usuario),
+                    '$' + parseFloat(r.monto).toFixed(2),
+                    '$' + parseFloat(r.pagos || 0).toFixed(2),
+                    badgeSaldo,
+                    (parseInt(r.km_actual) || 0).toLocaleString() + ' km',
+                    kmBadge,
+                    r.fecha_carga || '—',
+                    r.fecha_registro || '—',
+                    btnRepos
+                ]);
+            });
+
+            tabla.draw(false);
+
+            // Poblar filtros
+            var selV = $('#filtroVehiculo'), selU = $('#filtroUsuario');
+            var currentV = selV.val(), currentU = selU.val();
+            selV.empty().append('<option value="">Todos los vehículos</option>');
+            selU.empty().append('<option value="">Todos los usuarios</option>');
+            Object.entries(vehiculos).forEach(function([placa, label]) {
+                selV.append('<option value="' + escHtml(placa) + '">' + escHtml(label) + '</option>');
+            });
+            Object.keys(usuarios).sort().forEach(function(u) {
+                selU.append('<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>');
+            });
+            if (currentV) selV.val(currentV);
+            if (currentU) selU.val(currentU);
+        },
+        error: function () {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el historial.' });
+        }
+    });
+}
+
+function limpiarFiltros() {
+    $('#filtroVehiculo, #filtroUsuario').val('');
+    tabla.draw();
+}
+
+function solicitarReposicion(id_vehiculo, saldo, placa) {
+    Swal.fire({
+        title: '¿Solicitar reposición?',
+        html: 'Se enviará un correo al encargado solicitando crédito de gasolina para <strong>' + escHtml(placa) + '</strong>.<br>Saldo actual: <strong>$' + parseFloat(saldo).toFixed(2) + '</strong>',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Enviar solicitud',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#050D9E'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: 'acciones_gas.php',
+            method: 'POST',
+            dataType: 'json',
+            data: { accion: 'solicitarReposicionGas', id_vehiculo: id_vehiculo, saldo: saldo },
+            success: function (resp) {
+                Swal.fire({
+                    icon: resp.status === 'success' ? 'success' : 'error',
+                    title: resp.status === 'success' ? '¡Enviado!' : 'Error',
+                    text: resp.message,
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });
+            }
         });
+    });
+}
 
-        //Función para cargar recargas de gas
-        function cargarGas() {
-            $.ajax({
-                url: 'acciones_gas.php',
-                type: 'POST',
-                data: { accion: 'obtenerRegistrosGasTodos' },
-                dataType: 'json',
-                success: function(data) {
-                    var table = $('#tablaGas').DataTable();
-                    table.clear();
-                    $.each(data, function(index, carga) {
-                        table.row.add([
-                            carga.Vehiculo,
-                            carga.usuario,
-                            carga.monto,
-                            carga.pagos,
-                            carga.saldo,
-                            carga.km_actual,
-                            carga.fecha_carga,
-                            carga.fecha_registro
-                        ]).draw(false);
-                    });
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error al cargar registros de gas:', error);
-                }
-            });
-        }
+function solicitarReposicionGeneral() {
+    // Obtiene el vehículo con menor saldo del historial del usuario actual
+    var noEmp = getCookie('noEmpleado') || '';
+    Swal.fire({
+        title: 'Solicitar reposición de crédito',
+        html: 'Se notificará al encargado que necesitas reposición de crédito de gasolina.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Enviar solicitud',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#050D9E'
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        $.ajax({
+            url: 'acciones_gas.php',
+            method: 'POST',
+            dataType: 'json',
+            data: { accion: 'solicitarReposicionGas', id_vehiculo: 0, saldo: 0 },
+            success: function (resp) {
+                Swal.fire({
+                    icon: resp.status === 'success' ? 'success' : 'error',
+                    title: resp.status === 'success' ? '¡Enviado!' : 'Error',
+                    text: resp.message,
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });
+            }
+        });
+    });
+}
 
-        function descargarTabla() {
-            var wb = XLSX.utils.book_new();
-            var ws = XLSX.utils.table_to_sheet(document.getElementById('tablaGas'));
-            XLSX.utils.book_append_sheet(wb, ws, 'Gasolina');
-            XLSX.writeFile(wb, 'Historial_Gasolina.xlsx');
-        }
-    </script>
+function descargarTabla() {
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.table_to_sheet(document.getElementById('tablaGas'));
+    XLSX.utils.book_append_sheet(wb, ws, 'Gasolina');
+    XLSX.writeFile(wb, 'Historial_Gasolina.xlsx');
+}
+
+function escHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getCookie(name) {
+    var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v[2]) : '';
+}
+</script>
 </body>
-</html> 
+</html>

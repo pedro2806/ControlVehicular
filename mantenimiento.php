@@ -17,17 +17,17 @@
     <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
     <!-- Custom styles for this template-->
     <link href = "css/sb-admin-2.min.css" rel = "stylesheet">
-    <!-- Bootstrap CSS -->
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
         @keyframes pulso-vehiculo {
             0%   { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.7); border-color: #4e73df; }
             70%  { box-shadow: 0 0 3px 3px rgba(78, 115, 223, 0); border-color: #4e73df; }
             100% { box-shadow: 0 0 0 0 rgba(78, 115, 223, 0); border-color: #4e73df; }
         }
-        #vehiculo_select.select-pulso {
+        .select2-selection.select-pulso {
             animation: pulso-vehiculo 1.4s ease-in-out infinite;
-            border: 2px solid #4e73df;
-            overflow: hidden;
+            border: 2px solid #4e73df !important;
         }
     </style>
 </head>
@@ -62,14 +62,14 @@
 
                         <!-- Detalles del Servicio -->
                         <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Detalles del Servicio</h1>
-                        <div class="row mb-4">
-                            <div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                        <div class="row mb-3">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
                                 <label>Vehículo:</label>
-                                <select class="form-select select-pulso" id="vehiculo_select" name="vehiculo_select" required onchange="alSeleccionarVehiculo(this)">
+                                <select class="form-select" id="vehiculo_select" name="vehiculo_select" required>
                                     <option value="">Seleccione...</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-3 col-sm-6 col-6">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
                                 <label>Tipo de Servicio:</label>
                                 <select class="form-select" id="servicio" name="servicio" required>
                                     <option value="">Seleccione...</option>
@@ -79,9 +79,19 @@
                                     <option value="Cambio de llantas">Cambio de llantas</option>
                                 </select>
                             </div>
-                            <div class="col-lg-6 col-md-6 col-sm-12 col-12">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
+                                <label>Proveedor:</label>
+                                <input class="form-control" id="proveedor" name="proveedor" type="text" placeholder="Nombre del proveedor">
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
+                                <label>Contacto del proveedor:</label>
+                                <input class="form-control" id="contacto_proveedor" name="contacto_proveedor" type="text" placeholder="Teléfono o correo">
+                            </div>
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-12">
                                 <label>Descripción:</label>
-                                <textarea class="form-control" id="descripcion" name="descripcion" required></textarea>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" required></textarea>
                             </div>
                         </div>
 
@@ -92,56 +102,8 @@
                             <span class="ms-3">Medidas: <strong id="llantas_medidas">—</strong></span>
                         </div>
 
-                        <!-- Detalles del Automovil -->
-                        <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Detalles del Automovil</h1>
-                        <div class="row mb-4">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Kilometraje:</label>
-                                <input class="form-control" id="kilometraje" name="kilometraje" type="number" min="0">
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Gasolina:</label>
-                                <select class="form-select" id="gasolina" name="gasolina">
-                                    <option value="">Seleccione...</option>
-                                    <option value="SD">Sin Datos</option>
-                                    <option value="1/8">1/8</option>
-                                    <option value="2/8">2/8</option>
-                                    <option value="3/8">3/8</option>
-                                    <option value="4/8">4/8</option>
-                                    <option value="5/8">5/8</option>
-                                    <option value="6/8">6/8</option>
-                                    <option value="7/8">7/8</option>
-                                    <option value="8/8">8/8</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Proveedor:</label>
-                                <input class="form-control" id="proveedor" name="proveedor" type="text" placeholder="Nombre del proveedor">
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto del proveedor:</label>
-                                <input class="form-control" id="contacto_proveedor" name="contacto_proveedor" type="text" placeholder="Teléfono o correo">
-                            </div>
-                        </div>
-
-                        <!-- Foto del Automovil -->
-                        <h1 class="h5 mb-2 text-black" style="font-weight: bold;">Foto del Automovil</h1>
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <input
-                                    type="file"
-                                    class="form-control"
-                                    id="foto"
-                                    name="foto"
-                                    accept="image/*"
-                                    capture="environment"
-                                    multiple
-                                    required>
-                            </div>
-                        </div>
-
                         <div class="text-center">
-                            <button type="button" class="btn btn-outline-success" onclick="RegistrarMantenimiento()">Guardar</button>
+                            <button type="button" class="btn btn-primary" onclick="RegistrarMantenimiento()">Guardar</button>
                         </div>
                     </form>
                     <br>
@@ -167,13 +129,22 @@
     <script src = "js/sb-admin-2.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
+            // Inicializar Select2 de inmediato en estado "cargando" para evitar el salto visual
+            $('#vehiculo_select')
+                .select2({ placeholder: 'Cargando vehículos...', width: '100%', allowClear: true })
+                .prop('disabled', true);
+            $('#vehiculo_select').next('.select2-container').find('.select2-selection').addClass('select-pulso');
+            $('#vehiculo_select').on('change', function() { alSeleccionarVehiculo(this); });
+
             infoVehiculos();
             cargarUsuarios();
             const now = new Date();
-            const fecha = now.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-            const hora = now.toTimeString().split(' ')[0].slice(0, 5); // Formato HH:MM
+            const fecha = now.toISOString().split('T')[0];
+            const hora = now.toTimeString().split(' ')[0].slice(0, 5);
             $("#fecha").val(fecha);
             $("#hora").val(hora);
         });
@@ -190,6 +161,8 @@
                     Array.isArray(respuesta) && respuesta.forEach(function (v) {
                         select.append(`<option value="${v.id_vehiculo}" data-placa="${v.placa}">${v.placa} - ${v.modelo} ${v.marca}</option>`);
                     });
+                    select.prop('disabled', false)
+                          .select2({ placeholder: 'Buscar vehículo...', width: '100%', allowClear: true });
                 },
                 error: function () {
                     Swal.fire({
@@ -249,28 +222,14 @@
             var opt = sel.options[sel.selectedIndex];
             $("#id_vehiculo").val(opt.value);
             $("#placaVehiculo").text($(opt).data("placa") || "");
-
-            // Limpiar campos
-            $("#kilometraje").val("");
-            $("#gasolina").val("");
             $("#proveedor").val("");
             $("#contacto_proveedor").val("");
             $("#info_llantas").hide();
-
+            var $sel2 = $("#vehiculo_select").next('.select2-container').find('.select2-selection');
             if (opt.value) {
-                $("#vehiculo_select").removeClass("select-pulso");
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_mantenimiento",
-                    data: { accion: "ultimoRegistroVehiculo", id_vehiculo: opt.value },
-                    dataType: "json",
-                    success: function(r) {
-                        if (r.km_actual)  $("#kilometraje").val(r.km_actual);
-                        if (r.gasolina)   $("#gasolina").val(r.gasolina);
-                    }
-                });
+                $sel2.removeClass("select-pulso");
             } else {
-                $("#vehiculo_select").addClass("select-pulso");
+                $sel2.addClass("select-pulso");
             }
         }
         
@@ -306,155 +265,50 @@
         function RegistrarMantenimiento() {
             var id_vehiculo = $("#id_vehiculo").val();
             var fecha_registro = $("#fecha").val();
-            var kilometraje = $("#kilometraje").val();
-            var gasolina = $("#gasolina").val();
             var tipo_mantenimiento = $("#servicio").val();
             var descripcion = $("#descripcion").val();
-            var solicitante = getCookie("id_usuario"); 
-            var VoBo_jefe = "PENDIENTE"; 
-            var fecha_proxi ='';// $("#prox_fecha").val();
-            var km_proxi = '';//$("#prox_kilometraje").val();
-            var tipo_carro = $("#tipo_carro").val();
-            var id_dueno = $("#id_dueno").val();
+            var solicitante = getCookie("id_usuario");
             var proveedor = $("#proveedor").val();
             var contacto_proveedor = $("#contacto_proveedor").val();
-            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
-            var accion = "RegistrarMantenimiento";
-            var rutaImagen = $("#foto")[0].files[0];
+            var placa = $("#placaVehiculo").text().trim();
 
-            //Verificacion de campos faltantes
             var camposFaltantes = [];
             if (!placa) camposFaltantes.push("Vehículo seleccionado");
-            if (!descripcion) camposFaltantes.push("Descripción");
-            if (!kilometraje) camposFaltantes.push("Kilometraje actual");
             if (!tipo_mantenimiento) camposFaltantes.push("Tipo de servicio");
+            if (!descripcion) camposFaltantes.push("Descripción");
 
-            //VALIDACIONES DE CAMPOS
             if (camposFaltantes.length > 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
-                    html: `<p>Por favor, completa los siguientes campos:</p><ul>${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+                    html: `<p>Por favor, completa los siguientes campos:</p><ul>${camposFaltantes.map(c => `<li>${c}</li>`).join('')}</ul>`,
                     confirmButtonText: 'Aceptar'
                 });
                 return;
             }
-            
-            // Validar que la fecha del próximo servicio sea mayor que la fecha del servicio actual
-            if (new Date(fecha_proxi) <= new Date(fecha_registro)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Fecha inválida',
-                    text: 'La fecha del próximo servicio debe ser posterior a la fecha del servicio actual.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
-            // Si el tipo de carro es "Propio", usar el id_usuario en lugar de id_dueno
-            if (tipo_carro === "Propio") {
-                id_dueno = getCookie("id_usuario");
-            }
-            // Subir la imagen y registrar el mantenimiento
-            enviaImg(function (rutaImagen) {
-                //var accion = "manejarCarpetasYFoto";
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_mantenimiento",
-                    data: { id_vehiculo, fecha_registro, kilometraje, gasolina, proveedor, contacto_proveedor,
-                            tipo_mantenimiento, descripcion, solicitante, tipo_carro, id_dueno, rutaImagen, accion},
-                    dataType: 'json',
-                    success: function (respuesta) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: 'Mantenimiento registrado exitosamente.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                        //$("#formRegistroMantenimiento")[0].reset();
-                        $("#placaSeleccionada").hide();
-                        $("#tablaInventario").closest(".container").show();
-                        $.ajax({
-                            type: "POST",
-                            url: "correoMantenimiento.php",
-                            data: { },
-                            success: function () {
-                                window.location.replace("seguimiento_mantenimiento");
-                            },
-                            error: function () {
-                                window.location.replace("seguimiento_mantenimiento");
-                            }
-                        });
-                        return;
-                        //window.location.replace("seguimiento_mantenimiento");
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Hubo un problema al registrar el mantenimiento.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                });
-            });
-        }
 
-        //FUNCION PARA MANEJAR CARPETAS Y FOTO
-        //callback: hace que la función "RegistraMantenimiento" se ejecute después de enviar la imagen
-        function enviaImg(callback) {
-            var formData = new FormData();
-            var foto = $("#foto")[0].files[0];
-            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim(); // Obtener la placa seleccionada
-            
-            if (!placa) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Placa no seleccionada',
-                    text: 'Por favor, selecciona un vehículo antes de continuar.',
-                    confirmButtonText: 'Aceptar'
-                });
-                callback(null);
-                return;
-            }
-        
-            if (!foto) {
-                //console.log("No se seleccionó ninguna foto.");
-                callback(null);
-                return;
-            }
-        
-            formData.append("foto", foto);
-            formData.append("placa", placa);
-            formData.append("accion", "manejarCarpetasYFoto");
-        
+            var $btn = $('button[onclick="RegistrarMantenimiento()"]');
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Guardando...');
+
             $.ajax({
                 type: "POST",
                 url: "acciones_mantenimiento",
-                data: formData,
-                processData: false, 
-                contentType: false, 
+                data: { accion: "RegistrarMantenimiento", id_vehiculo, fecha_registro,
+                        tipo_mantenimiento, descripcion, solicitante, proveedor, contacto_proveedor },
                 dataType: 'json',
                 success: function (respuesta) {
-                    if (respuesta.success) {
-                        callback(respuesta.rutaImagen);
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: respuesta.message,
-                            confirmButtonText: 'Aceptar'
-                        });
-                        callback(null);
+                    if (!respuesta.success) {
+                        $btn.prop('disabled', false).html('Guardar');
+                        Swal.fire({ icon: 'error', title: 'Error', text: respuesta.message, confirmButtonText: 'Aceptar' });
+                        return;
                     }
+                    // Enviar correo sin esperar respuesta
+                    $.ajax({ type: "POST", url: "correoMantenimiento.php", data: {} });
+                    window.location.replace("seguimiento_mantenimiento");
                 },
                 error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Hubo un problema al manejar la foto y las carpetas.',
-                        confirmButtonText: 'Aceptar'
-                    });
-                    callback(null);
+                    $btn.prop('disabled', false).html('Guardar');
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Hubo un problema al registrar el mantenimiento.', confirmButtonText: 'Aceptar' });
                 }
             });
         }

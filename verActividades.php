@@ -4,6 +4,19 @@ include 'conn.php';
 if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     echo '<script>window.location.assign("index")</script>';
 }
+$noEmpAct = intval($_COOKIE['noEmpleado'] ?? 0);
+$stmtVA = $conn->prepare("SELECT 1 FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verActividades' AND estatus = 1 LIMIT 1");
+if ($stmtVA) {
+    $stmtVA->bind_param("i", $noEmpAct);
+    $stmtVA->execute();
+    $stmtVA->store_result();
+    if ($stmtVA->num_rows === 0) {
+        $stmtVA->close();
+        echo '<script>window.location.assign("inicio")</script>';
+        exit;
+    }
+    $stmtVA->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

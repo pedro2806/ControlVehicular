@@ -37,10 +37,10 @@ $estatus = $_POST['estatus'] ?? null;
 if ($accion == "RegistrarMantenimiento") {
 
     $sqlregistro = "INSERT INTO mantenimientos
-                    (id_vehiculo, fecha_registro, kilometraje, gasolina, proveedor, contacto_proveedor, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe,
-                    fecha_proxi, km_proxi, tipo_carro, id_dueno, foto)
-                    VALUES ('$id_vehiculo', '$fecha_registro', '$kilometraje', '$gasolina', '$proveedor', '$contacto_proveedor', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE',
-                    NULL, NULL, '$tipo_carro', '$id_dueno', '$foto')";                   
+                    (id_vehiculo, fecha_registro, proveedor, contacto_proveedor, tipo_mantenimiento, descripcion, solicitante, VoBo_jefe,
+                    fecha_proxi, km_proxi)
+                    VALUES ('$id_vehiculo', '$fecha_registro', '$proveedor', '$contacto_proveedor', '$tipo_mantenimiento', '$descripcion', '$solicitante', 'PENDIENTE',
+                    NULL, NULL)";                   
     $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
         echo json_encode(["success" => true, "message" => "Mantenimiento registrado exitosamente."]);
@@ -125,7 +125,7 @@ if ($accion == "manejarCarpetasYFoto") {
 
 //Consulta de Usuarios
 if ($accion == "consultarUsuarios") {
-    $sql = "SELECT id_usuario, nombre FROM usuarios";
+    $sql = "SELECT id_usuario, nombre FROM usuarios ORDER BY nombre ASC";
     $result = $conn->query($sql);
 
     $usuarios = [];

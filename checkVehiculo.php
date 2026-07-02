@@ -71,276 +71,218 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </table>
                         </div>
                     </div>
-                    <div class="row" name="DivBtnVehiculosAsignados" id="DivBtnVehiculosAsignados" style="display: none;">
-                        <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" class="btn btn-primary btn-sm" onclick="MostrarDivVehiculosAsignados()">Cambiar de vehículo</button>
-                        </div>
-                        <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
-                            <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
-                            <input type="hidden" id="id_coche" name="id_coche">
-                            <input type="hidden" name="ruta_foto_Asientos">
-                            <input type="hidden" name="ruta_foto_Espejos">
-                            <input type="hidden" name="ruta_foto_AireAcondicionado">
-                            <input type="hidden" name="ruta_foto_Faros">
-                            <input type="hidden" name="ruta_foto_Exterior">
-                            <input type="hidden" name="ruta_foto_Graficas">
-                            <input type="hidden" name="ruta_foto_Limpiaparabrisas">
-                            <input type="hidden" name="ruta_foto_Limpieza">
-                            <input type="hidden" name="ruta_foto_Llantas">
-                            <input type="hidden" name="ruta_foto_Placas">
-                            <input type="hidden" name="ruta_foto_PuertasLlave">
-                            <input type="hidden" name="ruta_foto_tarjetaC">
-                            <input type="hidden" name="ruta_foto_Refrendo">
-                            <input type="hidden" name="ruta_foto_Seguro">
-                            <input type="hidden" name="ruta_foto_Verificacion">
-                            <input type="hidden" name="ruta_foto_Licencia">
-                            <input type="hidden" name="ruta_foto_TarjetaEfe">
-                            <input type="hidden" name="ruta_foto_TarjetaIAVE">
-                        </div>
-                    
-                        <div class="row">                                                
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                                <label for="marca"><b>Marca:</b></label>
-                                <label id="marca" name="marca"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                                <label for="modelo"><b>Modelo:</b></label>
-                                <label type="text" id="modelo" name="modelo"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                                <label for="color"><b>Color:</b></label>
-                                <label id="color" name="color"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-3 col-sm-3 col-3">
-                                <label for="placa"><b>Placa:</b></label>
-                                <label id="placa" name="placa"></label>
-                            </div>
-                        </div>
-                        <div class="row">                                                
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="area"><b>Área:</b></label>
-                                <label id="area" name="area"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="usuario"><b>Usuario:</b></label>
-                                <label id="usuario" name="usuario"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="fecha_ultimo_servicio"><b>Fecha último servicio:</b></label>
-                                <label id="fecha_ultimo_servicio" name="fecha_ultimo_servicio"></label>
-                            </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label for="kilometraje"><b>Kilometraje:</b></label>
-                                <label id="kilometraje" name="kilometraje"></label>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
-                                <label for="motivo"><b>Motivo:</b></label>
-                                <textarea id="motivo" name="motivo" class="form-control" placeholder="Motivo" rows="2"></textarea>                            
-                            </div>
-                        </div><br>
+                    <div name="DivBtnVehiculosAsignados" id="DivBtnVehiculosAsignados" style="display: none;">
+                        <input type="hidden" id="id_coche" name="id_coche">
+                        <input type="hidden" name="ruta_foto_Asientos">
+                        <input type="hidden" name="ruta_foto_Espejos">
+                        <input type="hidden" name="ruta_foto_AireAcondicionado">
+                        <input type="hidden" name="ruta_foto_Faros">
+                        <input type="hidden" name="ruta_foto_Exterior">
+                        <input type="hidden" name="ruta_foto_Graficas">
+                        <input type="hidden" name="ruta_foto_Limpiaparabrisas">
+                        <input type="hidden" name="ruta_foto_Llantas">
+                        <input type="hidden" name="ruta_foto_Placas">
+                        <input type="hidden" name="ruta_foto_PuertasLlave">
+                        <input type="hidden" name="ruta_foto_tarjetaC">
+                        <input type="hidden" name="ruta_foto_Verificacion">
+                        <input type="hidden" name="ruta_foto_Licencia">
+                        <input type="hidden" name="ruta_foto_TarjetaEfe">
+                        <input type="hidden" name="ruta_foto_TarjetaIAVE">
 
-                <!-- ASPECTOS FISICOS -->
-                        <div class="row">
-                            <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                                <h1 class = "h5 mb-0 text-gray-800">Aspectos Físicos</h1>                            
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-body py-3 px-3">
+                                <div class="d-flex align-items-center">
+                                    <div id="fotoVehiculoPlaceholder" style="width:80px; height:80px; border-radius:8px; background:#e9ecef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                        <i class="fas fa-car fa-2x text-muted"></i>
+                                    </div>
+                                    <img id="fotoVehiculo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; display:none; flex-shrink:0;" onerror="this.style.display='none'; document.getElementById('fotoVehiculoPlaceholder').style.display='';">
+                                    <div class="ml-3 flex-grow-1">
+                                        <h5 class="mb-0 font-weight-bold text-primary" id="placa" name="placa"></h5>
+                                        <span class="text-dark" id="modeloMarca"></span>
+                                        <br><small class="text-muted"><span id="color" name="color"></span> · <span id="anioVeh"></span></small>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="mb-1">
+                                            <small class="text-muted">Área</small><br>
+                                            <span class="font-weight-bold" id="area" name="area"></span>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Usuario</small><br>
+                                            <span class="font-weight-bold" id="usuario" name="usuario"></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="row">                    
-                            <div class="accordion" id="accordionExample">
-                                <?php
-                                $accordionItems = [
-                                    ["title" => "Asientos/Tapetes plasticos", "id" => "Asientos", "color" => "secondary"],
-                                    ["title" => "Limpieza General", "id" => "Limpieza", "color" => "primary"],
-                                    ["title" => "Exterior del auto", "id" => "Exterior", "color" => "secondary"],
-                                    ["title" => "Gráficas del auto", "id" => "Graficas", "color" => "primary"],
-                                    ["title" => "Faros", "id" => "Faros", "color" => "secondary"],
-                                    ["title" => "Placas", "id" => "Placas", "color" => "primary"],
-                                    ["title" => "Limpiaparabrisas", "id" => "Limpiaparabrisas", "color" => "secondary"],
-                                    ["title" => "Espejos", "id" => "Espejos", "color" => "primary"],
-                                    ["title" => "Aire acondicionado/Estéreo", "id" => "AireAcondicionado", "color" => "secondary"],
-                                    ["title" => "Llantas", "id" => "Llantas", "color" => "primary"],
-                                    ["title" => "Puertas/Llave", "id" => "PuertasLlave", "color" => "secondary"]
-                                ];
+                        <div class="d-flex justify-content-end mb-3">
+                            <button type="button" class="btn btn-primary btn-sm mr-1" onclick="MostrarDivVehiculosAsignados()"><i class="fas fa-exchange-alt mr-1"></i>Cambiar de vehículo</button>
+                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm mr-1" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
+                            <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm" onclick="guardarAvance()">Registrar avance</button>
+                        </div>
+                        <input type="hidden" id="marca" name="marca">
+                        <input type="hidden" id="modelo" name="modelo">
+                        <input type="hidden" id="kilometraje" name="kilometraje">
 
-                                foreach ($accordionItems as $item) {
-                                    echo '<div class="accordion-item">';
-                                        echo '<h2 class="accordion-header">';
-                                            echo '<button id="accordion-item-' . $item["id"] . '" class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
-                                            echo $item["title"];
-                                            echo '</button>';
-                                        echo '</h2>';
-                                        echo '<div id="' . $item["id"] . '" class="accordion-collapse collapse" data-bs-parent="#accordionExample">';
-                                            echo '<div class="accordion-body">';
-                                                echo '<div class="row">';
-                                                if($item["id"] == "Llantas") {
-                                                        echo '<div class="col-lg-5 col-md-5 col-sm-5 col-5">';
-                                                            echo '<label for="medidas_' . $item["id"] . '">Medidas:</label><br>';
-                                                            echo '<input type="text" id="medidas_' . $item["id"] . '" name="medidas_' . $item["id"] . '" class="form-control">';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
-                                                            echo '<div class="form-check form-switch me-3">';
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                } else {
-                                                    if($item["id"] == "PuertasLlave") {
-                                                        echo '<div class="col-lg-7 col-md-7 col-sm-7 col-7">';
-                                                            echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-5 col-md-5 col-sm-5 col-5">';
-                                                            echo '<label for="duplicado_' . $item["id"] . '">Duplicado:</label>';
-                                                            echo '<input type="text" id="duplicado_' . $item["id"] . '" name="duplicado_' . $item["id"] . '" class="form-control">';
-                                                        echo '</div>';
-                                                    } else {
-                                                        echo '<div class="col-lg-4 col-md-4 col-sm-4 col-4">';
-                                                            echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-8 col-md-8 col-sm-8 col-8">';
-                                                            echo '<div class="form-check form-switch me-3">';
-                                                                echo '<input class="form-check-input" type="checkbox" id="buenEstado_' . $item["id"] . '" name="buenEstado_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="buenEstado_' . $item["id"] . '">Buen estado No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                    }
-                                                }
-                                                echo '</div>';                                
-                                            echo '<div class="row">';
-                                                if($item["id"] == "AireAcondicionado") {
-                                                    echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                        echo '<label for="CE_' . $item["id"] . '">Código estéreo:</label>';
-                                                        echo '<input type="input" id="CE_' . $item["id"] . '" name="CE' . $item["id"] . '" class="form-control">';
-                                                    echo '</div>';
-                                                    echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                        echo '<label for="observaciones_' . $item["id"] . '">Observaciones:</label>';
-                                                        echo '<textarea id="observaciones_' . $item["id"] . '" name="observaciones_' . $item["id"] . '" class="form-control" placeholder="Observaciones" rows="2"></textarea>';
-                                                    echo '</div>';
-                                                } else {    
-                                                    if($item["id"] == "Llantas") {
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="CE_' . $item["id"] . '">No. Rin:</label>';
-                                                            echo '<input type="input" id="CE_' . $item["id"] . '" name="CE' . $item["id"] . '" class="form-control">';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="observaciones_' . $item["id"] . '">Observaciones:</label>';
-                                                            echo '<textarea id="observaciones_' . $item["id"] . '" name="observaciones_' . $item["id"] . '" class="form-control" placeholder="Observaciones" rows="2"></textarea>';
-                                                        echo '</div>';
-                                                    } else {
-                                                        echo '<div class="col-lg-12 col-md-12 col-sm-6 col-12">';
-                                                            echo '<label for="observaciones_' . $item["id"] . '">Observaciones:</label>';
-                                                            echo '<textarea id="observaciones_' . $item["id"] . '" name="observaciones_' . $item["id"] . '" class="form-control" placeholder="Observaciones" rows="2"></textarea>';
-                                                        echo '</div>';
-                                                    }
-                                                }
-                                                
-                                            echo '</div>';
-                                            echo '<div class="row">';                                                
-                                                        echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
-                                                            echo '<label for="foto_inspeccion">Foto:</label>';
-                                                            echo '<input type="file" id="foto_' . $item["id"] . '" name="foto_' . $item["id"] . '" class="form-control form-control-sm" accept="image/*" capture="camera">';                                                        
-                                                        echo '</div>';                                                                                                    
-                                            echo '</div>';                                
-                                        echo '</div>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                }
-                                ?>
+                <!-- CHECKLIST CARRUSEL -->
+                <?php
+                $pasos = [
+                    ['titulo' => 'Asientos/Tapetes',            'id' => 'Asientos',           'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-chair'],
+                    ['titulo' => 'Exterior del auto',           'id' => 'Exterior',           'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-car'],
+                    ['titulo' => 'Gráficas del auto',           'id' => 'Graficas',           'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-exclamation-triangle'],
+                    ['titulo' => 'Faros',                       'id' => 'Faros',              'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-lightbulb'],
+                    ['titulo' => 'Placas',                      'id' => 'Placas',             'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-hashtag'],
+                    ['titulo' => 'Limpiaparabrisas',            'id' => 'Limpiaparabrisas',   'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-tint'],
+                    ['titulo' => 'Espejos',                     'id' => 'Espejos',            'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico',          'icono' => 'fa-eye'],
+                    ['titulo' => 'Aire acondicionado/Estéreo',  'id' => 'AireAcondicionado',  'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico_estereo',  'icono' => 'fa-snowflake'],
+                    ['titulo' => 'Llantas',                     'id' => 'Llantas',            'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico_llantas',  'icono' => 'fa-circle-notch'],
+                    ['titulo' => 'Puertas/Llave',               'id' => 'PuertasLlave',       'grupo' => 'Aspectos Físicos', 'tipo' => 'fisico_puertas',  'icono' => 'fa-key'],
+                    ['titulo' => 'Tarjeta de circulación',      'id' => 'tarjetaC',           'grupo' => 'Documentación',    'tipo' => 'doc_simple',      'icono' => 'fa-id-card-alt'],
+                    ['titulo' => 'Verificación vigente',        'id' => 'Verificacion',       'grupo' => 'Documentación',    'tipo' => 'doc_vencimiento', 'icono' => 'fa-clipboard-check'],
+                    ['titulo' => 'Licencia de manejo',          'id' => 'Licencia',           'grupo' => 'Documentación',    'tipo' => 'doc_vencimiento', 'icono' => 'fa-id-card'],
+                    ['titulo' => 'Tarjeta Efecticard',          'id' => 'TarjetaEfe',         'grupo' => 'Documentación',    'tipo' => 'doc_tarjeta',     'icono' => 'fa-credit-card'],
+                    ['titulo' => 'Tarjeta IAVE',                'id' => 'TarjetaIAVE',        'grupo' => 'Documentación',    'tipo' => 'doc_tarjeta',     'icono' => 'fa-credit-card'],
+                ];
+                $totalPasos = count($pasos);
+                ?>
+                <style>
+                    .chk-viewport { overflow: hidden; width: 100%; position: relative; }
+                    .chk-track { display: flex; transition: transform 0.3s ease; width: 100%; }
+                    .chk-slide { width: 100%; min-width: 100%; flex-shrink: 0; padding: 0; box-sizing: border-box; }
+                    .chk-progress { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+                    .chk-dot {
+                        width: 30px; height: 30px; border-radius: 50%;
+                        background: #dee2e6; color: #6c757d;
+                        cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.15s;
+                        display: flex; align-items: center; justify-content: center;
+                        font-size: 11px; border: 2px solid transparent;
+                        flex-shrink: 0;
+                    }
+                    .chk-dot:hover { transform: scale(1.15); }
+                    .chk-dot.active { background: #4e73df; color: #fff; border-color: #2e59d9; }
+                    .chk-dot.filled { background: #1cc88a; color: #fff; border-color: #17a673; }
+                    .chk-foto-area { display: flex; flex-direction: column; align-items: center; }
+                    .chk-foto-preview { max-width: 180px; max-height: 140px; border-radius: 8px; margin-top: 6px; display: none; }
+                </style>
+
+                        <div class="text-center mb-2">
+                            <div class="chk-progress mb-1" id="chkDots">
+                                <?php foreach ($pasos as $i => $p): ?>
+                                    <span class="chk-dot<?= $i === 0 ? ' active' : '' ?>"
+                                          onclick="irAPaso(<?= $i ?>)"
+                                          title="<?= htmlspecialchars($p['titulo']) ?>">
+                                        <i class="fas <?= $p['icono'] ?>"></i>
+                                    </span>
+                                <?php endforeach; ?>
                             </div>
-                        </div>  
-                        <br> <br> 
-                <!-- DOCUMENTACIÓN -->
-                
-                        <div class="row">
-                            <div class="col-lg-6 col-md-6 col-sm-6 col-6">
-                                <h1 class = "h5 mb-0 text-gray-800">Documentación</h1>
+                            <small class="text-muted" id="pasoInfo">Paso 1 de <?= $totalPasos ?></small>
+                        </div>
+
+                        <div class="chk-viewport">
+                            <div class="chk-track" id="chkTrack">
+                            <?php foreach ($pasos as $idx => $p): ?>
+                                <div class="chk-slide">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header py-2 text-center" style="background:#4e73df;">
+                                            <small class="text-white-50"><?= $p['grupo'] ?></small>
+                                            <h6 class="text-white mb-0 font-weight-bold"><?= $p['titulo'] ?></h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <?php if (strpos($p['tipo'], 'fisico') === 0): ?>
+                                                <div class="d-flex justify-content-center mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" id="buenEstado_<?= $p['id'] ?>" name="buenEstado_<?= $p['id'] ?>" value="1" style="transform: scale(1.8);">
+                                                        <label class="form-check-label ml-2" for="buenEstado_<?= $p['id'] ?>">Buen estado</label>
+                                                    </div>
+                                                </div>
+                                                <?php if ($p['tipo'] === 'fisico_estereo'): ?>
+                                                    <div class="row mb-3">
+                                                        <div class="col">
+                                                            <label for="CE_<?= $p['id'] ?>" class="small">Código estéreo:</label>
+                                                            <input type="text" id="CE_<?= $p['id'] ?>" name="CE<?= $p['id'] ?>" class="form-control">
+                                                        </div>
+                                                    </div>
+                                                <?php elseif ($p['tipo'] === 'fisico_llantas'): ?>
+                                                    <div class="row mb-3">
+                                                        <div class="col-6">
+                                                            <label for="medidas_<?= $p['id'] ?>" class="small">Medidas:</label>
+                                                            <input type="text" id="medidas_<?= $p['id'] ?>" name="medidas_<?= $p['id'] ?>" class="form-control">
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label for="CE_<?= $p['id'] ?>" class="small">No. Rin:</label>
+                                                            <input type="text" id="CE_<?= $p['id'] ?>" name="CE<?= $p['id'] ?>" class="form-control">
+                                                        </div>
+                                                    </div>
+                                                <?php elseif ($p['tipo'] === 'fisico_puertas'): ?>
+                                                    <div class="row mb-3">
+                                                        <div class="col">
+                                                            <label for="duplicado_<?= $p['id'] ?>" class="small">Duplicado:</label>
+                                                            <input type="text" id="duplicado_<?= $p['id'] ?>" name="duplicado_<?= $p['id'] ?>" class="form-control">
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php elseif ($p['tipo'] === 'doc_vencimiento'): ?>
+                                                <div class="row mb-3">
+                                                    <div class="col">
+                                                        <label for="vencimiento_<?= $p['id'] ?>" class="small">Vencimiento:</label>
+                                                        <input type="date" id="vencimiento_<?= $p['id'] ?>" name="vencimiento_<?= $p['id'] ?>" class="form-control">
+                                                    </div>
+                                                </div>
+                                            <?php elseif ($p['tipo'] === 'doc_tarjeta'): ?>
+                                                <div class="row mb-3">
+                                                    <div class="col-6">
+                                                        <label for="vencimiento_<?= $p['id'] ?>" class="small">Vencimiento:</label>
+                                                        <input type="date" id="vencimiento_<?= $p['id'] ?>" name="vencimiento_<?= $p['id'] ?>" class="form-control">
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label for="no_tarjeta_<?= $p['id'] ?>" class="small">No. Tarjeta:</label>
+                                                        <input type="text" id="no_tarjeta_<?= $p['id'] ?>" name="no_tarjeta_<?= $p['id'] ?>" class="form-control">
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <div class="chk-foto-area mb-3" style="position:relative;">
+                                                <div id="captura_foto_<?= $p['id'] ?>" class="foto-captura" onclick="document.getElementById('foto_<?= $p['id'] ?>').click()" style="height:140px;">
+                                                    <div class="foto-viewfinder">
+                                                        <div id="placeholder_foto_<?= $p['id'] ?>" class="text-center text-muted">
+                                                            <i class="fas fa-camera fa-3x mb-2 d-block"></i>
+                                                            <span style="font-size:0.82rem;">Tomar foto</span>
+                                                        </div>
+                                                    </div>
+                                                    <span class="corner tl"></span>
+                                                    <span class="corner tr"></span>
+                                                    <span class="corner bl"></span>
+                                                    <span class="corner br"></span>
+                                                </div>
+                                                <div id="wrap_foto_<?= $p['id'] ?>" style="display:none; position:relative; text-align:center;">
+                                                    <img id="preview_foto_<?= $p['id'] ?>" src="" style="max-height:160px; max-width:100%; border-radius:8px; object-fit:cover;">
+                                                    <button type="button" class="btn btn-sm btn-danger" onclick="quitarFoto('<?= $p['id'] ?>')" style="position:absolute; top:-8px; right:-8px; border-radius:50%; width:28px; height:28px; padding:0; line-height:28px; font-size:14px; z-index:2;">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="file" id="foto_<?= $p['id'] ?>" name="foto_<?= $p['id'] ?>" class="d-none" accept="image/*" capture="camera">
+                                            </div>
+
+                                            <div>
+                                                <label for="observaciones_<?= $p['id'] ?>" class="small">Observaciones:</label>
+                                                <textarea id="observaciones_<?= $p['id'] ?>" name="observaciones_<?= $p['id'] ?>" class="form-control" placeholder="Observaciones" rows="2"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                             </div>
                         </div>
-                        <div class="row">                    
-                            <div class="accordion" id="accordionExample2">
-                                <?php
-                                $accordionItems2 = [
-                                    ["title" => "Tarjeta de circulación", "id" => "tarjetaC", "color" => "secondary"],
-                                    ["title" => "Refrendo actual", "id" => "Refrendo", "color" => "black"],
-                                    ["title" => "Seguro de auto (Póliza vigente)", "id" => "Seguro", "color" => "secondary"],
-                                    ["title" => "Verificación vigente", "id" => "Verificacion", "color" => "black"],
-                                    ["title" => "Licencia de manejo", "id" => "Licencia", "color" => "secondary"],
-                                    ["title" => "Tarjeta Efecticard", "id" => "TarjetaEfe", "color" => "black"],
-                                    ["title" => "Tarjeta IAVE", "id" => "TarjetaIAVE", "color" => "secondary"]
-                                ];
 
-                                foreach ($accordionItems2 as $item) {
-                                    echo '<div class="accordion-item">';
-                                        echo '<h2 class="accordion-header">';
-                                            echo '<button id="accordion-item-' . $item["id"] . '" class="accordion-button collapsed bg-' . $item["color"] . ' text-white" type="button" data-bs-toggle="collapse" data-bs-target="#' . $item["id"] . '" aria-expanded="false" aria-controls="' . $item["id"] . '" style="font-size: 14px; padding: 4px;">';
-                                            echo $item["title"];
-                                            echo '</button>';
-                                        echo '</h2>';
-                                        echo '<div id="' . $item["id"] . '" class="accordion-collapse collapse" data-bs-parent="#accordionExample2">';
-                                            echo '<div class="accordion-body">';
-                                                echo '<div class="row">';
-                                                    if ($item["id"] == "tarjetaC" || $item["id"] == "Refrendo") {
-                                                        echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
-                                                            echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                    } else {	
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="vencimiento_' . $item["id"] . '">Vencimiento:</label><br>';
-                                                            echo '<input type="date" id="vencimiento_' . $item["id"] . '" name="vencimiento_' . $item["id"] . '" class="form-control">';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<div class="form-check form-switch me-3">';                                                                
-                                                                echo '<input class="form-check-input" type="checkbox" id="si_no_' . $item["id"] . '" name="si_no_' . $item["id"] . '" value="1" style="transform: scale(1.5);">';
-                                                                echo '<label for="si_no_' . $item["id"] . '">No/Si</label>';
-                                                            echo '</div>';
-                                                        echo '</div>';
-                                                    }
-                                                echo '</div>';                                
-                                                echo '<div class="row">';
-                                                    if ($item["id"] == "tarjetaC" || $item["id"] == "Refrendo" || $item["id"] == "Licencia") {
-                                                        echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
-                                                            echo '<label for="observaciones_' . $item["id"] . '">Observaciones:</label>';
-                                                            echo '<textarea id="observaciones_' . $item["id"] . '" name="observaciones_' . $item["id"] . '" class="form-control" placeholder="Observaciones" rows="2"></textarea>';
-                                                        echo '</div>';                                                                                            
-                                                    } else {	
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="no_tarjeta_' . $item["id"] . '">No. Tarjeta:</label>';
-                                                            echo '<input type="input" id="no_tarjeta_' . $item["id"] . '" name="no_tarjeta_' . $item["id"] . '" class="form-control">';
-                                                        echo '</div>';
-                                                        echo '<div class="col-lg-6 col-md-6 col-sm-6 col-6">';
-                                                            echo '<label for="observaciones_' . $item["id"] . '">Observaciones:</label>';
-                                                            echo '<textarea id="observaciones_' . $item["id"] . '" name="observaciones_' . $item["id"] . '" class="form-control" placeholder="Observaciones" rows="2"></textarea>';
-                                                        echo '</div>';                                                                                            
-                                                    }
-                                                echo '</div>';
-                                                echo '<div class="row">';                                                
-                                                        echo '<div class="col-lg-12 col-md-12 col-sm-12 col-12">';
-                                                            echo '<label for="foto_inspeccion">Foto:</label>';
-                                                            echo '<input type="file" id="foto_' . $item["id"] . '" name="foto_' . $item["id"] . '" class="form-control form-control-sm" accept="image/*" capture="camera">';
-                                                        echo '</div>';                                                                                                    
-                                                echo '</div>';                                
-                                        echo '</div>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                }
-                                ?>
-                            </div>
-                        </div>  
-                        <div class="row">
-                            <div class="col-md-12 mt-3">
-                            <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
-                            <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm ms-1" onclick="guardarAvance()">Registrar avance</button>
+                        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+                            <button type="button" id="btnRegresar" class="btn btn-secondary btn-sm" onclick="irAPaso(pasoActual - 1)" style="display:none;">
+                                <i class="fas fa-arrow-left mr-1"></i> Regresar
+                            </button>
+                            <div class="ml-auto">
+                                <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm mr-1" onclick="guardarAvance()">Guardar avance</button>
+                                <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm mr-1" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
+                                <button type="button" id="btnSiguiente" class="btn btn-primary btn-sm" onclick="irAPaso(pasoActual + 1)">
+                                    Siguiente <i class="fas fa-arrow-right ml-1"></i>
+                                </button>
                             </div>
                         </div>
                         </div>
@@ -457,22 +399,26 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     });
     }
     function SeleccionaVehiculo(Registro) {
-        //console.log(Registro);
         $('#id_coche').val(Registro.idCoche);
-        $('#expediente').text(Registro.expediente);
-        $('#empresa').text(Registro.empresa);
-        $('#marca').text(Registro.marca);
-        $('#modelo').text(Registro.modelo);            
-        $('#color').text(Registro.color);
         $('#placa').text(Registro.placa);
-        $('#area').text(Registro.area);            
-        $('#usuario').text(Registro.usuario);            
-        $('#fecha_ultimo_servicio').text(Registro.fecha_ultimo_servicio);                        
-        
-        $('#kilometraje').val(Registro.kilometraje);            
-        $('#fecha_inspeccion').val('');            
-        $('#carta_resguardo').prop('checked', false);            
-        $('#foto_inspeccion').val('');
+        $('#marca').val(Registro.marca);
+        $('#modelo').val(Registro.modelo);
+        $('#modeloMarca').text([Registro.marca, Registro.modelo].filter(Boolean).join(' '));
+        $('#color').text(Registro.color);
+        $('#anioVeh').text(Registro.anio || '');
+        $('#area').text(Registro.area);
+        $('#usuario').text(Registro.usuario || Registro.asignado || '');
+        $('#kilometraje').val(Registro.kilometraje);
+
+        var foto = Registro.fotoGeneral || '';
+        if (foto) {
+            $('#fotoVehiculo').attr('src', foto).show();
+            $('#fotoVehiculoPlaceholder').hide();
+        } else {
+            $('#fotoVehiculo').hide();
+            $('#fotoVehiculoPlaceholder').show();
+        }
+
         limpiarRutasFoto();
         OcultaDivVehiculosAsignados();
         verificarBorrador(Registro.idCoche);
@@ -480,6 +426,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     }
 
         function guardarCheckIn() {
+            if (!$('#id_coche').val()) {
+                Swal.fire('Error', 'Selecciona un vehículo primero.', 'error');
+                return;
+            }
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros
@@ -668,7 +618,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         function cargarDatosBorrador(data) {
             function setVal(name, val) {
-                var v = (val && val !== 'S/R') ? val : '';
+                var v = (val && val !== 'S/R' && val !== '0000-00-00') ? val : '';
                 $('[name="' + name + '"]').val(v);
             }
             function setCheck(name, val) {
@@ -862,92 +812,139 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             verificarCompletitud();
         }
 
-        function verificarCompletitud() {
-            var fotoInputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
-            var completo = Array.from(fotoInputs).every(function(input) {
-                if (input.files && input.files.length > 0) return true;
-                var rutaInput = document.querySelector('input[name="ruta_' + input.name + '"]');
-                return rutaInput && rutaInput.value.trim() !== '';
+        // ======== CARRUSEL ========
+        var pasoActual = 0;
+        var totalPasos = <?= $totalPasos ?>;
+
+        function irAPaso(n) {
+            if (n < 0 || n >= totalPasos) return;
+            pasoActual = n;
+            document.getElementById('chkTrack').style.transform = 'translateX(-' + (pasoActual * 100) + '%)';
+            document.getElementById('pasoInfo').textContent = 'Paso ' + (pasoActual + 1) + ' de ' + totalPasos;
+
+            var dots = document.querySelectorAll('.chk-dot');
+            dots.forEach(function(d, i) {
+                d.classList.toggle('active', i === pasoActual);
             });
-            if (completo) {
-                $('#btnguardarCheck, #btnguardarCheck2').show();
-                $('#btnGuardarAvance, #btnGuardarAvance2').hide();
+
+            document.getElementById('btnRegresar').style.display = pasoActual === 0 ? 'none' : '';
+
+            var btnSig = document.getElementById('btnSiguiente');
+            if (pasoActual === totalPasos - 1) {
+                btnSig.innerHTML = '<i class="fas fa-check mr-1"></i> Finalizar';
+                btnSig.className = 'btn btn-success btn-sm';
+                btnSig.onclick = function() { intentarFinalizar(); };
             } else {
-                $('#btnguardarCheck, #btnguardarCheck2').hide();
-                $('#btnGuardarAvance, #btnGuardarAvance2').show();
+                btnSig.innerHTML = 'Siguiente <i class="fas fa-arrow-right ml-1"></i>';
+                btnSig.className = 'btn btn-primary btn-sm';
+                btnSig.onclick = function() { irAPaso(pasoActual + 1); };
             }
         }
 
-        $(document).on('input', 'textarea, input[type="text"], input[type="date"], input[type="input"]', verificarCompletitud);
-        $(document).on('change', 'input[type="checkbox"]', function() {
-            var sectionId = $(this).closest('.accordion-collapse').attr('id');
-            if (sectionId) {
-                $('[name="_seccion_' + sectionId + '"]').val('1');
+        function marcarDotLleno(idx) {
+            var dots = document.querySelectorAll('.chk-dot');
+            if (dots[idx]) dots[idx].classList.add('filled');
+        }
+
+        function pasoTieneFoto(idx) {
+            var inputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
+            var input = inputs[idx];
+            if (!input) return false;
+            if (input.files && input.files.length > 0) return true;
+            var rutaInput = document.querySelector('input[name="ruta_' + input.name + '"]');
+            return rutaInput && rutaInput.value.trim() !== '';
+        }
+
+        function obtenerFaltantes() {
+            var faltantes = [];
+            var slides = document.querySelectorAll('.chk-slide');
+            var inputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
+            inputs.forEach(function(input, idx) {
+                if (!pasoTieneFoto(idx)) {
+                    var header = slides[idx] ? slides[idx].querySelector('.card-header h6') : null;
+                    faltantes.push({ idx: idx, nombre: header ? header.textContent : ('Paso ' + (idx + 1)) });
+                }
+            });
+            return faltantes;
+        }
+
+        function verificarCompletitud() {
+            var inputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
+            inputs.forEach(function(input, idx) {
+                if (pasoTieneFoto(idx)) marcarDotLleno(idx);
+            });
+        }
+
+        function intentarFinalizar() {
+            var faltantes = obtenerFaltantes();
+            if (faltantes.length === 0) {
+                guardarCheckIn();
+                return;
             }
-            verificarCompletitud();
-        });
+            var lista = faltantes.map(function(f) { return '• ' + f.nombre; }).join('\n');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Faltan fotos en ' + faltantes.length + ' sección(es)',
+                html: '<div class="text-left"><small>' + faltantes.map(function(f) {
+                    return '<span class="d-block">• ' + f.nombre + '</span>';
+                }).join('') + '</small></div>',
+                showCancelButton: true,
+                confirmButtonText: 'Ir al primero faltante',
+                cancelButtonText: 'Guardar avance'
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    irAPaso(faltantes[0].idx);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    guardarAvance();
+                }
+            });
+        }
 
-        // Función para obtener el valor de una cookie por su nombre
+        $(document).on('input', 'textarea, input[type="text"], input[type="date"]', verificarCompletitud);
+        $(document).on('change', 'input[type="checkbox"]', verificarCompletitud);
 
-        // funcion para ocultar el DivVehiculosAsignados
         function OcultaDivVehiculosAsignados() {
             $('#DivVehiculosAsignados').hide();
             $('#DivBtnVehiculosAsignados').show();
+            irAPaso(0);
         }
         function MostrarDivVehiculosAsignados() {
             $('#DivBtnVehiculosAsignados').hide();
             $('#DivVehiculosAsignados').show();
-
         }
 
-       /* $('input[type="file"]').on('click', function (e) {
-            //alert("Por favor, selecciona una foto de inspección." + navigator.userAgent);
-            // Solo aplica en dispositivos móviles
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                // Forzar el atributo capture para abrir la cámara
-                alert("Por favor, selecciona una foto de inspección.");
-                $(this).attr('capture', 'environment');
-                // Opcional: evitar que se pueda seleccionar archivos existentes
-                $(this).attr('accept', 'image/*');
-            } else {
-                // En desktop, permitir selección normal
-                $(this).removeAttr('capture');
+        $(document).on('change', 'input[type="file"][name^="foto_"]', function() {
+            var input = this;
+            var file = input.files[0];
+            if (!file) return;
+            var id = input.name.replace('foto_', '');
+            var preview = document.getElementById('preview_foto_' + id);
+            var captura = document.getElementById('captura_foto_' + id);
+            var wrap = document.getElementById('wrap_foto_' + id);
+            if (preview && captura && wrap) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    captura.style.display = 'none';
+                    wrap.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
             }
-        });*/
-        document.addEventListener('DOMContentLoaded', function() {
-            // Selecciona el input por su ID (tendrás que adaptar esto si tienes varios inputs dinámicos)
-            // Usaremos un selector más genérico si tienes varios inputs con nombres similares
-            var inputsFoto = document.querySelectorAll('input[type="file"][name^="foto_"]');
-
-            inputsFoto.forEach(function(input) {
-                input.addEventListener('change', function(event) {
-                    const file = event.target.files[0]; // Obtiene el primer archivo seleccionado
-
-                    if (file) {
-                        // Quitar cualquier preview existente (borrador o selección previa)
-                        $(input).parent().find('.foto-borrador-preview, [id^="preview_"]').remove();
-
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const previewId = 'preview_' + input.name;
-                            let previewElement = document.getElementById(previewId);
-                            if (!previewElement) {
-                                previewElement = document.createElement('img');
-                                previewElement.id = previewId;
-                                previewElement.style.maxWidth = '80px';
-                                previewElement.style.maxHeight = '60px';
-                                previewElement.style.marginTop = '4px';
-                                previewElement.style.borderRadius = '4px';
-                                previewElement.style.display = 'block';
-                                input.parentNode.appendChild(previewElement);
-                            }
-                            previewElement.src = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
-                        verificarCompletitud();
-                    }
-                });
-            });
+            verificarCompletitud();
         });
+
+        function quitarFoto(id) {
+            var input = document.getElementById('foto_' + id);
+            var captura = document.getElementById('captura_foto_' + id);
+            var wrap = document.getElementById('wrap_foto_' + id);
+            var preview = document.getElementById('preview_foto_' + id);
+            var ruta = document.querySelector('input[name="ruta_foto_' + id + '"]');
+            if (input) input.value = '';
+            if (ruta) ruta.value = '';
+            if (preview) preview.src = '';
+            if (wrap) wrap.style.display = 'none';
+            if (captura) captura.style.display = '';
+            verificarCompletitud();
+        }
 </script>
 </html>

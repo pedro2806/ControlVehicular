@@ -331,9 +331,9 @@ function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campo
         foreach ($campos as $col => $val) { $allCols[] = $col; $allVals[] = "'$val'"; }
         $allCols[] = 'foto';
         $allVals[] = $fotoSql;
-        if (!isset($campos['entregado']))  { $allCols[] = 'entregado';  $allVals[] = "'S/R'"; }
-        if (!isset($campos['vencimiento'])){ $allCols[] = 'vencimiento'; $allVals[] = "NULL"; }
-        if (!isset($campos['no_tarjeta'])) { $allCols[] = 'no_tarjeta'; $allVals[] = "'S/R'"; }
+        if (!array_key_exists('entregado', $campos))  { $allCols[] = 'entregado';  $allVals[] = "'S/R'"; }
+        if (!array_key_exists('vencimiento', $campos)){ $allCols[] = 'vencimiento'; $allVals[] = "NULL"; }
+        if (!array_key_exists('no_tarjeta', $campos)) { $allCols[] = 'no_tarjeta'; $allVals[] = "'S/R'"; }
         $sql = "INSERT INTO checklist_documentacion (" . implode(', ', $allCols) . ") VALUES (" . implode(', ', $allVals) . ")";
     }
     if (mysqli_query($conn, $sql)) {

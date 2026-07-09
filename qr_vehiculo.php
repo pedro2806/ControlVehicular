@@ -724,10 +724,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                             Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo registrar.', confirmButtonText: 'Aceptar' });
                         }
                     },
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        var detalle = 'Status: ' + jqXHR.status + ' | ' + textStatus + ' | ' + errorThrown;
-                        if (jqXHR.responseText) detalle += '\nRespuesta: ' + jqXHR.responseText.substring(0, 200);
-                        Swal.fire({ icon: 'error', title: 'Error', text: detalle, confirmButtonText: 'Aceptar' });
+                    error: function () {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.', confirmButtonText: 'Aceptar' });
                     },
                     complete: function () {
                         $('#btnGuardarCheckinKM').prop('disabled', false).text('Registrar Entrada');

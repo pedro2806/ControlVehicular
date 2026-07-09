@@ -36,11 +36,14 @@
                 ?>
                 
                 <!-- Begin Page Content -->
-                <div class = "container-fluid">
-                    <!-- Page Heading -->
-                    <div class = "d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class = "h3 mb-0 text-black-800">Solicitud de Prestamo Vehicular</h1>                        
-                    </div>
+                <div class="container-fluid">    
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header text-bg-secondary">
+                            Solicitud de Préstamo Vehicular
+                        </div>
+                        <div class="card-body p-2 p-md-2">
+                            
+                        
                     <!-- FORMULARIO DEL PRESTAMO-->
                     <form id="formRegistroPrestamo">
                         <input type="hidden" id="fecha" name="fecha">
@@ -114,6 +117,8 @@
                             </button>
                         </div>
                     </form>
+                </div>
+                </div>
                 </div>
             </div>
             <footer class = "sticky-footer bg-white">
@@ -195,20 +200,19 @@
         }
 
         //FUNCION REGISTRO DEl PRESTAMO
-        function RegistrarPrestamo() {
-            var fecha_registro = $("#fecha").val();
+        function RegistrarPrestamo() {            
+            var fecha_registro = $("#fecha").val();            
             var fecha_inc_prestamo = $("#fecha_inc_prestamo").val();
             var fecha_fin_prestamo = $("#fecha_fin_prestamo").val();
             var id_usuario = getCookie("id_usuario");
             var id_checklist = $("#id_checklist").val();
             var motivo = $("#motivo").val();
             var accion = "RegistrarPrestamo";
-            var tipo_uso = $("#visita_vinculada").val();
-            var detalle_tipo_uso = $("#dato").val();
+            var tipo_uso = $("#visita_vinculada").val();            
             var destino = $("#destino").val();
             var id_vehiculo = $("#id_vehiculo").val();
             // Validar campos obligatorios generales
-            if (!fecha_inc_prestamo || !fecha_fin_prestamo || !id_vehiculo || !tipo_uso || !destino || !motivo) {
+            if (!fecha_inc_prestamo || !fecha_fin_prestamo || !id_vehiculo) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
@@ -225,7 +229,7 @@
             $.ajax({
                 type: "POST",
                 url: "acciones_prestamos",
-                data: { fecha_registro, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, detalle_tipo_uso, tipo_uso, destino, id_vehiculo },
+                data: { fecha_registro, fecha_inc_prestamo, fecha_fin_prestamo, id_usuario, id_checklist, motivo, accion, destino, id_vehiculo, tipo_uso },
                 dataType: "json",
                 success: function (respuesta) {
                     Swal.fire({
@@ -235,7 +239,6 @@
                         timer: 3000,
                         confirmButtonText: 'Aceptar'
                     }).then(() => {
-                        $("#formRegistroPrestamo")[0].reset();
                         // Ejecutar correoPrestamo.php antes de redirigir
                         /*$.ajax({
                             type: "POST",

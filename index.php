@@ -89,19 +89,24 @@
             $pass = $_POST['InputPassword'];
             $usuario = explode('@', $usuario)[0];
             
-            $Qempresas  =  "SELECT  * FROM usuarios WHERE usuario  = '".$usuario."@mess.com.mx' and password  =  '".$pass."' AND estatus = 1";
+            $usuarioEsc = mysqli_real_escape_string($conn, $usuario . '@mess.com.mx');
+            $passEsc    = mysqli_real_escape_string($conn, $pass);
+            $Qempresas  = "SELECT cv.*,
+                                  TRIM(CONCAT(IFNULL(rrhh.nombres,''), ' ', IFNULL(rrhh.apellidos,''))) AS nombre_completo
+                           FROM usuarios cv
+                           LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv.noEmpleado
+                           WHERE cv.usuario = '$usuarioEsc' AND cv.password = '$passEsc' AND cv.estatus = 1";
             $res2 = mysqli_query($conn, $Qempresas);
-            
+
             if (!$res2) {
                 die("Error in query execution: " . mysqli_error($conn));
-                echo $Qempresas;
             }
-            
+
             $nr = mysqli_num_rows($res2);
-            
+
             if ($nr > 0) {
                 while ($row2 = mysqli_fetch_array($res2)) {
-                    $nombreEmpleado = $row2["nombre"];
+                    $nombreEmpleado = ($row2["nombre_completo"] !== '') ? $row2["nombre_completo"] : $row2["nombre"];
                     $noEmpleado = $row2["noEmpleado"];
                     $id_usuario = $row2["id_usuario"];
                     $rol = $row2["rol"];

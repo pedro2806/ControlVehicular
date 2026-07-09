@@ -7,7 +7,7 @@ function verificarPermisoUbicacion() {
     var btn    = document.getElementById('btnAceptarUbicacion');
 
     var TEXTOS = {
-        denied: ['Ubicación bloqueada', 'Tu navegador tiene bloqueada la ubicación para este sitio.'],
+        denied: ['Ubicación bloqueada', 'Tu navegador tiene bloqueada la ubicación para este sitio. Permite la ubicación y recarga la página.'],
         prompt: ['Habilita el acceso a tu ubicación', 'Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.']
     };
 
@@ -24,6 +24,13 @@ function verificarPermisoUbicacion() {
         var t = TEXTOS[state] || TEXTOS.prompt;
         titulo.textContent = t[0];
         msg.textContent    = t[1];
+        if (btn) {
+            if (state === 'denied') {
+                btn.classList.add('d-none');
+            } else {
+                btn.classList.remove('d-none');
+            }
+        }
         banner.classList.remove('d-none');
     }
 

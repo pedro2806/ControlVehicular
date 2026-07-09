@@ -60,142 +60,80 @@
                     </div>
 
                     <!-- CONTENEDOR INFO AUTO -->
-                    <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                    <button id="btnCambiarVehiculo" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>
+                    <div class="card shadow-sm mb-3" id="placaSeleccionada" style="display:none;">
+                        <div class="card-body py-3 px-3">
+                            <div class="d-flex align-items-center">
+                                <div style="width:60px;height:60px;border-radius:8px;background:#e9ecef;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fas fa-car fa-2x text-muted"></i>
+                                </div>
+                                <div class="ml-3 flex-grow-1">
+                                    <h5 class="mb-0 font-weight-bold text-primary" id="infoPlacaSin"></h5>
+                                    <span class="text-dark" id="infoModeloMarcaSin"></span><br>
+                                    <small class="text-muted" id="infoColorSin"></small>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cambiarVehiculo()">
+                                        <i class="fas fa-exchange-alt me-1"></i> Cambiar Vehículo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- FORMULARIO DEL SINIESTRO -->
                     <form id="formRegistroSiniestro" style="display: none;">
-                        <!-- Content Row -->
-                        <div class = "row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                        <input type="hidden" id="tipo_carro" name="tipo_carro" value="S/R">
+                        <!-- Ubicación -->
+                        <h1 class="h5 mb-2 text-gray-800">Ubicación</h1>
+                        <div class="row mb-3">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
                                 <label>Fecha:</label>
-                                <input type = "date" class = "form-control" id = "fecha" name = "fecha" required>
+                                <input type="date" class="form-control" id="fecha" name="fecha" required>
                             </div>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Hora:</label> 
-                                <input type = "time" class = "form-control" id = "hora" name = "hora" required>       
-                            </div>                            
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" style="display: none;">
-                                <label>Tipo de Vehiculo:</label> 
-                                <select class="form-select" id="tipo_carro" name="tipo_carro" required onchange="mostrarCampoDueno()">
-                                    <option value="S/R">Seleccione...</option>
-                                    <option value="Asignado">Asignado</option>
-                                    <option value="Propio">Propio</option>
-                                    <option value="Prestado">Prestado</option>
-                                </select>       
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
+                                <label>Hora:</label>
+                                <input type="time" class="form-control" id="hora" name="hora" required>
                             </div>
-                            <br>
-                            <br>
-                            <!-- Campo adicional para el nombre del dueño -->
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6" id="campo_dueno" style="display: none;">
-                                <label>Propietario:</label>
-                                <select class="form-select" id="id_dueno" name="id_dueno" required>
+                            <div class="col-lg-6 col-md-12 col-sm-12 col-12 mb-2">
+                                <label>Lugar del siniestro:</label>
+                                <input class="form-control" id="lugar" name="lugar" placeholder="Ej. Blvd. Independencia esq. Av. Universidad" required>
+                            </div>
+                        </div>
+                        <!-- Content Row -->
+                        <h1 class="h5 mb-2 text-gray-800">Detalles del Automóvil</h1>
+                        <div class="row mb-3">
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
+                                <label>Ubicación del vehículo:</label>
+                                <select class="form-select" id="ubicacion" name="ubicacion" required onchange="toggleUbicacionOtro()">
                                     <option value="">Seleccione...</option>
-                                    <!-- Las opciones se cargarán dinámicamente -->
+                                    <option value="MESS">MESS</option>
+                                    <option value="Mecánico">Mecánico</option>
+                                    <option value="Corralón">Corralón</option>
+                                    <option value="Otro">Otro</option>
                                 </select>
+                                <input class="form-control mt-1" id="ubicacion_otro" name="ubicacion_otro" placeholder="Especificar..." style="display:none;">
                             </div>
-                        </div>
-                        <br>
-                        <!-- Content Row -->
-                        <h1 class = "h5 mb-0 text-gray-800">Ubicacion</h1>
-                        <div class="row">
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Origen:</label>  
-                                <input class = "form-control" id = "origen" name = "origen"  required>    
+                            <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
+                                <label>Partes Dañadas:</label>
+                                <input class="form-control" id="daños" name="daños" required>
                             </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Destino:</label>
-                                <input type = "text" class = "form-control" id = "destino" name = "destino" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Lugar:</label>  
-                                <input class = "form-control" id = "lugar" name = "lugar">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Empresa:</label>
-                                <input type = "text" class = "form-control" id = "empresa" name = "empresa" oninput="this.value = this.value.toUpperCase()">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Servicio:</label>
-                                <input type = "text" class = "form-control" id = "servicio" name = "servicio">
-                            </div>
-                        </div>
-                        <br>
-                        <!-- Content Row -->
-                        <div class = "row">
-                            <h1 class = "h5 mb-0 text-gray-800">Detalles del Automovil</h1>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Kilometraje:</label>  
-                                <input class = "form-control" id = "kilometraje" name = "kilometraje" type="number" min="0">
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Gasolina:</label>
-                                <select class = "form-select" id = "gasolina" name = "gasolina">
-                                    <option value = "">Seleccione...</option>
-                                    <option value = "SD">Sin Datos</option>
-                                    <option value = "1/8">1/8</option>
-                                    <option value = "2/8">2/8</option>
-                                    <option value = "3/8">3/8</option>    
-                                    <option value = "4/8">4/8</option>
-                                    <option value = "5/8">5/8</option>
-                                    <option value = "6/8">6/8</option>
-                                    <option value = "7/8">7/8</option>
-                                    <option value = "8/8">8/8</option>
-                                </select>  
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Ubicacion del Vehiculo:</label>  
-                                <input class = "form-control" id = "ubicacion" name = "ubicacion" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Partes Dañadas:</label>  
-                                <input class = "form-control" id = "daños" name = "daños" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
-                                <label>Contacto:</label>  
-                                <input class = "form-control" id = "contacto" name = "contacto" type="tel" required>
-                            </div>
-                            <br>
-                            <br>
-                            <div class="col-lg-3 col-md-6 col-sm-6 col-6">
+                            <div class="col-lg-6 col-md-6 col-sm-12 col-12 mb-2">
                                 <label>Descripción:</label>
                                 <input type="text" class="form-control" id="descripcion" name="descripcion" required>
                             </div>
-                            <div id="contenedorFotos">
-                                <label>Fotos del Siniestro:</label>
-                                <div class="input-group mb-3">
-                                    <input 
-                                        type="file" 
-                                        class="form-control foto-siniestro" 
-                                        name="foto[]" 
-                                        accept="image/*" 
-                                        capture="environment" 
-                                        required>
-                                </div>
+                        </div>
+                        <div id="contenedorFotos" class="mb-2">
+                            <label>Fotos del Siniestro: <small class="text-muted">(opcional, máx. 4)</small></label>
+                            <div class="input-group mb-2">
+                                <input type="file" class="form-control foto-siniestro" name="foto[]" accept="image/*" capture="environment">
                             </div>
-                        </div>                        
-                        <button type="button" class="btn btn-outline-info btn-sm" id="btnAgregarFoto" onclick="agregarCampoFoto()">
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="btnAgregarFoto" onclick="agregarCampoFoto()">
                             <i class="fas fa-plus"></i> Agregar Foto
                         </button>
-                        <input type="hidden" id = "coordenadas" name = "coordenadas">
-                        <input type="hidden" id = "id_vehiculo" name = "id_vehiculo">
+                        <input type="hidden" id="coordenadas" name="coordenadas">
+                        <input type="hidden" id="id_vehiculo" name="id_vehiculo">
                         <div class="text-center">
-                            <button type="button" class="btn btn-outline-success" onclick="RegistrarSiniestro()">Guardar</button>
+                            <button type="button" class="btn btn-primary" onclick="RegistrarSiniestro()">Guardar</button>
                         </div>
                     </form>
                     <br>
@@ -228,7 +166,6 @@
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos();
-            cargarUsuarios();
             const now = new Date();
             const fecha = now.toISOString().split('T')[0];
             const hora = now.toTimeString().split(' ')[0].slice(0, 5); 
@@ -312,18 +249,11 @@
 
         // FUNCION PARA MANEJAR EL BOTÓN "CHECK"
         function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
-            $("#placaSeleccionada")
-                    .html(`
-                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                            <span><strong>Placa:</strong> <span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
-                            <span><strong>Modelo:</strong> <span style="font-weight: normal;">${modelo}</span></span>
-                            <span><strong>Marca:</strong> <span style="font-weight: normal;">${marca}</span></span>
-                            <span><strong>Color:</strong> <span style="font-weight: normal;">${color}</span></span>
-                        </div>
-                    `)
-                    .show();
+            $("#infoPlacaSin").text(placa);
+            $("#infoModeloMarcaSin").text(modelo + ' ' + marca);
+            $("#infoColorSin").text(color);
+            $("#placaSeleccionada").show();
             $("#id_vehiculo").val(id_vehiculo);
-            $("#btnCambiarVehiculo").show();
             $("#tablaInventario").closest(".container").hide();
             $("#formRegistroSiniestro").show();
         }
@@ -331,227 +261,79 @@
         // FUNCION PARA CAMBIAR DE VEHICULO
         function cambiarVehiculo() {
             $("#placaSeleccionada").hide();
-            $("#btnCambiarVehiculo").hide();
             $("#tablaInventario").closest(".container").show();
             $("#formRegistroSiniestro").hide();
         }
 
-        // Cargar la lista de usuarios 
-        function cargarUsuarios() {
-            $.ajax({
-                type: "POST",
-                url: "acciones_mantenimiento",
-                data: { accion: "consultarUsuarios" },
-                dataType: "json",
-                success: function (respuesta) {
-                    var select = $("#id_dueno");
-                    select.empty(); // Limpiar las opciones existentes
-                    select.append('<option value="">Seleccione un propietario...</option>'); // Opción por defecto
-                    Array.isArray(respuesta) && respuesta.forEach(function (usuario) {
-                        select.append(`<option value="${usuario.id_usuario}">${usuario.nombre}</option>`);
-                    });
-                },
-                error: function () {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "Hubo un problema al cargar la lista de usuarios.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            });
+        function toggleUbicacionOtro() {
+            var val = $("#ubicacion").val();
+            $("#ubicacion_otro").toggle(val === 'Otro');
+            if (val !== 'Otro') $("#ubicacion_otro").val('');
         }
 
         //FUNCION REGISTRO DE SINIESTRO
         function RegistrarSiniestro() {
             var fecha = $("#fecha").val();
             var hora = $("#hora").val();
-            var origen = $("#origen").val();
-            var destino = $("#destino").val();
             var lugar = $("#lugar").val();
-            var empresa = $("#empresa").val();
-            var servicio = $("#servicio").val();
-            var kilometraje = $("#kilometraje").val();
-            var gasolina = $("#gasolina").val();
-            var ubicacion = $("#ubicacion").val();
+            var ubicacionSel = $("#ubicacion").val();
+            var ubicacion = (ubicacionSel === 'Otro') ? ($("#ubicacion_otro").val().trim() || 'Otro') : ubicacionSel;
             var daños = $("#daños").val();
-            var contacto = $("#contacto").val();
             var descripcion = $("#descripcion").val();
             var tipo_carro = $("#tipo_carro").val();
-            var id_dueno = $("#id_dueno").val();
-            var placa = $("#placaVehiculo").text().replace("Vehículo seleccionado: ", "").trim();
             var id_vehiculo = $("#id_vehiculo").val();
-            var accion = "registroSiniestro";
+            var placa = $("#infoPlacaSin").text().trim();
 
-            // Validar que la placa esté seleccionada
-            if (!placa) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Placa no seleccionada',
-                    text: 'Por favor, selecciona un vehículo antes de continuar.',
-                    confirmButtonText: 'Aceptar'
-                });
+            if (!id_vehiculo) {
+                Swal.fire({ icon: 'warning', title: 'Sin vehículo', text: 'Selecciona un vehículo antes de continuar.', confirmButtonText: 'Aceptar' });
+                return;
+            }
+            if (!fecha || !hora || !lugar || !ubicacionSel || !daños || !descripcion) {
+                Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor, completa todos los campos requeridos.', confirmButtonText: 'Aceptar' });
                 return;
             }
 
-            // Validar que los campos requeridos no estén vacíos
-            if (!fecha || !hora || !origen || !destino || !ubicacion || !daños ||
-                !contacto || !descripcion || (tipo_carro === "Prestado" && !id_dueno)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Campos incompletos',
-                    text: 'Por favor, completa todos los campos requeridos antes de enviar.',
-                    confirmButtonText: 'Aceptar'
-                });
-                return;
-            }
+            var $btn = $('button[onclick="RegistrarSiniestro()"]');
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Guardando...');
 
-            function enviarSiniestro(coordenadas) {
-                var formData = new FormData();
-                formData.append("id_vehiculo", id_vehiculo);
-                formData.append("fecha", fecha);
-                formData.append("hora", hora);
-                formData.append("origen", origen);
-                formData.append("destino", destino);
-                formData.append("lugar", lugar);
-                formData.append("empresa", empresa);
-                formData.append("servicio", servicio);
-                formData.append("coordenadas", coordenadas);
-                formData.append("kilometraje", kilometraje);
-                formData.append("gasolina", gasolina);
-                formData.append("ubicacion", ubicacion);
-                formData.append("daños", daños);
-                formData.append("contacto", contacto);
-                formData.append("descripcion", descripcion);
-                formData.append("tipo_carro", tipo_carro);
-                formData.append("id_dueno", id_dueno);
-                formData.append("placa", placa);
-                formData.append("accion", 'registroSiniestro');
-
-                var archivos = document.querySelectorAll('input[name="foto[]"]');
-                archivos.forEach(function(input) {
-                    if (input.files.length > 0) {
-                        for (var i = 0; i < input.files.length; i++) {
-                            formData.append('foto[]', input.files[i]);
-                        }
-                    }
-                });
-
-                $.ajax({
-                    type: "POST",
-                    url: "acciones_siniestro",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    success: function (respuesta) {
-                        if (respuesta.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Siniestro registrado exitosamente.',
-                                text: 'Esperemos se encuentre fuera de peligro.',
-                                confirmButtonText: 'Aceptar'
-                            }).then(function () {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: respuesta.message,
-                                confirmButtonText: 'Aceptar'
-                            });
-                        }
-                    },
-                    error: function () {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Hubo un problema al registrar el siniestro.',
-                            confirmButtonText: 'Aceptar'
-                        });
-                    }
-                });
-            }
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (pos) {
-                        enviarSiniestro(pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6));
-                    },
-                    function () {
-                        enviarSiniestro($("#coordenadas").val() || '');
-                    },
-                    { timeout: 5000, maximumAge: 30000 }
-                );
-            } else {
-                enviarSiniestro($("#coordenadas").val() || '');
-            }
-        }
-
-        //FUNCION PARA SUBIR IMAGENES
-        function subirImagenes(id_vehiculo, placa, id_formato) {
             var formData = new FormData();
-            var fotos = document.querySelectorAll('.foto-siniestro');
             formData.append("id_vehiculo", id_vehiculo);
+            formData.append("fecha", fecha);
+            formData.append("hora", hora);
+            formData.append("lugar", lugar);
+            formData.append("coordenadas", $("#coordenadas").val() || '');
+            formData.append("ubicacion", ubicacion);
+            formData.append("daños", daños);
+            formData.append("descripcion", descripcion);
+            formData.append("tipo_carro", tipo_carro);
             formData.append("placa", placa);
-            formData.append("id_formato", id_formato);
-            formData.append("accion", "subirImagenes");
-            
-            fotos.forEach(function(fotoInput) {
-                var foto = fotoInput.files[0];
-                if (foto) {
-                    formData.append("fotos[]", foto);
+            formData.append("accion", 'registroSiniestro');
+
+            document.querySelectorAll('input[name="foto[]"]').forEach(function(input) {
+                for (var i = 0; i < input.files.length; i++) {
+                    formData.append('foto[]', input.files[i]);
                 }
             });
+
             $.ajax({
-                type: "POST",
-                url: "acciones_siniestro",
-                data: formData,
-                processData: false,
-                contentType: false,
-                dataType: 'json',
-                success: function (respuesta) {
-                    if (respuesta.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: 'Imágenes subidas exitosamente.',
-                            confirmButtonText: 'Aceptar'
-                        });
+                type: "POST", url: "acciones_siniestro", data: formData,
+                processData: false, contentType: false, dataType: 'json',
+                success: function (r) {
+                    $btn.prop('disabled', false).html('Guardar');
+                    if (r.success) {
+                        Swal.fire({ icon: 'success', title: 'Siniestro registrado.', confirmButtonText: 'Aceptar' })
+                            .then(function() { location.reload(); });
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: respuesta.message,
-                            confirmButtonText: 'Aceptar'
-                        });
+                        Swal.fire({ icon: 'error', title: 'Error', text: r.message, confirmButtonText: 'Aceptar' });
                     }
                 },
                 error: function () {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Hubo un problema al subir las imágenes.',
-                        confirmButtonText: 'Aceptar'
-                    });
+                    $btn.prop('disabled', false).html('Guardar');
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Hubo un problema al registrar el siniestro.', confirmButtonText: 'Aceptar' });
                 }
             });
         }
 
-        //FUNCION PARA MOSTRAR CAMPO DEL DUEÑO DEL VEHICULO
-        function mostrarCampoDueno() {
-            var tipo_carro = $("#tipo_carro").val();
-            var campo_dueno = $("#campo_dueno");
-
-            if (tipo_carro === "Prestado" || tipo_carro === "Asignado") {
-                campo_dueno.show(); // Mostrar el campo
-                $("#id_dueno").attr("required", true); // Hacer el campo obligatorio
-            } else {
-                campo_dueno.hide(); // Ocultar el campo
-                $("#id_dueno").removeAttr("required"); // Quitar la obligatoriedad
-            }
-        }
         
         //Validar el número máximo de imágenes (4)
         $("#foto").on("change", function () {
@@ -584,14 +366,8 @@
 
             // Crear un nuevo grupo de input y botón eliminar
             var nuevoCampo = `
-                <div class="input-group mb-3">
-                    <input 
-                        type="file" 
-                        class="form-control foto-siniestro" 
-                        name="foto[]" 
-                        accept="image/*" 
-                        capture="environment" 
-                        required>
+                <div class="input-group mb-2">
+                    <input type="file" class="form-control foto-siniestro" name="foto[]" accept="image/*" capture="environment">
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarCampo(this)">Eliminar</button>
                 </div>`;
             

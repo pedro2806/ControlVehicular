@@ -11,63 +11,41 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
     <title>Control Vehicular</title>
-
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body id="page-top">
-    <!-- Page Wrapper -->
     <div id="wrapper">
-        <?php
-        include 'menu.php';
-        ?>
-        <!-- Content Wrapper -->
+        <?php include 'menu.php'; ?>
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <?php
-                include 'encabezado.php';
-                ?>
-                <!-- Begin Page Content -->
+                <?php include 'encabezado.php'; ?>
                 <div class="container-fluid">
-                    <!-- Content Row -->
-                    <div class="row">
-                        <div class="col-xl-12 col-lg-12">
-                            <h1 class="h3 mb-0 text-black-800">Historial de Siniestros</h1>
-                            <br>
-                            <!-- CONTENEDOR INFO AUTO -->                            
-                            <div id="placaSeleccionada" class="alert alert-info" style="display: none;"></div> 
-                            <button id="btnCambiarVehiculo" class="btn btn-outline-primary" style="display: none;" onclick="cambiarVehiculo()">Cambiar Vehículo</button>    
-                            <div class="card shadow mb-4">
-                                <!-- Tabla de Vehículos -->
-                                <div class="card-body">
-                                    <div class="table-responsive" style="overflow-x: auto;">
-                                        <table class="table table-striped table-bordered table-sm" id="TablaInventario" width="100%" cellspacing="0">
-                                            <thead></thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                    <div class="table-responsive" style="overflow-x: auto; display: none;">
-                                        <table class="table table-striped table-bordered" id="TablaRegistrosSiniestros" width="100%" cellspacing="0">
-                                            <thead></thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            <div id="detalleSiniestroContainer"></div>
+                    <!-- Heading -->
+                    <div class="d-sm-flex align-items-center justify-content-between mb-3">
+                        <h1 class="h3 mb-0 text-black-800">Historial de Siniestros</h1>
+                        <span class="badge bg-secondary fs-6" id="badgeTotal"></span>
+                    </div>
+
+                    <!-- Buscador -->
+                    <div class="mb-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="buscadorFeed"
+                                   placeholder="Buscar por placa, lugar o descripción...">
                         </div>
+                    </div>
+
+                    <!-- Feed -->
+                    <div id="feedSiniestros" class="row"></div>
+
+                    <!-- Sin resultados -->
+                    <div id="noResultados" class="text-center text-muted py-5" style="display:none;">
+                        <i class="fas fa-car-crash fa-3x mb-3"></i>
+                        <p class="mb-0">No se encontraron siniestros.</p>
                     </div>
                 </div>
             </div>
@@ -80,380 +58,245 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             </footer>
         </div>
     </div>
-    <a class="scroll-to-top rounded" href="#page-top">
-        <i class="fas fa-angle-up"></i>
-    </a>
-    <!-- Bootstrap core JavaScript-->
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
-    <!-- DataTables JavaScript -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <!-- API GPS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <script type="text/javascript">
-        $(document).ready(function() {
-            // Inicializar DataTables
-            var TablaInventario = $('#TablaInventario').DataTable({
-                data: [], // Inicialmente vacío
-                columns: [
-                    { title: "Placa" },
-                    { title: "Modelo" },
-                    { title: "Color" },
-                    { title: "Año" },
-                    { title: "Asignado" },
-                    { title: "Acciones" }
-                ],
-                paging: true,
-                pageLength: 10,
-                ordering: true,
-                searching: true,
-                info: true,
-                language: {
-                    decimal: ",",
-                    thousands: ".",
-                    processing: "Procesando...",
-                    loadingRecords: "Cargando...",
-                    zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "Siguiente",
-                        previous: "Anterior"
-                    },
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    aria: {
-                        sortAscending: ": activar para ordenar la columna de manera ascendente",
-                        sortDescending: ": activar para ordenar la columna de manera descendente"
-                    }
-                },                
-                createdRow: function(row, data, dataIndex) {
-                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
-                }
+    <!-- Modal Detalle -->
+    <div class="modal fade" id="modalDetalleSiniestro" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-car-crash me-2"></i>Detalle del Siniestro</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalDetalleBody">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js" crossorigin="anonymous"></script>
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/sb-admin-2.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        var leafletMapModal = null;
+
+        $(document).ready(function () {
+            cargarFeed();
+
+            $('#buscadorFeed').on('input', function () {
+                filtrarFeed($(this).val().toLowerCase().trim());
             });
-            // Inicializar DataTables para la tabla de registros
-            var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable({
-                data: [], // Inicialmente vacío
-                columns: [
-                    { title: "Fecha" },
-                    { title: "Origen" },
-                    { title: "Destino" },
-                    { title: "Empresa" },
-                    { title: "Servicio" },
-                    { title: "Acciones" }
-                ],
-                paging: true,
-                pageLength: 5,
-                ordering: true,
-                searching: true,
-                info: true,
-                language: {
-                    decimal: ",",
-                    thousands: ".",
-                    processing: "Procesando...",
-                    loadingRecords: "Cargando...",
-                    zeroRecords: "No se encontraron resultados",
-                    emptyTable: "No hay datos disponibles en la tabla",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)",
-                    search: "Buscar:",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "Siguiente",
-                        previous: "Anterior"
-                    },
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    aria: {
-                        sortAscending: ": activar para ordenar la columna de manera ascendente",
-                        sortDescending: ": activar para ordenar la columna de manera descendente"
-                    }
-                },                
-                createdRow: function(row, data, dataIndex) {
-                    $(row).css('font-size', '12px'); // Reducir tamaño del texto
-                }
+
+            document.getElementById('modalDetalleSiniestro').addEventListener('hidden.bs.modal', function () {
+                if (leafletMapModal) { leafletMapModal.remove(); leafletMapModal = null; }
             });
-            cargarVehiculos(TablaInventario);
         });
 
-        // Cargar Vehículos
-        function cargarVehiculos(TablaInventario) {
+        function cargarFeed() {
+            $('#feedSiniestros').html('<div class="col-12 text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
             $.ajax({
                 type: "POST",
-                url: 'acciones_ver_registros',
-                data: {accion: 'ver_inventario'},
+                url: "acciones_siniestro",
+                data: { accion: "obtenerFeedSiniestros" },
                 dataType: "json",
-                success: function(respuesta) {
-                    TablaInventario.clear(); 
-
-                    Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
-                        var botones = `
-                            <button class="btn btn-outline-warning" onclick="inventario('${vehiculo.id_vehiculo}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            `;
-                        
-                        var fila = [
-                            `<i class="fas fa-car"></i> ${vehiculo.placa}</strong>`,
-                            `${vehiculo.modelo} - ${vehiculo.marca}`,
-                            `${vehiculo.color}`,
-                            `${vehiculo.anio}`,
-                            `${vehiculo.usuario}`,
-                            `<div class="text-center">
-                                <button class="btn btn-outline-warning btn-sm" onclick="seleccionarVehiculo('${vehiculo.id_vehiculo}', '${vehiculo.placa}' , '${vehiculo.modelo}', '${vehiculo.marca}', '${vehiculo.anio}', '${vehiculo.color}', '${vehiculo.usuario}')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>`
-                        ];
-                        TablaInventario.row.add(fila);
-                    });
-
-                    TablaInventario.draw(); // Redibujar tabla con los nuevos datos
+                success: function (data) {
+                    var items = Array.isArray(data) ? data : [];
+                    renderFeed(items);
+                    var total = items.length;
+                    $('#badgeTotal').text(total + ' siniestro' + (total !== 1 ? 's' : ''));
                 },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo cargar la información de los vehículos.",
-                        confirmButtonText: "Aceptar"
-                    });
+                error: function () {
+                    $('#feedSiniestros').html('<div class="col-12 text-center text-danger py-5"><i class="fas fa-exclamation-circle fa-2x"></i><p class="mt-2">Error al cargar los siniestros.</p></div>');
                 }
             });
         }
 
-        //FUNCION PARA MANEJAR EL BOTÓN "CHECK"
-        function seleccionarVehiculo(id_vehiculo, placa, modelo, marca, color) {
-            $("#placaSeleccionada")
-                .html(`
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span>Placa:<span id="placaVehiculo" style="font-weight: normal;">${placa}</span></span>
-                        <span>Modelo:<span style="font-weight: normal;">${modelo}</span></span>
-                        <span>Marca:<span style="font-weight: normal;">${marca}</span></span>
-                        <span>Color:<span style="font-weight: normal;">${color}</span></span>
-                    </div>
-                `).show();
-            // Guardar el ID del vehículo seleccionado en un campo oculto
-            $("#id_vehiculo").val(id_vehiculo);
-            $("#btnCambiarVehiculo").show();
-            $("#TablaInventario").closest(".table-responsive").hide();
-            $("#TablaRegistrosSiniestros").closest(".table-responsive").show();
-            siniestrosXvehiculo(id_vehiculo);
-        }
-        //FUNCION PARA CAMBIAR DE VEHÍCULO
-        function cambiarVehiculo() {
-            $("#placaSeleccionada").hide();
-            $("#btnCambiarVehiculo").hide();
-            $("#TablaInventario").closest(".table-responsive").show();
-            $("#TablaRegistrosSiniestros").closest(".table-responsive").hide();
-        }
-        
-        //FUNCION PARA VER LOS VEHICULOS
-        function inventario(id_vehiculo) {
-            $.ajax({
-                type: "POST",
-                url: 'acciones_ver_registros',
-                data: {accion: 'siniestrosVehiculo', id_vehiculo: id_vehiculo},
-                dataType: "json",
-                success: function(respuesta) {
-                    if (respuesta.error) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Detalles del Siniestro",
-                            text: inventario(respuesta.id_vehiculo),
-                            confirmButtonText: "Aceptar"
-                        });
-                    } else {
-                        swal.fire({
-                            title: "Error",
-                            text: "No se pudo cargar la información del siniestro.",
-                            icon: "error",
-                            confirmButtonText: "Aceptar"
-                        });
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo cargar la información del siniestro.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            });
-        }
+        function renderFeed(items) {
+            var container = $('#feedSiniestros');
+            container.empty();
 
-        //FUNCION PARA VER LOS DETALLES DEL SINIESTRO
-        function siniestrosXvehiculo(id_vehiculo) {
-            $.ajax({
-                type: "POST",
-                url: 'acciones_ver_registros', 
-                data: { accion: 'verSiniestrosXVehiculo', id_vehiculo}, 
-                dataType: "json",
-                success: function(respuesta) {
-                    var TablaRegistrosSiniestros = $('#TablaRegistrosSiniestros').DataTable();
-                    TablaRegistrosSiniestros.clear();
+            if (items.length === 0) {
+                $('#noResultados').show();
+                return;
+            }
+            $('#noResultados').hide();
 
-                    Array.isArray(respuesta) && respuesta.forEach(function(siniestro) {
-                        var fila = [
-                            `${siniestro.fecha_registro}`,
-                            `${siniestro.origen}`,
-                            `${siniestro.destino}`,
-                            `${siniestro.empresa}`,
-                            `${siniestro.servicio}`,
-                            `<div class="text-center">
-                                <button class="btn btn-outline-warning btn-sm" onclick='mostrarDetalleSiniestro(${JSON.stringify(siniestro)})'>
-                                    <i class="fas fa-eye"></i> 
-                                </button>
-                            </div>`
-                        ];
-                        TablaRegistrosSiniestros.row.add(fila);
-                    });
-                    TablaRegistrosSiniestros.draw();
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: "No se pudo cargar la información de los siniestros.",
-                        confirmButtonText: "Aceptar"
-                    });
-                }
-            });
-        }
+            items.forEach(function (s) {
+                var desc = s.descripcion || '';
+                var descCorta = desc.length > 130 ? desc.substring(0, 130) + '…' : (desc || '<em class="text-muted">Sin descripción</em>');
+                var fotoBadge = parseInt(s.num_fotos) > 0
+                    ? `<span class="badge bg-light text-dark border me-2"><i class="fas fa-camera me-1 text-secondary"></i>${s.num_fotos}</span>`
+                    : '';
+                var fechaDisplay = s.fecha || (s.fecha_registro ? s.fecha_registro.split(' ')[0] : '');
+                var busqueda = ((s.placa || '') + ' ' + (s.lugar || '') + ' ' + desc).toLowerCase();
 
-        //FUNCION PARA MOSTRAR EL DETALLE DEL SINIESTRO
-        function mostrarDetalleSiniestro(siniestro) {
-            // Crear la tarjeta con los detalles del siniestro
-            var tarjeta = `
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 text-bg-primary">
-                        <h6 class="m-0 font-weight-bold text-black">Detalle del Siniestro</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <p><strong>Fecha:</strong> ${siniestro.fecha || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Hora:</strong> ${siniestro.hora || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Kilometraje:</strong> ${siniestro.kilometraje || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Gasolina:</strong> ${siniestro.gasolina || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <p><strong>Contacto:</strong> ${siniestro.contacto || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Descripción:</strong> ${siniestro.descripcion || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Partes Dañadas:</strong> ${siniestro.partes_dañadas || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-3">
-                                <p><strong>Ubicación del Vehículo:</strong> ${siniestro.ubicacion_vehiculo || 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <!-- Mapa y Carrusel en la misma fila -->
-                            <div class="col-md-6">
-                                <p><strong>Coordenadas:</strong></p>
-                                <div id="map" style="height: 200px; width: 100%;"></div> <!-- Div para el mapa -->
-                            </div>
-                            <div class="col-md-6">
-                                <div id="imagenesCarruselSiniestro" class="carousel slide mt-3" data-bs-ride="carousel">
-                                    <div class="carousel-inner">
-                                        <!-- Las imágenes se agregarán dinámicamente aquí -->
+                var card = `
+                    <div class="col-lg-6 col-12 mb-3 feed-card" data-busqueda="${busqueda.replace(/"/g, '&quot;')}">
+                        <div class="card shadow-sm h-100 border-0">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h5 class="mb-0 text-primary fw-bold">
+                                            <i class="fas fa-car me-1"></i>${s.placa}
+                                        </h5>
+                                        <small class="text-muted">${s.modelo} ${s.marca} &middot; ${s.color}</small>
                                     </div>
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Anterior</span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#imagenesCarruselSiniestro" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Siguiente</span>
+                                    <div class="text-end text-muted small">
+                                        <div><i class="fas fa-calendar-alt me-1"></i>${fechaDisplay}</div>
+                                        ${s.hora ? `<div><i class="fas fa-clock me-1"></i>${s.hora}</div>` : ''}
+                                    </div>
+                                </div>
+                                <p class="mb-1">
+                                    <i class="fas fa-map-marker-alt me-1 text-danger"></i>
+                                    <strong>${s.lugar || 'Sin lugar registrado'}</strong>
+                                </p>
+                                <p class="text-muted small mb-3">${descCorta}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>${fotoBadge}${s.ubicacion_vehiculo ? `<span class="badge bg-light text-dark border"><i class="fas fa-map-pin me-1 text-muted"></i>${s.ubicacion_vehiculo}</span>` : ''}</div>
+                                    <button class="btn btn-sm btn-primary" onclick="verDetalle(${s.id_siniestro})">
+                                        <i class="fas fa-eye me-1"></i> Ver detalle
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
-
-            // Mostrar la tarjeta en un contenedor específico
-            $('#detalleSiniestroContainer').html(tarjeta);
-
-            // Llamar a la función para agregar las imágenes al carrusel
-            mostrarImagenSiniestro(siniestro.imagenes);
-
-            // Llamar a la función para mostrar el mapa
-            mostrarMapa(siniestro.coordenadas);
+                `;
+                container.append(card);
+            });
         }
 
-        //Mostrar img del Siniestro
-        function mostrarImagenSiniestro(imagenes) {
-            const imagenesCarrusel = $("#imagenesCarruselSiniestro .carousel-inner");
-            imagenesCarrusel.empty();
-
-            if (Array.isArray(imagenes) && imagenes.length > 0) {
-                let primeraImagen = true;
-
-                imagenes.forEach(imagen => {
-                    if (imagen) {
-                        const activeClass = primeraImagen ? 'active' : '';
-                        const imagenHTML = `
-                            <div class="carousel-item ${activeClass}">
-                                <img src="${imagen}" class="d-block w-100 img-fluid border" alt="Imagen del siniestro" style="max-height: 300px; object-fit: contain;">
-                            </div>
-                        `;
-                        imagenesCarrusel.append(imagenHTML);
-                        primeraImagen = false;
-                    }
-                });
-            } else {
-                // Si no hay imágenes, muestra un mensaje
-                imagenesCarrusel.html('<p class="text-center">No hay imágenes disponibles para este siniestro.</p>');
-            }
-        }
-
-        // Inicializar el mapa
-        function mostrarMapa(coordenadas) {
-            // Verifica si las coordenadas están disponibles
-            if (!coordenadas || coordenadas === 'N/A') {
-                $('#map').html('<p class="text-center">No hay coordenadas disponibles para este siniestro.</p>');
+        function filtrarFeed(busqueda) {
+            if (!busqueda) {
+                $('.feed-card').show();
+                $('#noResultados').hide();
                 return;
             }
+            var visibles = 0;
+            $('.feed-card').each(function () {
+                var texto = $(this).data('busqueda') || '';
+                if (texto.indexOf(busqueda) !== -1) { $(this).show(); visibles++; }
+                else { $(this).hide(); }
+            });
+            $('#noResultados').toggle(visibles === 0);
+        }
 
-            // Divide las coordenadas en latitud y longitud
-            const [lat, lng] = coordenadas.split(',').map(coord => parseFloat(coord.trim()));
+        function verDetalle(id_siniestro) {
+            $('#modalDetalleBody').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
+            var modalEl = document.getElementById('modalDetalleSiniestro');
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
 
-            // Inicializa el mapa
-            const mapa = L.map('map').setView([lat, lng], 13); // Zoom inicial en las coordenadas
+            $.ajax({
+                type: "POST",
+                url: "acciones_siniestro",
+                data: { accion: "obtenerDetallesSiniestro", id_siniestro: id_siniestro },
+                dataType: "json",
+                success: function (s) {
+                    if (s.error) {
+                        $('#modalDetalleBody').html('<p class="text-danger">Error al cargar el siniestro.</p>');
+                        return;
+                    }
 
-            // Agrega el mapa base (OpenStreetMap)
+                    var fotosHtml = '';
+                    if (Array.isArray(s.imagenes) && s.imagenes.length > 0) {
+                        var items = s.imagenes.map(function (img, i) {
+                            return `<div class="carousel-item ${i === 0 ? 'active' : ''}">
+                                <img src="${img}" class="d-block w-100" style="max-height:280px;object-fit:contain;"
+                                     onerror="this.src='img/sin_foto.png'">
+                            </div>`;
+                        }).join('');
+                        fotosHtml = `<div id="carruselDetalle" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">${items}</div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carruselDetalle" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carruselDetalle" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>`;
+                    } else {
+                        fotosHtml = '<p class="text-muted small mb-0"><i class="fas fa-image me-1"></i>Sin fotos registradas.</p>';
+                    }
+
+                    var tieneCoords = s.coordenadas && s.coordenadas.trim() !== '';
+                    var mapHtml = tieneCoords
+                        ? '<div id="mapDetalle" style="height:220px;border-radius:8px;"></div>'
+                        : '<p class="text-muted small mb-0"><i class="fas fa-map-marker-alt me-1"></i>Sin coordenadas registradas.</p>';
+
+                    var fechaDisplay = s.fecha || (s.fecha_registro ? s.fecha_registro.split(' ')[0] : 'N/A');
+
+                    var body = `
+                        <div class="row mb-2">
+                            <div class="col-6"><p class="mb-1"><strong>Placa:</strong> ${s.placa}</p></div>
+                            <div class="col-6"><p class="mb-1"><strong>Vehículo:</strong> ${s.modelo} ${s.marca}</p></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6"><p class="mb-1"><strong>Fecha:</strong> ${fechaDisplay}</p></div>
+                            <div class="col-6"><p class="mb-1"><strong>Hora:</strong> ${s.hora || 'N/A'}</p></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6"><p class="mb-1"><strong>Lugar del siniestro:</strong> ${s.lugar || 'N/A'}</p></div>
+                            <div class="col-6"><p class="mb-1"><strong>Vehículo ubicado en:</strong> ${s.ubicacion_vehiculo || 'N/A'}</p></div>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Descripción:</strong>
+                            <p class="mt-1 mb-0 text-muted">${s.descripcion || 'N/A'}</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Partes dañadas:</strong>
+                            <p class="mt-1 mb-0 text-muted">${s.partes_dañadas || 'N/A'}</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong class="d-block mb-2">Fotos</strong>
+                                ${fotosHtml}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong class="d-block mb-2">Ubicación GPS</strong>
+                                ${mapHtml}
+                            </div>
+                        </div>
+                        <hr class="mt-1">
+                        <small class="text-muted">
+                            <i class="fas fa-user me-1"></i>${s.nombre_usuario || 'N/A'}
+                            &nbsp;&middot;&nbsp;
+                            <i class="fas fa-clock me-1"></i>Registrado: ${s.fecha_registro || 'N/A'}
+                        </small>
+                    `;
+
+                    $('#modalDetalleBody').html(body);
+
+                    if (tieneCoords) {
+                        setTimeout(function () { iniciarMapaModal(s.coordenadas); }, 150);
+                    }
+                },
+                error: function () {
+                    $('#modalDetalleBody').html('<p class="text-danger">Error de comunicación con el servidor.</p>');
+                }
+            });
+        }
+
+        function iniciarMapaModal(coordenadas) {
+            if (leafletMapModal) { leafletMapModal.remove(); leafletMapModal = null; }
+            var partes = coordenadas.split(',').map(function (c) { return parseFloat(c.trim()); });
+            if (partes.length < 2 || isNaN(partes[0]) || isNaN(partes[1])) return;
+            leafletMapModal = L.map('mapDetalle').setView(partes, 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(mapa);
-
-            // Agrega un marcador en las coordenadas
-            L.marker([lat, lng]).addTo(mapa)
-                .bindPopup('Ubicación del siniestro')
-                .openPopup();
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(leafletMapModal);
+            L.marker(partes).addTo(leafletMapModal).bindPopup('Ubicación del siniestro').openPopup();
         }
     </script>
 </body>

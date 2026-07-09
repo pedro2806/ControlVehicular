@@ -11,18 +11,22 @@ $rol = isset($_POST['rolCV']) ? $_POST['rolCV'] : '';
 $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
 
 
-    $Qempresas  =  "SELECT  *, TIMESTAMPDIFF(YEAR,fechaIngreso,CURDATE()) AS antiguedad, rol FROM usuarios WHERE usuario  = '".$usuario."' AND estatus = 1";
-    $res2 =  mysqli_query( $conn, $Qempresas ) or die (mysqli_error($conn));
-    $nr = mysqli_num_rows($res2);
-//echo $Qempresas;
-    while ($row2 = mysqli_fetch_array($res2)){
-        $id_usuario = $row2["id_usuario"];
-        $nombreEmpleado = $row2["nombre"];
-        $noEmpleado = $row2["noEmpleado"];
-        $antiguedad = $row2["antiguedad"];
-        $diasD = $row2["diasdisponibles"];
-        $rol = $row2["rol"];
-        $gps = $row2["gps"];
+    $Qempresas = "SELECT cv.*, TIMESTAMPDIFF(YEAR, cv.fechaIngreso, CURDATE()) AS antiguedad,
+                         TRIM(CONCAT(IFNULL(rrhh.nombres,''), ' ', IFNULL(rrhh.apellidos,''))) AS nombre_completo
+                  FROM usuarios cv
+                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv.noEmpleado
+                  WHERE cv.usuario = '" . mysqli_real_escape_string($conn, $usuario) . "' AND cv.estatus = 1";
+    $res2 = mysqli_query($conn, $Qempresas) or die(mysqli_error($conn));
+    $nr   = mysqli_num_rows($res2);
+
+    while ($row2 = mysqli_fetch_array($res2)) {
+        $id_usuario     = $row2["id_usuario"];
+        $nombreEmpleado = ($row2["nombre_completo"] !== '') ? $row2["nombre_completo"] : $row2["nombre"];
+        $noEmpleado     = $row2["noEmpleado"];
+        $antiguedad     = $row2["antiguedad"];
+        $diasD          = $row2["diasdisponibles"];
+        $rol            = $row2["rol"];
+        $gps            = $row2["gps"];
     }
 
     if($nr == 1){

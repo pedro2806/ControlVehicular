@@ -127,7 +127,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/sb-admin-2.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -253,21 +253,28 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             var html = `
                 <div class="sticker-item" id="stickerLote${id}">
                     <div class="sticker-body">
-                        <div class="sticker-qr">
-                            <div id="${qrDivId}"></div>
-                            <img src="img/MESS_07_CuboMess_1.png" class="logo-qr" alt="MESS">
+                        <div class="sticker-left">
+                            <div class="sticker-qr-ring">
+                                <div id="${qrDivId}"></div>
+                            </div>
                         </div>
-                        <div class="sticker-info">
-                            <div class="sticker-nombre">${escapeHtml(marca + ' ' + modelo)}</div>
-                            <div class="sticker-anio">${escapeHtml(String(anio))}</div>
-                            <div class="sticker-placa-footer">${escapeHtml(placa)}</div>
-                            <hr class="sticker-sep">
-                            <div class="sticker-label">Control Vehicular</div>
-                            <div class="sticker-mess">MESS</div>
+                        <div class="sticker-right">
+                            <img src="img/QRide_grande.png" class="sticker-ride-img" alt="RIDE - Sistema de Control Vehicular">
+                            <div class="sticker-infobox">
+                                <div class="sticker-v-line1">${escapeHtml(marca + ' ' + modelo)}</div>
+                                <div class="sticker-v-line2">${escapeHtml(marca)}</div>
+                                <div class="sticker-v-line3">${escapeHtml(String(anio))}</div>
+                                <div class="sticker-v-line4">${escapeHtml(placa)}</div>
+                            </div>
+                            <div class="sticker-logos-bar">
+                                <img src="img/MESS_05_Imagotipo_1.png" class="sticker-logo-mess" alt="grupo mess">
+                                <div class="sticker-logo-divider"></div>
+                                <div class="sticker-b1">
+                                    <div class="b1-box">B1</div>
+                                    <div class="b1-desc">Business<br>Intelligence</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="sticker-footer">
-                        <span class="sticker-soporte">Soporte Sistema: sebastian.gutierrez@mess.com.mx</span>
                     </div>
                     <button class="btn btn-outline-danger btn-sm btn-quitar-sticker w-100 no-print"
                         onclick="quitarDelLote(${id})">
@@ -278,11 +285,20 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             $('#loteGrid').append(html);
             $('#loteContainer').show();
 
-            new QRCode(document.getElementById(qrDivId), {
-                text: url, width: 120, height: 120,
-                colorDark: '#050D9E', colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            new QRCodeStyling({
+                width: 123,
+                height: 123,
+                margin: 0,
+                type: 'svg',
+                data: url,
+                qrOptions: { errorCorrectionLevel: 'H' },
+                dotsOptions:          { color: '#050D9E', type: 'dots' },
+                backgroundOptions:    { color: '#ffffff' },
+                cornersSquareOptions: { color: '#050D9E', type: 'square' },
+                cornersDotOptions:    { color: '#050D9E', type: 'square' },
+                image: 'img/MESS_07_CuboMess_1.png',
+                imageOptions: { crossOrigin: 'anonymous', margin: 3, imageSize: 0.3 }
+            }).append(document.getElementById(qrDivId));
 
             loteIds.push(id);
             actualizarContador();

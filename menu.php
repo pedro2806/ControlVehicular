@@ -76,12 +76,14 @@
 </li>
 
     <!-- Menú CheckIn -->
+    <?php if (!empty($accesos['verActividades'])): ?>
     <li class="nav-item">
         <a class="nav-link" href="verActividades">
             <i class="fas fa-fw fa-eye"></i>
             <span>Ver Actividades</span>
         </a>
     </li>
+    <?php endif; ?>
 
 <!-- Menú Mantenimiento -->
 <li class="nav-item">

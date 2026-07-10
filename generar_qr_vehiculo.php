@@ -32,9 +32,12 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
 
     <title>Control Vehicular - Generar QR</title>
 
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
     <link href="css/app.css" rel="stylesheet">
@@ -122,10 +125,6 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         <i class="fas fa-angle-up"></i>
     </a>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/sb-admin-2.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -261,7 +260,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                         <div class="sticker-right">
                             <img src="img/QRide_grande.png" class="sticker-ride-img" alt="RIDE - Sistema de Control Vehicular">
                             <div class="sticker-infobox">
-                                <div class="sticker-v-line1">${escapeHtml(marca + ' ' + modelo)}</div>
+                                <div class="sticker-v-line1">${escapeHtml(modelo)}</div>
                                 <div class="sticker-v-line2">${escapeHtml(marca)}</div>
                                 <div class="sticker-v-line3">${escapeHtml(String(anio))}</div>
                                 <div class="sticker-v-line4">${escapeHtml(placa)}</div>
@@ -292,10 +291,10 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 type: 'svg',
                 data: url,
                 qrOptions: { errorCorrectionLevel: 'H' },
-                dotsOptions:          { color: '#050D9E', type: 'dots' },
+                dotsOptions:          { color: '#074480', type: 'square' },
                 backgroundOptions:    { color: '#ffffff' },
-                cornersSquareOptions: { color: '#050D9E', type: 'square' },
-                cornersDotOptions:    { color: '#050D9E', type: 'square' },
+                cornersSquareOptions: { color: '#074480', type: 'square' },
+                cornersDotOptions:    { color: '#074480', type: 'square' },
                 image: 'img/MESS_07_CuboMess_1.png',
                 imageOptions: { crossOrigin: 'anonymous', margin: 3, imageSize: 0.3 }
             }).append(document.getElementById(qrDivId));

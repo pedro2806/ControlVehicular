@@ -52,7 +52,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         }
         exit;
     }
-
+        //FUNCION PARA OBTENER TODOS LOS REGISTROS DE GASOLINA
         if ($accion == 'obtenerRegistrosGasTodos'){
         $sqlU = "SELECT ca.*, CONCAT(inv.placa, ' - ', inv.modelo, ' - ', inv.marca) AS Vehiculo,
                         IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
@@ -143,12 +143,11 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             $mail->Port       = 465;
             $mail->IsHTML(true);
             $mail->CharSet  = 'UTF-8';
-            $mail->Username = 'mess.metrologia@gmail.com';
-            $mail->Password = 'hglidvwsxcbbefhe';
-            $mail->SetFrom('mess.metrologia@gmail.com', 'Control Vehicular');
+            $mail->Username = 'mess.programacion@gmail.com';
+            $mail->Password = 'lnevdigasjodzbrq';
+            $mail->SetFrom('mess.programacion@gmail.com', 'Control Vehicular');
             $mail->Subject  = 'Solicitud de reposición de crédito de gasolina';
-            $mail->addAddress('pedro.martinez@mess.com.mx');
-            $mail->addAddress('rafael@mess.com.mx');
+            $mail->addAddress('cuentasdegastos@mess.com.mx');
             $mail->Body = '
             <html><body style="font-family:Arial,sans-serif;color:#222">
             <div style="text-align:center">

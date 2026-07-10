@@ -1,54 +1,50 @@
-<!-- Topbar -->
-<nav class="navbar navbar-expand navbar-light bg-white topbar mb-2 static-top shadow">
-    <!-- Enlace a Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Enlace a Bootstrap JS (necesario para el funcionamiento del modal) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Enlace a FontAwesome para los íconos (si usas íconos) -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<!-- Topbar (MESS Design System) -->
+<nav class="topbar mb-2">
+    <!-- Bootstrap 5.3 JS (necesario para modales/collapse; el CSS se carga en el <head> de cada vista) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CSS personalizado -->
+    <!-- CSS personalizado (stickers QR / páginas específicas) -->
     <link href="css/app.css" rel="stylesheet">
 
-    <!-- Sidebar Toggle (Topbar) -->
-    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-        <i class="fa fa-bars"></i>
-    </button>
-
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-0">
+    <!-- Izquierda: toggle sidebar + branding -->
+    <div class="d-flex align-items-center gap-2">
+        <button id="sidebarToggleTop" class="btn btn-link text-secondary p-0 me-2" type="button" aria-label="Mostrar/ocultar menú" title="Mostrar/ocultar menú">
+            <i class="fas fa-bars fa-lg"></i>
+        </button>
         <img src="img/QRide_grande.png" height="36" alt="QRide" style="max-width:160px;object-fit:contain;">
     </div>
 
-    <!-- Topbar Navbar -->
-    <ul class="navbar-nav ml-auto">
-        <div class="topbar-divider d-none d-sm-block"></div>
-        <!-- Nav Item - User Information -->
-        <li class="nav-item dropdown no-arrow">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="mr-0 d-lg-inline text-gray-600" style="font-size: 0.85em;">
-                    <?php echo ' '.($_COOKIE['nombredelusuarioL'] ?? $_COOKIE['nombredelusuario'] ?? '').' ';?>
-                </span>
-                <img class="img-profile rounded-circle" src="img/undraw_profile.svg" style="width: 100%;">
+    <!-- Derecha: usuario + tema + salir -->
+    <div class="d-flex align-items-center">
+        <div class="text-end me-2 d-none d-md-block">
+            <div class="fw-600 fs-7">
+                <?php echo htmlspecialchars($_COOKIE['nombredelusuarioL'] ?? $_COOKIE['nombredelusuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <div class="text-muted fs-8"># <?php echo htmlspecialchars($_COOKIE['noEmpleado'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
+        <div class="topbar-divider d-none d-md-block"></div>
+        <button id="themeToggle" type="button" class="theme-toggle-btn me-2" title="Cambiar tema">
+            <i class="fas fa-moon"></i>
+        </button>
+        <div class="dropdown no-arrow">
+            <a class="nav-link dropdown-toggle p-0" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <img class="img-profile rounded-circle" src="img/undraw_profile.svg">
             </a>
             <input type="hidden" id="coordenadasCheck" name="coordenadasCheck">
             <input type="hidden" id="placaElegida" name="placaElegida">
             <input type="hidden" class="form-control" id="PidPrestamo" name="PidPrestamo">
             <!-- Dropdown - User Information -->
-            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-                <div class="dropdown-divider"></div>
+            <div class="dropdown-menu dropdown-menu-end shadow animated--grow-in" aria-labelledby="userDropdown">
                 <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#logoutModalN">
-                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw me-2 text-gray-400"></i>
                     Salir
                 </a>
             </div>
-        </li>
-    </ul>
+        </div>
+    </div>
 
     <!-- Logout Modal-->
     <div class="modal fade" id="logoutModalN" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -56,9 +52,7 @@
             <div class="modal-content border-left-danger">
                 <div class="modal-header">
                     <h4 class="modal-title" id="exampleModalLabel"> Cerrar sesión </h4>
-                    <button class="close" type="button" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">X</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
                     <h5><b>¿Estas seguro?</b></h5>
@@ -358,6 +352,7 @@
 <script src="js/global/modals.js"></script>
 <script src="js/global/vehiculos.js"></script>
 <script src="js/global/gas.js"></script>
+<script src="js/mess-ds.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         obtenerCoordenadas();

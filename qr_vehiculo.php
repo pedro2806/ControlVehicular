@@ -21,9 +21,12 @@ if (empty($_COOKIE['noEmpleado'])) {
 
     <title>Control Vehicular - QR Vehículo</title>
 
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
 
     <link href="css/app.css" rel="stylesheet">
 </head>
@@ -242,8 +245,6 @@ if (empty($_COOKIE['noEmpleado'])) {
         <i class="fas fa-angle-up"></i>
     </a>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <?php include 'includes/scripts_footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -638,7 +639,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     Array.isArray(lista) && lista.forEach(function (vehiculo) {
                         if (vehiculo.id_prestamo) {
                             $('#PidPrestamo').val(vehiculo.id_vehiculo + ',' + vehiculo.id_prestamo);
-                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color:#ffeeba;">PRESTAMO - ' + vehiculo.placa + ' - ' + vehiculo.modelo + ' - ' + vehiculo.estatus + '</option>');
+                            select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color:#ffeeba;color:#212529;">PRESTAMO - ' + vehiculo.placa + ' - ' + vehiculo.modelo + ' - ' + vehiculo.estatus + '</option>');
                         } else {
                             select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + ' - ' + vehiculo.modelo + '</option>');
                         }

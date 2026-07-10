@@ -19,9 +19,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <!-- Custom styles for this template-->
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
     <style>
     #vehiculosAsignados {
         display: flex;
@@ -64,9 +68,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div id="seccionVehiculo" style="display:none;" class="col-12 mb-3">
                             <div id="contenedorVehiculos"></div>
                         </div>
-                        <div class="stat-box mb-1">
-                            <h3>Tenencia 2026</h3>
-                            <h4 id ="vehiculosAsignados" name="vehiculosAsignados" style="color:#fff; margin-bottom: 0.1rem"></h4>
+                        <div class="col-12 mb-3">
+                            <div id="vehiculosAsignados" name="vehiculosAsignados"></div>
                         </div>
                         <div class="col-xl-12 col-lg-12">
                             <embed id="vistaPrevia" src='img/Manual Control Vehicular.pdf' type="application/pdf" width="100%" height="650">
@@ -101,13 +104,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     </a>
 
     <!-- Bootstrap core JavaScript-->
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 
     <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
 
     <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
 
     <script type="text/javascript">
         $(document).ready(function() {

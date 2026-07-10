@@ -11,9 +11,12 @@ if (empty($_COOKIE['noEmpleado'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Control Vehicular - Importar Reportes SCOT</title>
 
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
 
     <style>
         .file-drop {
@@ -22,7 +25,7 @@ if (empty($_COOKIE['noEmpleado'])) {
             padding: 18px;
             text-align: center;
             cursor: pointer;
-            background: #f8f9fa;
+            background: var(--card-soft);
             transition: background .15s ease, border-color .15s ease;
             min-height: 130px;
             display: flex;
@@ -30,10 +33,10 @@ if (empty($_COOKIE['noEmpleado'])) {
             justify-content: center;
             align-items: center;
         }
-        .file-drop:hover { background: #eef3f8; border-color: #6c757d; }
+        .file-drop:hover { background: var(--accent-soft); border-color: var(--text-muted); }
         .file-drop.is-loaded { border-color: #198754; background: #f3fbf6; }
         .file-drop input[type="file"] { display: none; }
-        .file-name { font-size: 0.85rem; color: #495057; word-break: break-all; }
+        .file-name { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; }
         .resumen-tabla td { padding: .35rem .5rem; }
     </style>
 </head>
@@ -146,10 +149,6 @@ if (empty($_COOKIE['noEmpleado'])) {
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/sb-admin-2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>

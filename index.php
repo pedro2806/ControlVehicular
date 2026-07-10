@@ -9,10 +9,9 @@
 
     <title>MESS - Control Vehicular</title>
 
-    <!-- Custom fonts for this template-->
-    <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">    
-    <!-- Custom styles for this template-->
-    <link href = "css/sb-admin-2.min.css" rel = "stylesheet">
+    <!-- MESS Design System -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
     <link href="css/login.css" rel="stylesheet">
 </head>
@@ -45,9 +44,9 @@
                                     <input type="password" class="fb-input" id="InputPassword" name="InputPassword" placeholder="Contraseña">
                                 </div>
                                 <div class="fb-check-wrap">
-                                    <div class="custom-control custom-checkbox small">
-                                        <input type="checkbox" class="custom-control-input" id="customCheck">
-                                        <label class="custom-control-label" for="customCheck">Recordar mis datos</label>
+                                    <div class="form-check small">
+                                        <input type="checkbox" class="form-check-input" id="customCheck">
+                                        <label class="form-check-label" for="customCheck">Recordar mis datos</label>
                                     </div>
                                 </div>
                                 <div class="text-center">
@@ -162,8 +161,7 @@
         }
     ?>
     <script src = "https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src = "js/sb-admin-2.min.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>

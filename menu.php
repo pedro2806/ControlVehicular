@@ -23,9 +23,26 @@
     $puedeVerQR         = !empty($accesos['verQR']);
     $puedeCargarReportes= !empty($accesos['cargarReportes']);
     $muestraAdmin       = $puedeVerQR || $puedeCargarReportes;
+
+    // Página activa para resaltar el item del menú
+    $paginaActual = basename($_SERVER['PHP_SELF'], '.php');
+    function menuActivo($pagina, $actual) {
+        return $pagina === $actual ? ' active' : '';
+    }
 ?>
+<script>
+// Aplicar tema MESS antes de renderizar contenido visible para evitar flash.
+// Clave 'mess-theme' compartida entre sistemas MESS.
+(function () {
+    try {
+        if (localStorage.getItem('mess-theme') === 'dark') {
+            document.body.classList.add('theme-dark');
+        }
+    } catch (e) {}
+})();
+</script>
 <!-- Sidebar -->
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+<ul class="sidebar accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="inicio">
@@ -35,7 +52,7 @@
     </a>
 
     <!-- Nav Item - Dashboard -->
-    <li class="nav-item active">
+    <li class="nav-item<?= menuActivo('inicio', $paginaActual) ?>">
         <a class="nav-link py-2" href="inicio">
             <i class="fas fa-fw fa-home"></i>
             <span>Inicio</span>
@@ -45,20 +62,15 @@
     <!-- Divider -->
     <hr class="sidebar-divider">
 
-    <!-- Heading 
-    <div class="sidebar-heading">
-        <span class="badge text-xl-white">Menú</span>
-    </div>
-    -->
     <!-- Menú Siniestro -->
-    <li class="nav-item btn-warning active">
-        <a class="nav-link py-2" href="siniestros" style="font-size: 1rem;">
+    <li class="nav-item<?= menuActivo('siniestros', $paginaActual) ?>">
+        <a class="nav-link py-2" href="siniestros">
             <i class="fas fa-fw fa-car-crash"></i>
-            <span style="font-size: 1.1rem;">Siniestro</span>
+            <span>Siniestro</span>
         </a>
     </li>
 
-    <li class="nav-item">
+    <li class="nav-item<?= menuActivo('seguimiento_siniestro', $paginaActual) ?>">
         <a class="nav-link py-2" href="seguimiento_siniestro">
             <i class="fas fa-fw fa-car-crash"></i>
             <span>Hist. Siniestros</span>
@@ -67,83 +79,81 @@
 
     <hr class="sidebar-divider">
 
-<!-- Menú Gasolina — solo historial (registro de gas se hace desde QR) -->
-<li class="nav-item">
-    <a class="nav-link py-2" href="historial_gasolina">
-        <i class="fas fa-fw fa-gas-pump"></i>
-        <span>Historial de Cargas</span>
-    </a>
-</li>
+    <!-- Menú Gasolina — solo historial (registro de gas se hace desde QR) -->
+    <li class="nav-item<?= menuActivo('historial_gasolina', $paginaActual) ?>">
+        <a class="nav-link py-2" href="historial_gasolina">
+            <i class="fas fa-fw fa-gas-pump"></i>
+            <span>Historial de Cargas</span>
+        </a>
+    </li>
 
     <!-- Menú CheckIn -->
     <?php if (!empty($accesos['verActividades'])): ?>
-    <li class="nav-item">
-        <a class="nav-link" href="verActividades">
+    <li class="nav-item<?= menuActivo('verActividades', $paginaActual) ?>">
+        <a class="nav-link py-2" href="verActividades">
             <i class="fas fa-fw fa-eye"></i>
             <span>Ver Actividades</span>
         </a>
     </li>
     <?php endif; ?>
 
-<!-- Menú Mantenimiento -->
-<li class="nav-item">
-    <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseMantenimiento" aria-expanded="false" aria-controls="collapseMantenimiento">
-        <i class="fas fa-fw fa-tools"></i>
-        <span>Mantenimiento</span>
-    </a>
-    <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-bs-parent="#accordionSidebar">
-        <div class="bg-white py-2 collapse-inner rounded">
-            <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-            <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
-            <?php if ($puedeAutorizarMant): ?>
-                <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
-            <?php endif; ?>
+    <!-- Menú Mantenimiento -->
+    <li class="nav-item">
+        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseMantenimiento" aria-expanded="false" aria-controls="collapseMantenimiento">
+            <i class="fas fa-fw fa-tools"></i>
+            <span>Mantenimiento</span>
+        </a>
+        <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-bs-parent="#accordionSidebar">
+            <div class="py-2 collapse-inner">
+                <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
+                <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
+                <?php if ($puedeAutorizarMant): ?>
+                    <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
+                <?php endif; ?>
+            </div>
         </div>
-    </div>
-</li>
+    </li>
 
     <!-- Menú Documentación -->
     <li class="nav-item">
-        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseDocumentacion" aria-expanded="true" aria-controls="collapseDocumentacion">
+        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseDocumentacion" aria-expanded="false" aria-controls="collapseDocumentacion">
             <i class="fas fa-fw fa-file-alt"></i>
             <span>Documentación</span>
         </a>
         <div id="collapseDocumentacion" class="collapse" aria-labelledby="headingDocumentacion" data-bs-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
+            <div class="py-2 collapse-inner">
                 <a class="collapse-item" href="documentacion">Registrar Documentación</a>
                 <a class="collapse-item" href="seguimiento_documentacion">Ver Documentación</a>
-            </div>            
+            </div>
         </div>
     </li>
 
     <!-- Menú Préstamos -->
     <li class="nav-item">
-        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePrestamos" aria-expanded="true" aria-controls="collapsePrestamos">
+        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePrestamos" aria-expanded="false" aria-controls="collapsePrestamos">
             <i class="fas fa-fw fa-car"></i>
             <span>Préstamos</span>
         </a>
         <div id="collapsePrestamos" class="collapse" aria-labelledby="headingPrestamos" data-bs-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
+            <div class="py-2 collapse-inner">
                 <a class="collapse-item" href="prestamos">Solicitar Préstamo</a>
                 <a class="collapse-item" href="autorizar_prestamo">Seguimiento Préstamos</a>
-            </div>            
+            </div>
         </div>
     </li>
-    
+
     <!-- Menú CheckList -->
     <li class="nav-item">
-        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCheckIn" aria-expanded="true" aria-controls="collapseCheckIn">
+        <a class="nav-link collapsed py-2" href="#" data-bs-toggle="collapse" data-bs-target="#collapseCheckIn" aria-expanded="false" aria-controls="collapseCheckIn">
             <i class="fas fa-fw fa-book"></i>
             <span>Check List</span>
         </a>
         <div id="collapseCheckIn" class="collapse" aria-labelledby="headingCheckIn" data-bs-parent="#accordionSidebar">
-
-            <div class="bg-white py-2 collapse-inner rounded">
+            <div class="py-2 collapse-inner">
                 <a class="collapse-item" href="checkVehiculo">Registrar / Actualizar</a>
                 <a class="collapse-item" href="verifica_checkinVehiculo">Ver Check List</a>
             </div>
         </div>
-
     </li>
 
     <?php if ($muestraAdmin): ?>
@@ -154,7 +164,7 @@
             <span>Generar QR</span>
         </a>
         <div id="collapseAdmin" class="collapse" aria-labelledby="headingAdmin" data-bs-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
+            <div class="py-2 collapse-inner">
                 <?php if ($puedeVerQR): ?>
                     <a class="collapse-item" href="generar_qr_vehiculo">
                         <i class="fas fa-fw fa-qrcode"></i> QR Vehículos
@@ -171,16 +181,16 @@
     <?php endif; ?>
 
     <!-- SALIR -->
-    <li class = "nav-item">
-        <a class = "nav-link py-2" href = "#" data-bs-toggle = "modal" data-bs-target = "#logoutModalN">
-            <i class = "fas fa-sign-out-alt text-gray-100"></i>
-            Salir
+    <li class="nav-item">
+        <a class="nav-link py-2" href="#" data-bs-toggle="modal" data-bs-target="#logoutModalN">
+            <i class="fas fa-fw fa-sign-out-alt"></i>
+            <span>Salir</span>
         </a>
     </li>
 
     <?php if ($_COOKIE['noEmpleado'] == '19' || $_COOKIE['noEmpleado'] == '183' || $_COOKIE['noEmpleado'] == '276' || $_COOKIE['noEmpleado'] == '191'): ?>
         <!-- Menú Mapa GPS Tracking -->
-        <li class="nav-item">
+        <li class="nav-item<?= menuActivo('mapa_gps', $paginaActual) ?>">
             <a class="nav-link py-2" href="mapa_gps">
                 <i class="fas fa-fw fa-map"></i>
                 <span>Mapa GPS</span>

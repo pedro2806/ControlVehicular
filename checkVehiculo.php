@@ -19,11 +19,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
-    <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
 
     <!-- Custom styles for this template-->
-    <link href = "css/sb-admin-2.min.css" rel = "stylesheet">    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
@@ -92,7 +95,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div class="card shadow-sm mb-3">
                             <div class="card-body py-3 px-3">
                                 <div class="d-flex align-items-center">
-                                    <div id="fotoVehiculoPlaceholder" style="width:80px; height:80px; border-radius:8px; background:#e9ecef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <div id="fotoVehiculoPlaceholder" style="width:80px; height:80px; border-radius:8px; background:var(--card-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                         <i class="fas fa-car fa-2x text-muted"></i>
                                     </div>
                                     <img id="fotoVehiculo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; display:none; flex-shrink:0;" onerror="this.style.display='none'; document.getElementById('fotoVehiculoPlaceholder').style.display='';">
@@ -158,7 +161,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         flex-shrink: 0;
                     }
                     .chk-dot:hover { transform: scale(1.15); }
-                    .chk-dot.active { background: #4e73df; color: #fff; border-color: #2e59d9; }
+                    .chk-dot.active { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
                     .chk-dot.filled { background: #1cc88a; color: #fff; border-color: #17a673; }
                     .chk-foto-area { display: flex; flex-direction: column; align-items: center; }
                     .chk-foto-preview { max-width: 180px; max-height: 140px; border-radius: 8px; margin-top: 6px; display: none; }
@@ -182,7 +185,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             <?php foreach ($pasos as $idx => $p): ?>
                                 <div class="chk-slide">
                                     <div class="card shadow-sm">
-                                        <div class="card-header py-2 text-center" style="background:#4e73df;">
+                                        <div class="card-header py-2 text-center" style="background:var(--accent);">
                                             <small class="text-white-50"><?= $p['grupo'] ?></small>
                                             <h6 class="text-white mb-0 font-weight-bold"><?= $p['titulo'] ?></h6>
                                         </div>
@@ -314,12 +317,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     </a>
 </body>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <!-- Removed duplicate Bootstrap script to avoid conflicts -->    
     <!-- Core plugin JavaScript-->
-    <script src = "vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Custom scripts for all pages-->
-    <script src = "js/sb-admin-2.min.js"></script>    
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>

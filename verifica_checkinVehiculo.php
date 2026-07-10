@@ -27,15 +27,17 @@ if ($stmtAcc) {
     <title>Control Vehicular</title>
 
     <!-- Custom fonts for this template-->
-    <link href = "vendor/fontawesome-free/css/all.min.css" rel = "stylesheet" type = "text/css">
 
     <!-- Custom styles for this template-->
-    <link href = "css/sb-admin-2.min.css" rel = "stylesheet">    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">    
+    <!-- MESS Design System -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="css/mess-ds.css" rel="stylesheet">
 
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     
@@ -86,7 +88,7 @@ if ($stmtAcc) {
                     <div class="card shadow-sm mb-3" id="DivInfoVehiculo" style="display:none;">
                         <div class="card-body py-3 px-3">
                             <div class="d-flex align-items-center">
-                                <div style="width:60px;height:60px;border-radius:8px;background:#e9ecef;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <div style="width:60px;height:60px;border-radius:8px;background:var(--card-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     <i class="fas fa-car fa-2x text-muted"></i>
                                 </div>
                                 <div class="ml-3">
@@ -155,13 +157,9 @@ if ($stmtAcc) {
     </a>
 </body>
 <!-- Bootstrap core JavaScript-->
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     

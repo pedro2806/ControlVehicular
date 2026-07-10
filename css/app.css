@@ -56,6 +56,13 @@
 .foto-captura .corner.bl { bottom: 5px; left: 5px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
 .foto-captura .corner.br { bottom: 5px; right: 5px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
 
+/* Modo oscuro (tokens de mess-ds.css). Los estilos de sticker NO se
+   tokenizan: la etiqueta impresa debe conservar sus colores exactos. */
+body.theme-dark .vehicle-photo-placeholder { background: var(--card-soft); color: var(--text-muted); }
+body.theme-dark .foto-captura { background: var(--card-soft); }
+body.theme-dark .foto-captura .foto-viewfinder { border-color: var(--border); }
+body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
+
 /* ===== Generar QR / Stickers (generar_qr_vehiculo.php) ===== */
 .sticker-item {
     display: inline-flex;
@@ -88,18 +95,24 @@
     width: 182px; height: 182px;
     border-radius: 50%;
     border: 4px solid #050D9E;
-    background-color: #c8d4f0;
-    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><rect x='1' y='1' width='5' height='5' rx='1' fill='%23050D9E' opacity='.45'/><rect x='8' y='2' width='3' height='3' rx='1' fill='%23050D9E' opacity='.2'/><rect x='14' y='0' width='6' height='6' rx='1' fill='%23050D9E' opacity='.35'/><rect x='22' y='1' width='4' height='4' rx='1' fill='%23050D9E' opacity='.55'/><rect x='28' y='0' width='3' height='3' rx='1' fill='%23050D9E' opacity='.2'/><rect x='0' y='9' width='4' height='4' rx='1' fill='%23050D9E' opacity='.3'/><rect x='7' y='8' width='5' height='5' rx='1' fill='%23050D9E' opacity='.15'/><rect x='15' y='9' width='3' height='3' rx='1' fill='%23050D9E' opacity='.4'/><rect x='21' y='8' width='5' height='5' rx='1' fill='%23050D9E' opacity='.25'/><rect x='28' y='9' width='4' height='4' rx='1' fill='%23050D9E' opacity='.45'/><rect x='1' y='16' width='6' height='6' rx='1' fill='%23050D9E' opacity='.35'/><rect x='9' y='17' width='3' height='3' rx='1' fill='%23050D9E' opacity='.5'/><rect x='15' y='15' width='5' height='5' rx='1' fill='%23050D9E' opacity='.2'/><rect x='22' y='16' width='4' height='4' rx='1' fill='%23050D9E' opacity='.4'/><rect x='29' y='15' width='3' height='3' rx='1' fill='%23050D9E' opacity='.25'/><rect x='0' y='24' width='4' height='4' rx='1' fill='%23050D9E' opacity='.5'/><rect x='7' y='23' width='5' height='5' rx='1' fill='%23050D9E' opacity='.3'/><rect x='14' y='24' width='3' height='3' rx='1' fill='%23050D9E' opacity='.45'/><rect x='21' y='23' width='4' height='4' rx='1' fill='%23050D9E' opacity='.2'/><rect x='28' y='24' width='3' height='3' rx='1' fill='%23050D9E' opacity='.55'/></svg>");
-    background-size: 32px 32px;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'><rect x='6' y='0' width='3' height='3' fill='%23074480'/><rect x='12' y='0' width='3' height='3' fill='%23074480'/><rect x='15' y='0' width='3' height='3' fill='%23074480'/><rect x='3' y='3' width='3' height='3' fill='%23074480'/><rect x='6' y='3' width='3' height='3' fill='%23074480'/><rect x='9' y='3' width='3' height='3' fill='%23074480'/><rect x='0' y='6' width='3' height='3' fill='%23074480'/><rect x='3' y='6' width='3' height='3' fill='%23074480'/><rect x='18' y='6' width='3' height='3' fill='%23074480'/><rect x='24' y='6' width='3' height='3' fill='%23074480'/><rect x='27' y='6' width='3' height='3' fill='%23074480'/><rect x='0' y='9' width='3' height='3' fill='%23074480'/><rect x='9' y='9' width='3' height='3' fill='%23074480'/><rect x='12' y='9' width='3' height='3' fill='%23074480'/><rect x='15' y='9' width='3' height='3' fill='%23074480'/><rect x='18' y='9' width='3' height='3' fill='%23074480'/><rect x='21' y='9' width='3' height='3' fill='%23074480'/><rect x='24' y='9' width='3' height='3' fill='%23074480'/><rect x='0' y='12' width='3' height='3' fill='%23074480'/><rect x='9' y='12' width='3' height='3' fill='%23074480'/><rect x='15' y='12' width='3' height='3' fill='%23074480'/><rect x='18' y='12' width='3' height='3' fill='%23074480'/><rect x='21' y='12' width='3' height='3' fill='%23074480'/><rect x='24' y='12' width='3' height='3' fill='%23074480'/><rect x='27' y='12' width='3' height='3' fill='%23074480'/><rect x='3' y='15' width='3' height='3' fill='%23074480'/><rect x='6' y='15' width='3' height='3' fill='%23074480'/><rect x='15' y='15' width='3' height='3' fill='%23074480'/><rect x='27' y='15' width='3' height='3' fill='%23074480'/><rect x='12' y='18' width='3' height='3' fill='%23074480'/><rect x='15' y='18' width='3' height='3' fill='%23074480'/><rect x='21' y='18' width='3' height='3' fill='%23074480'/><rect x='24' y='18' width='3' height='3' fill='%23074480'/><rect x='0' y='21' width='3' height='3' fill='%23074480'/><rect x='6' y='21' width='3' height='3' fill='%23074480'/><rect x='15' y='21' width='3' height='3' fill='%23074480'/><rect x='18' y='21' width='3' height='3' fill='%23074480'/><rect x='24' y='21' width='3' height='3' fill='%23074480'/><rect x='27' y='21' width='3' height='3' fill='%23074480'/><rect x='0' y='24' width='3' height='3' fill='%23074480'/><rect x='3' y='24' width='3' height='3' fill='%23074480'/><rect x='6' y='24' width='3' height='3' fill='%23074480'/><rect x='12' y='24' width='3' height='3' fill='%23074480'/><rect x='15' y='24' width='3' height='3' fill='%23074480'/><rect x='18' y='24' width='3' height='3' fill='%23074480'/><rect x='21' y='24' width='3' height='3' fill='%23074480'/><rect x='0' y='27' width='3' height='3' fill='%23074480'/><rect x='3' y='27' width='3' height='3' fill='%23074480'/><rect x='6' y='27' width='3' height='3' fill='%23074480'/><rect x='9' y='27' width='3' height='3' fill='%23074480'/><rect x='24' y='27' width='3' height='3' fill='%23074480'/></svg>");
+    background-size: 30px 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    /* Mantener los cuadros del patrón de fondo con bordes duros al escalar
+       en impresión (evita el suavizado/borrosidad de background-image). */
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
+/* El QR (SVG) y el logo central deben seguir suavizados, no pixelados. */
 .sticker-qr-ring canvas,
-.sticker-qr-ring svg { display: block; }
+.sticker-qr-ring svg,
+.sticker-qr-ring img { display: block; image-rendering: auto; }
 
 /* Right — info panel */
 .sticker-right {
@@ -129,7 +142,7 @@
     min-width: 0;
 }
 .sticker-v-line1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     color: #111;
     text-transform: uppercase;
@@ -137,9 +150,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.sticker-v-line2 { font-size: 1.30rem; color: #333; text-transform: uppercase; }
-.sticker-v-line3 { font-size: 1.30rem; color: #333; }
-.sticker-v-line4 { font-size: 1.30rem; font-weight: 700; color: #111; letter-spacing: 1px; }
+.sticker-v-line2 { font-size: 1.6rem; color: #333; text-transform: uppercase; }
+.sticker-v-line3 { font-size: 1.6rem; color: #333; }
+.sticker-v-line4 { font-size: 1.6rem; font-weight: 700; color: #111; letter-spacing: 1px; }
 
 /* Bottom logos bar */
 .sticker-logos-bar { display: flex; align-items: center; gap: 10px; }
@@ -202,10 +215,11 @@
     .sticker-body     { padding: 2mm 3mm 2mm 2mm; gap: 2.5mm; }
     .sticker-qr-ring  { width: 48mm; height: 48mm; border-width: 1mm; }
     .sticker-right    { gap: 1mm; }
-    .sticker-ride-img { width: 100%; height: 20mm; object-fit: contain; object-position: top center; }
-    .sticker-infobox  { padding: 1mm 2mm; border-radius: 1.5mm; }
-    .sticker-v-line1, .sticker-v-line4 { font-size: 8pt; }
-    .sticker-v-line2, .sticker-v-line3 { font-size: 7pt; }
+    .sticker-ride-img { width: 100%; height: 15mm; object-fit: contain; object-position: top center; }
+    .sticker-infobox  { padding: 1mm 2mm; border-radius: 1.5mm; line-height: 1.2; }
+    .sticker-v-line1  { font-size: 12pt; white-space: normal; overflow: visible; text-overflow: unset; }
+    .sticker-v-line4  { font-size: 12pt; }
+    .sticker-v-line2, .sticker-v-line3 { font-size: 10pt; }
     .sticker-logos-bar { gap: 2mm; }
     .sticker-logo-mess { height: 6mm; }
     .sticker-logo-divider { height: 6mm; }

@@ -1,0 +1,901 @@
+/* =========================================================
+   MESS Design System — Control Vehicular
+   Stack: Bootstrap 5.3 + Font Awesome 6 + DataTables + Select2
+   --------
+   Portado del design system de Tickets BI (css/estilos.css).
+   Convención: nunca hex hardcoded en componentes — siempre var(--*).
+   Identidad MESS: azul Pantone 072 C (#050D9E), naranja Pantone 143 C (#EAAA00).
+   Se conserva la estructura DOM de SB-Admin-2:
+   #wrapper > #accordionSidebar.sidebar + #content-wrapper > #content > .topbar
+   ========================================================= */
+
+
+/* ===== Design tokens (light) ===== */
+:root {
+    /* superficies */
+    --bg:        #f8f9fc;
+    --card-bg:   #ffffff;
+    --card-soft: #f8f9fa;
+    --border:    #e5e7eb;
+    --shadow:    0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+
+    /* texto */
+    --text:       #1f2937;
+    --text-muted: #6c757d;
+
+    /* acento institucional MESS (Pantone 072 C) */
+    --accent:      #050D9E;
+    --accent-dark: #040a7a;
+    --accent-soft: #eaf3ff;
+
+    /* paleta institucional MESS (logotipo/branding) */
+    --mess-azul:    #050D9E;
+    --mess-gris:    #8E8E8E;
+    --mess-naranja: #EAAA00;
+
+    /* semánticos */
+    --success: #0fa083;
+    --warning: #e2d522;
+    --info:    #484cac;
+    --danger:  #dc3545;
+
+    /* sidebar (siempre oscuro, varía sutilmente en dark) */
+    --sidebar-bg:            #1a1a2e;
+    --sidebar-text:          #c2c7d0;
+    --sidebar-hover:         rgba(255, 255, 255, .06);
+    --sidebar-active-border: var(--mess-naranja);
+
+    /* topbar */
+    --topbar-bg:     var(--card-bg);
+    --topbar-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .10);
+
+    /* tabs */
+    --tab-active:   var(--accent);
+    --tab-inactive: #e9ecef;
+
+    /* aliases legacy (no romper componentes que usen --primary) */
+    --primary:      var(--accent);
+    --primary-dark: var(--accent-dark);
+    --secondary:    var(--text-muted);
+    --body-bg:      var(--bg);
+    --card-shadow:  var(--shadow);
+}
+
+
+/* ===== Design tokens (dark) ===== */
+body.theme-dark {
+    --bg:         #0b1220;
+    --card-bg:    #121a2b;
+    --card-soft:  #1a2438;
+    --text:       #e6edf7;
+    --text-muted: #9aa7bd;
+    --border:     #243049;
+    --shadow:     0 0.5rem 1.25rem rgba(0, 0, 0, .45);
+
+    --accent:      #4dabff;
+    --accent-dark: #3a8fd6;
+    --accent-soft: #1a2c44;
+
+    --success: #1fb892;
+    --warning: #d4b834;
+    --info:    #6b71d4;
+    --danger:  #ef4f5e;
+
+    --sidebar-bg:    #07101e;
+    --sidebar-text:  #aab4c7;
+    --sidebar-hover: rgba(255, 255, 255, .06);
+
+    --topbar-bg:     #121a2b;
+    --topbar-shadow: 0 .15rem 1.75rem 0 rgba(0, 0, 0, .35);
+
+    --tab-active:   var(--accent);
+    --tab-inactive: #1a2438;
+}
+
+
+/* ===== Body & layout (estructura SB-Admin-2) ===== */
+html, body { height: 100%; }
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-size: .9rem;
+    transition: background-color .2s, color .2s;
+}
+
+#wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+#content-wrapper {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg);
+}
+
+#content { flex: 1 0 auto; }
+
+#content > .container-fluid { padding: 1.5rem; }
+
+
+/* ===== Scrollbar (Webkit) ===== */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--bg); }
+::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+
+/* ===== Sidebar (markup SB-Admin-2, paleta MESS) ===== */
+.sidebar {
+    width: 14rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    background-color: var(--mess-azul);
+    background-image: linear-gradient(180deg, var(--mess-azul) 10%, #224abe 100%);
+    transition: width .25s ease-out;
+    flex-shrink: 0;
+    z-index: 1000;
+}
+
+body.theme-dark .sidebar {
+    background-image: linear-gradient(180deg, #07101e 10%, #0f1a33 100%);
+}
+
+.sidebar.toggled {
+    width: 0 !important;
+    overflow: hidden;
+}
+
+.sidebar .sidebar-brand {
+    height: 4.375rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05rem;
+    color: #fff;
+    text-decoration: none;
+    z-index: 1;
+}
+.sidebar .sidebar-brand:hover { color: #fff; }
+.sidebar .sidebar-brand-icon img { display: block; }
+
+.sidebar hr.sidebar-divider {
+    margin: 0 1rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, .15);
+    opacity: 1;
+}
+
+.sidebar .sidebar-heading {
+    text-align: left;
+    padding: 0 1rem;
+    font-weight: 800;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .08rem;
+    color: rgba(255, 255, 255, .4);
+    margin-bottom: .5rem;
+}
+
+.sidebar .nav-item {
+    position: relative;
+    list-style: none;
+}
+
+.sidebar .nav-item .nav-link {
+    display: block;
+    width: 14rem;
+    padding: .75rem 1rem;
+    color: rgba(255, 255, 255, .8);
+    font-size: .85rem;
+    text-decoration: none;
+    transition: background-color .15s, color .15s;
+}
+
+.sidebar .nav-item .nav-link i {
+    font-size: .85rem;
+    margin-right: .5rem;
+    color: rgba(255, 255, 255, .35);
+    transition: color .15s;
+}
+
+.sidebar .nav-item .nav-link span { font-size: .85rem; }
+
+.sidebar .nav-item .nav-link:hover,
+.sidebar .nav-item .nav-link:focus {
+    color: #fff;
+    background-color: rgba(255, 255, 255, .05);
+}
+.sidebar .nav-item .nav-link:hover i,
+.sidebar .nav-item .nav-link:focus i { color: #fff; }
+
+.sidebar .nav-item.active .nav-link {
+    color: #fff;
+    font-weight: 700;
+    background-color: rgba(255, 255, 255, .08);
+}
+.sidebar .nav-item.active .nav-link i { color: #fff; }
+
+/* Flecha indicadora en items colapsables (patrón SB-Admin-2) */
+.sidebar .nav-item .nav-link[data-bs-toggle="collapse"]::after {
+    width: 1rem;
+    text-align: center;
+    float: right;
+    vertical-align: 0;
+    border: 0;
+    font-weight: 900;
+    content: '\f107';
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+    color: rgba(255, 255, 255, .5);
+}
+.sidebar .nav-item .nav-link[data-bs-toggle="collapse"].collapsed::after {
+    content: '\f105';
+}
+
+/* Submenú colapsable (caja clara heredada de SB-Admin-2, tokenizada) */
+.sidebar .collapse-inner {
+    padding: .5rem 0;
+    min-width: 10rem;
+    font-size: .85rem;
+    margin: 0 1rem 1rem;
+    border-radius: .5rem;
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow);
+}
+.sidebar .collapse-inner .collapse-header {
+    margin: 0;
+    white-space: nowrap;
+    padding: .5rem 1.5rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    font-size: .65rem;
+    color: var(--text-muted);
+}
+.sidebar .collapse-inner .collapse-item {
+    padding: .5rem 1rem;
+    margin: 0 .5rem;
+    display: block;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: .35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sidebar .collapse-inner .collapse-item:hover  { background-color: var(--accent-soft); color: var(--accent); }
+.sidebar .collapse-inner .collapse-item:active { background-color: var(--accent); color: #fff; }
+.sidebar .collapse-inner .collapse-item.active { color: var(--accent); font-weight: 700; }
+
+/* Acción destacada (estilo CheckIn/CheckOut) */
+.sidebar .nav-item.btn-success,
+.sidebar .nav-item.btn-success.active {
+    background-color: #1cc88a;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+}
+.sidebar .nav-item.btn-success .nav-link { color: #fff; font-weight: 600; }
+.sidebar .nav-item.btn-success .nav-link i { color: #fff; }
+.sidebar .nav-item.btn-success .nav-link:hover,
+.sidebar .nav-item.btn-success .nav-link:focus {
+    background-color: rgba(0, 0, 0, .08);
+    color: #fff;
+}
+
+/* Toggle circular al pie del sidebar */
+.sidebar #sidebarToggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    text-align: center;
+    margin: 0 auto 1rem;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, .2);
+    color: rgba(255, 255, 255, .8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.sidebar #sidebarToggle::after {
+    font-weight: 900;
+    content: '\f104';
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free';
+}
+.sidebar #sidebarToggle:hover  { background-color: rgba(255, 255, 255, .25); }
+.sidebar #sidebarToggle:focus  { outline: none; }
+.sidebar.toggled #sidebarToggle::after { content: '\f105'; }
+
+/* Mobile: el sidebar se colapsa fuera de pantalla en lugar de width:0 */
+@media (max-width: 767.98px) {
+    .sidebar { position: fixed; left: 0; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar.toggled { transform: translateX(-100%); width: 14rem !important; overflow: visible; }
+    #content-wrapper { margin-left: 0; }
+}
+
+
+/* ===== Topbar (markup <nav class="topbar"> de encabezado.php) ===== */
+.topbar {
+    background: var(--topbar-bg);
+    box-shadow: var(--topbar-shadow);
+    padding: .75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    color: var(--text);
+    transition: background-color .2s, color .2s;
+    min-height: 4.375rem;
+}
+
+.topbar-divider {
+    width: 0;
+    border-right: 1px solid var(--border);
+    height: 2rem;
+    margin: 0 1rem;
+    align-self: center;
+}
+
+.topbar .navbar-nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-left: auto;
+    list-style: none;
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+.topbar .nav-item .nav-link {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    padding: 0 .5rem;
+    text-decoration: none;
+}
+.topbar .nav-item .nav-link:hover { color: var(--text); }
+
+.img-profile {
+    height: 2rem;
+    width: 2rem;
+    object-fit: cover;
+}
+
+/* Ocultar caret del dropdown */
+.no-arrow .dropdown-toggle::after { display: none; }
+
+.dropdown-menu {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+.dropdown-item { color: var(--text); }
+.dropdown-item:hover { background-color: var(--accent-soft); color: var(--accent); }
+.dropdown-divider { border-top-color: var(--border); }
+
+/* alias de la animación SB-Admin-2 usada por el dropdown de usuario */
+.animated--grow-in { animation: mess-grow-in .2s ease both; }
+@keyframes mess-grow-in {
+    0%   { transform: scale(.95); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+
+/* ===== Page header ===== */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+.page-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--text); }
+hr { border-top-color: var(--border); opacity: 1; }
+
+
+/* ===== Cards ===== */
+.card {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    box-shadow: var(--shadow);
+    transition: background-color .2s, border-color .2s, box-shadow .2s;
+}
+
+.card-header {
+    background-color: var(--card-soft);
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.card-action {
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    background: var(--card-bg);
+    transition: box-shadow .2s, transform .15s;
+}
+.card-action:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, .08);
+    transform: translateY(-2px);
+}
+
+
+/* ===== Border-left helpers (SB-Admin-2 compat) ===== */
+.border-left-primary  { border-left: .25rem solid var(--accent)  !important; }
+.border-left-success  { border-left: .25rem solid var(--success) !important; }
+.border-left-info     { border-left: .25rem solid var(--info)    !important; }
+.border-left-warning  { border-left: .25rem solid var(--warning) !important; }
+.border-left-danger   { border-left: .25rem solid var(--danger)  !important; }
+
+
+/* ===== Stat-card (KPI tile sobre card) ===== */
+.stat-card .card-body { padding: 1.25rem; }
+.stat-card .stat-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: .05rem;
+}
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.stat-card .stat-icon {
+    font-size: 2rem;
+    color: var(--border);
+}
+
+
+/* ===== Stat-box (KPI tile compacto, fondo semántico) ===== */
+.stat-box {
+    border-radius: .5rem;
+    padding: .5rem;
+    background: var(--accent);
+    text-align: center;
+    border: 1px solid transparent;
+    color: #fff;
+}
+.stat-box h3, .stat-box h4 { margin: 0; font-weight: 600; color: inherit; }
+.stat-box p  { margin: 0; font-size: .8rem; color: inherit; }
+
+.stat-box.is-success { background: var(--success); }
+.stat-box.is-info    { background: var(--info); }
+.stat-box.is-warning { background: var(--warning); color: #222; }
+.stat-box.is-danger  { background: var(--danger); }
+.stat-box.is-neutral { background: var(--card-soft); color: var(--text); border-color: var(--border); }
+
+
+/* ===== DataTables override ===== */
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid var(--border);
+    border-radius: .35rem;
+    padding: .375rem .75rem;
+    background: var(--card-bg);
+    color: var(--text);
+}
+
+table.dataTable thead th {
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: .05rem;
+    border-bottom: 2px solid var(--border) !important;
+}
+
+/* Todas las variables de .table tokenizadas. Bootstrap deriva el texto de
+   las filas rayadas de --bs-table-striped-COLOR (no de --bs-table-color); si
+   solo se fija --bs-table-color, las filas impares heredan el negro por
+   defecto de BS y quedan invisibles en dark ("contenido alternado"). */
+.table {
+    color: var(--text);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    --bs-table-striped-color: var(--text);
+    --bs-table-striped-bg: var(--card-soft);
+    --bs-table-active-color: var(--text);
+    --bs-table-active-bg: var(--accent-soft);
+    --bs-table-hover-color: var(--text);
+    --bs-table-hover-bg: var(--accent-soft);
+    --bs-table-border-color: var(--border);
+}
+.table-light,
+.table > :not(caption) > * > .table-light,
+.table thead.table-light th,
+.table thead th {
+    background-color: var(--card-soft);
+    color: var(--text);
+    border-color: var(--border);
+}
+.table > :not(caption) > * > * { border-bottom-color: var(--border); }
+.table-bordered,
+.table-bordered > :not(caption) > * > * { border-color: var(--border); }
+
+/* Skin no-bootstrap (jquery.dataTables.css) pinta el fondo directamente en el
+   <tr> (blanco/#f9f9f9), que se cuela bajo las celdas transparentes de BS y
+   rompe el rayado tokenizado. Se neutraliza para que mande siempre .table. */
+table.dataTable tbody tr,
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd,
+table.dataTable.hover tbody tr:hover,
+table.dataTable.display tbody tr:hover,
+table.dataTable tbody tr > .sorting_1,
+table.dataTable tbody tr > .sorting_2,
+table.dataTable tbody tr > .sorting_3 {
+    background-color: transparent !important;
+}
+
+.dataTables_info,
+.dataTables_paginate,
+.dataTables_length label,
+.dataTables_filter label { color: var(--text-muted) !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { color: var(--text) !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--accent);
+    color: #fff !important;
+    border-color: var(--accent);
+}
+
+
+/* ===== Buttons ===== */
+.btn-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--accent-dark);
+    border-color: var(--accent-dark);
+}
+
+.btn-outline-primary {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.btn-outline-secondary {
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+.btn-outline-secondary:hover {
+    background-color: var(--card-soft);
+    color: var(--text);
+    border-color: var(--text-muted);
+}
+
+/* CTA institucional con identidad MESS */
+.btn-outline-mess-naranja {
+    background-color: transparent;
+    border-color: var(--mess-naranja);
+    color: var(--mess-naranja);
+    font-weight: 600;
+}
+.btn-outline-mess-naranja:hover,
+.btn-outline-mess-naranja:focus {
+    background-color: var(--mess-naranja);
+    border-color: var(--mess-naranja);
+    color: #fff;
+    box-shadow: 0 0 0 .15rem rgba(234, 170, 0, .25);
+}
+
+
+/* ===== Forms ===== */
+.form-control,
+.form-select {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 .15rem rgba(5, 13, 158, .15);
+}
+.form-control::placeholder { color: var(--text-muted); opacity: .7; }
+.form-control:disabled,
+.form-select:disabled { background-color: var(--card-soft); color: var(--text-muted); }
+.form-label  { color: var(--text); }
+.form-text   { color: var(--text-muted); }
+.form-check-input:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+label { color: var(--text); }
+
+.input-group-text {
+    background-color: var(--card-soft);
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+
+
+/* ===== Modal ===== */
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.modal-header {
+    background: var(--accent);
+    color: #fff;
+    border-bottom: none;
+}
+.modal-header .modal-title { color: #fff; }
+.modal-header .btn-close { filter: invert(1); }
+.modal-footer { border-top: 1px solid var(--border); }
+
+/* Compat: botón de cierre BS4 (class="close") dentro de modales viejos */
+.modal-header button.close {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: .8;
+}
+.modal-header button.close:hover { opacity: 1; }
+
+
+/* ===== SweetAlert2 dark mode ===== */
+body.theme-dark .swal2-popup {
+    background: var(--card-bg);
+    color: var(--text);
+}
+body.theme-dark .swal2-title,
+body.theme-dark .swal2-html-container { color: var(--text); }
+
+
+/* ===== Select2 theme fix =====
+   El CSS del CDN de Select2 se carga DESPUÉS de mess-ds.css en varias vistas
+   (mantenimiento, prestamos), así que a igual especificidad ganaba él y dejaba
+   la caja del select y el dropdown en blanco. Se prefija con `body` para ganar
+   por especificidad sin depender del orden de carga. */
+body .select2-container--default .select2-selection--single,
+body .select2-container--default .select2-selection--multiple {
+    min-height: calc(1.5em + .75rem + 2px);
+    border: 1px solid var(--border);
+    border-radius: .375rem;
+    padding: .375rem .75rem;
+    background-color: var(--card-bg);
+    color: var(--text);
+}
+body .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.5;
+    padding: 0;
+    color: var(--text);
+}
+body .select2-container--default .select2-selection--single .select2-selection__arrow { height: 100%; }
+body .select2-container--default .select2-selection--single .select2-selection__placeholder,
+body .select2-container--default .select2-selection__placeholder { color: var(--text-muted); }
+/* Chips de selección múltiple */
+body .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--accent-soft);
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+/* El dropdown de Select2 se inyecta en <body> dentro de .select2-container--default.
+   Sus reglas (css del CDN) se cargan DESPUÉS de mess-ds.css en varias vistas, así
+   que a igual especificidad ganaban ellas (dropdown blanco, texto oscuro ilegible).
+   Se prefija con .select2-container--default para ganar por especificidad, sin
+   depender del orden de carga. */
+.select2-container--default .select2-dropdown,
+.select2-dropdown {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.select2-container--default .select2-results__options { background-color: var(--card-bg); }
+.select2-container--default .select2-results__option {
+    background-color: transparent;
+    color: var(--text);
+}
+.select2-container--default .select2-results__option--highlighted,
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--accent);
+    color: #fff;
+}
+.select2-container--default .select2-results__option[aria-selected="true"],
+.select2-container--default .select2-results__option--selected {
+    background-color: var(--accent-soft);
+    color: var(--text);
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+
+/* ===== Tabs principales ===== */
+.nav-tabs-main {
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1.25rem;
+}
+.nav-tabs-main .nav-link {
+    border: none;
+    border-radius: .5rem .5rem 0 0;
+    padding: .75rem 1.25rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    position: relative;
+}
+.nav-tabs-main .nav-link:hover  { color: var(--accent); }
+.nav-tabs-main .nav-link.active {
+    color: var(--tab-active);
+    background: var(--card-bg);
+    border-bottom: 3px solid var(--tab-active);
+}
+
+
+/* ===== Theme toggle (sol/luna en topbar) ===== */
+.theme-toggle-btn {
+    background: var(--card-soft);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color .15s, color .15s, transform .15s;
+}
+.theme-toggle-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+    transform: rotate(15deg);
+}
+
+
+/* ===== Scroll to top (markup SB-Admin-2 conservado en vistas) ===== */
+.scroll-to-top {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    display: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    text-align: center;
+    color: #fff;
+    background: rgba(90, 92, 105, .5);
+    line-height: 46px;
+    border-radius: .5rem;
+    z-index: 1030;
+    text-decoration: none;
+}
+.scroll-to-top:hover { background: var(--accent); color: #fff; }
+
+
+/* ===== Compat SB-Admin-2 / Bootstrap 4 =====
+   Utilidades que las vistas aún usan; evitar en código nuevo
+   (usar ms-*/me-*, fw-bold y tokens en su lugar). */
+.ml-1 { margin-left: .25rem !important; }
+.ml-2 { margin-left: .5rem !important; }
+.ml-3 { margin-left: 1rem !important; }
+.ml-auto { margin-left: auto !important; }
+.mr-0 { margin-right: 0 !important; }
+.mr-1 { margin-right: .25rem !important; }
+.mr-2 { margin-right: .5rem !important; }
+.mr-3 { margin-right: 1rem !important; }
+.font-weight-bold { font-weight: 700 !important; }
+.text-left  { text-align: left !important; }
+.text-right { text-align: right !important; }
+
+/* Grises SB-Admin-2 → tokenizados para que funcionen en dark */
+.text-gray-100 { color: #f8f9fc !important; }
+.text-gray-200 { color: #eaecf4 !important; }
+.text-gray-300 { color: #dddfeb !important; }
+.text-gray-400 { color: var(--text-muted) !important; }
+.text-gray-500 { color: var(--text-muted) !important; }
+.text-gray-600 { color: var(--text-muted) !important; }
+.text-gray-700 { color: var(--text) !important; }
+.text-gray-800 { color: var(--text) !important; }
+.text-gray-900 { color: var(--text) !important; }
+
+/* custom-control BS4 → apariencia form-check BS5 */
+.custom-control { position: relative; display: block; min-height: 1.5rem; padding-left: 1.75rem; }
+.custom-control-input { position: absolute; left: 0; z-index: 1; width: 1rem; height: 1.25rem; opacity: 1; margin-left: .25rem; }
+.custom-control-label { margin-bottom: 0; vertical-align: top; }
+
+.text-muted { color: var(--text-muted) !important; }
+
+
+/* ===== Correcciones modo oscuro =====
+   Las vistas usan utilidades BS pensadas para tema claro; en dark se
+   remapean a tokens para que el contenido siga siendo legible. */
+
+/* Utilidades de fondo/texto claras */
+body.theme-dark .bg-white  { background-color: var(--card-bg) !important; }
+body.theme-dark .bg-light  { background-color: var(--card-soft) !important; }
+body.theme-dark .text-dark,
+body.theme-dark .text-black { color: var(--text) !important; }
+
+/* bg-primary de BS5 → azul institucional (claro) / acento (dark) */
+.bg-primary { background-color: var(--accent) !important; }
+
+/* Bordes de celda del skin jquery.dataTables → token (el rayado/fondo ya se
+   neutraliza en la sección DataTables, arriba, de forma theme-agnóstica). */
+body.theme-dark table.dataTable tbody th,
+body.theme-dark table.dataTable tbody td { border-top-color: var(--border); }
+body.theme-dark table.dataTable thead th,
+body.theme-dark table.dataTable thead td,
+body.theme-dark table.dataTable tfoot th,
+body.theme-dark table.dataTable tfoot td { border-color: var(--border); }
+
+/* Alerts BS5: fondos pastel claros → versión oscura tokenizada */
+body.theme-dark .alert-primary { background-color: var(--accent-soft); color: var(--text); border-color: var(--accent); }
+body.theme-dark .alert-info    { background-color: rgba(107, 113, 212, .18); color: var(--text); border-color: var(--info); }
+body.theme-dark .alert-warning { background-color: rgba(212, 184, 52, .15);  color: var(--text); border-color: var(--warning); }
+body.theme-dark .alert-success { background-color: rgba(31, 184, 146, .15);  color: var(--text); border-color: var(--success); }
+body.theme-dark .alert-danger  { background-color: rgba(239, 79, 94, .15);   color: var(--text); border-color: var(--danger); }
+body.theme-dark .alert .btn-close { filter: invert(1); }
+
+/* Acordeones / list-group que algunas vistas usan */
+body.theme-dark .accordion-item,
+body.theme-dark .accordion-button,
+body.theme-dark .list-group-item {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border-color: var(--border);
+}
+body.theme-dark .accordion-button:not(.collapsed) { background-color: var(--card-soft); color: var(--accent); }
+
+/* Texto semántico BS: mantener legible sobre fondos oscuros */
+body.theme-dark .text-primary { color: var(--accent) !important; }
+
+
+/* ===== Utilidades MESS ===== */
+.text-primary-custom { color: var(--accent) !important; }
+.bg-primary-custom   { background-color: var(--accent) !important; }
+.fw-600 { font-weight: 600; }
+.fs-7   { font-size: .8rem; }
+.fs-8   { font-size: .7rem; }
+
+
+/* ===== Print: siempre tema claro (las etiquetas QR dependen de ello) ===== */
+@media print {
+    body, body.theme-dark {
+        background: #fff !important;
+        color: #000 !important;
+    }
+    .scroll-to-top, .theme-toggle-btn { display: none !important; }
+}

@@ -49,13 +49,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
 Para permisos especiales, el campo `opcion` puede ser `'verTodosVehiculo'`, `'verQR'`, etc.
 
-## Bootstrap: mezcla BS4 + BS5
+## Diseño: MESS Design System (Bootstrap 5.3)
 
-El proyecto carga **dos versiones simultáneamente**:
-- `vendor/bootstrap/` — Bootstrap 4 (SB-Admin-2 theme). Usa `data-toggle`, `data-target`.
-- CDN en `<head>` de la mayoría de páginas — Bootstrap 5. Usa `data-bs-toggle`, `data-bs-target`.
+Desde el rediseño de julio 2026 el stack visual es **solo Bootstrap 5.3** (`data-bs-toggle`, `data-bs-target`) + Font Awesome 6 + `css/mess-ds.css`:
 
-Antes de agregar un componente, identificar qué versión usa la página. Los modales que se definen en `encabezado.php` usan **BS5**.
+- `css/mess-ds.css` — design system MESS (portado de `Tickets/css/estilos.css`). Tokens CSS en `:root` y `body.theme-dark` (dark mode). **Nunca hex hardcoded en componentes nuevos — usar `var(--accent)`, `var(--text)`, etc.**
+- `js/mess-ds.js` — toggle del sidebar y del tema (clave localStorage `mess-theme`, compartida entre sistemas MESS). Se carga desde `encabezado.php`.
+- El anti-flash del tema oscuro vive al inicio de `menu.php`.
+- Se conserva la estructura DOM de SB-Admin-2 (`#wrapper > #accordionSidebar + #content-wrapper > #content > .topbar`), pero `sb-admin-2.css/js` ya **no** se cargan. Hay una capa de compatibilidad BS4 en mess-ds.css (`ml-*`/`mr-*`, `font-weight-bold`, `text-gray-*`); no usar esas clases en código nuevo.
+- `<head>` estándar de cada vista: fuente Nunito + Bootstrap 5.3.3 CDN + FA 6.5.1 CDN + `css/mess-ds.css`. El JS de Bootstrap, SweetAlert2, jQuery y `app.css` los inyecta `encabezado.php`.
+
+Los modales que se definen en `encabezado.php` usan **BS5**.
 
 **Problema conocido — backdrop residual:** Cuando un modal BS5 se cierra con `.hide()` y a continuación se abre un SweetAlert2, el backdrop queda bloqueando la pantalla. Fix:
 ```javascript

@@ -58,9 +58,9 @@ function enviarNotificacionSolicitud($tipo) {
         $mail->Port = 465;
         $mail->IsHTML(true);
         $mail->CharSet = 'UTF-8';
-        $mail->Username = "mess.metrologia@gmail.com";
-        $mail->Password = "hglidvwsxcbbefhe";
-        $mail->SetFrom("mess.metrologia@gmail.com", "Notificacion");
+        $mail->Username = "mess.programacion@gmail.com";
+        $mail->Password = "lnevdigasjodzbrq";
+        $mail->SetFrom("mess.programacion@gmail.com", "Notificacion");
         $mail->Subject = "Notificación del sistema de control vehicular.";
 
         $mail->Body = '

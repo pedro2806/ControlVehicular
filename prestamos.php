@@ -46,83 +46,77 @@
                             Solicitud de Préstamo Vehicular
                         </div>
                         <div class="card-body p-2 p-md-2">
-                            
-                        
-                    <!-- FORMULARIO DEL PRESTAMO-->
-                    <form id="formRegistroPrestamo">
-                        <input type="hidden" id="fecha" name="fecha">
-                        <input type="hidden" id="id_checklist" name="id_checklist">
-                        <input type="hidden" id="id_usuario" name="id_usuario" value="<?php echo $_COOKIE['id_usuario']; ?>">
+                            <form id="formRegistroPrestamo">
+                                <input type="hidden" id="fecha" name="fecha">
+                                <input type="hidden" id="id_checklist" name="id_checklist">
+                                <input type="hidden" id="id_usuario" name="id_usuario" value="<?php echo $_COOKIE['id_usuario']; ?>">
 
-                        <!-- Vehículo + Tipo de uso -->
-                        <div class="row mb-3">
-                            <div class="col-lg-5 col-md-6 mb-3 mb-md-0">
-                                <label class="form-label fw-semibold">Vehículo</label>
-                                <select id="id_vehiculo" name="id_vehiculo" class="form-select select2" required>
-                                    <option value="">Seleccione...</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-4 col-md-6 mb-3 mb-md-0">
-                                <label class="form-label fw-semibold">Tipo de uso</label>
-                                <select class="form-select" id="visita_vinculada" name="visita_vinculada" required onchange="toggleDato()">
-                                    <option value="" disabled selected>Seleccione...</option>
-                                    <option value="Entrega">Entrega</option>
-                                    <option value="Recoleccion">Recolección</option>
-                                    <option value="Prospeccion">Prospección</option>
-                                    <option value="Negociacion">Negociación</option>
-                                    <option value="Proyecto">Proyecto</option>
-                                    <option value="OV">OV</option>
-                                    <option value="OT">OT</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-3 col-md-6" id="colDato" style="display:none;">
-                                <label class="form-label fw-semibold" id="labelDato">OV / Cliente / OT / Proyecto</label>
-                                <input type="text" id="dato" name="dato" class="form-control" placeholder="Número o nombre...">
-                            </div>
-                        </div>
+                                <!-- Vehículo + Tipo de uso -->
+                                <div class="row mb-3">
+                                    <div class="col-lg-4 col-md-6 mb-3 mb-md-0">
+                                        <label class="form-label fw-semibold">Vehículo</label>
+                                        <select id="id_vehiculo" name="id_vehiculo" class="form-select select2" required>
+                                            <option value="">Seleccione...</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-4 col-md-6 mb-3 mb-md-0">
+                                        <label class="form-label fw-semibold">Tipo de uso</label>
+                                        <select class="form-select" id="visita_vinculada" name="visita_vinculada" required onchange="toggleDato()">
+                                            <option value="" disabled selected>Seleccione...</option>
+                                            <option value="Entrega">Entrega</option>
+                                            <option value="Recoleccion">Recolección</option>
+                                            <option value="Prospeccion">Prospección</option>
+                                            <option value="Negociacion">Negociación</option>
+                                            <option value="Proyecto">Proyecto</option>
+                                            <option value="OV">OV</option>
+                                            <option value="OT">OT</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-4 col-md-12">
+                                        <label class="form-label fw-semibold">Destino</label>
+                                        <input type="text" id="destino" name="destino" class="form-control" placeholder="Ciudad / dirección..." required>
+                                    </div>
+                                    <div class="col-lg-4 col-md-6" id="colDato" style="display:none;">
+                                        <label class="form-label fw-semibold" id="labelDato">OV / Cliente / OT / Proyecto</label>
+                                        <input type="text" id="dato" name="dato" class="form-control" placeholder="Número o nombre...">
+                                    </div>
+                                </div>
 
-                        <!-- Bloque de fechas compacto -->
-                        <div class="row mb-3">
-                            <div class="col-lg-7 col-md-12">
-                                <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1 text-primary"></i>Período del préstamo</label>
-                                <div class="card border-primary">
-                                    <div class="card-body py-2 px-3">
-                                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                                            <div>
-                                                <small class="text-muted d-block mb-1">Inicio</small>
-                                                <input type="datetime-local" class="form-control form-control-sm" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
-                                            </div>
-                                            <i class="fas fa-arrow-right text-primary mt-3"></i>
-                                            <div>
-                                                <small class="text-muted d-block mb-1">Fin</small>
-                                                <input type="datetime-local" class="form-control form-control-sm" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
+                                <!-- Bloque de fechas compacto -->
+                                <div class="row mb-3">
+                                    <div class="col-lg-6 col-md-12">
+                                        <label class="form-label fw-semibold"><i class="fas fa-calendar-alt me-1 text-primary"></i>Período del préstamo</label>
+                                        <div class="card border-primary">
+                                            <div class="card-body py-2 px-3">
+                                                <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                    <div>
+                                                        <small class="text-muted d-block mb-1">Inicio</small>
+                                                        <input type="datetime-local" class="form-control form-control-sm" id="fecha_inc_prestamo" name="fecha_inc_prestamo" required>
+                                                    </div>
+                                                    <i class="fas fa-arrow-right text-primary mt-3"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block mb-1">Fin</small>
+                                                        <input type="datetime-local" class="form-control form-control-sm" id="fecha_fin_prestamo" name="fecha_fin_prestamo" required>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-lg-6 col-md-12">
+                                        <label class="form-label fw-semibold">Motivo</label>
+                                        <textarea class="form-control" id="motivo" name="motivo" rows="2" placeholder="Describe el motivo del préstamo..." required></textarea>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-lg-5 col-md-12">
-                                <label class="form-label fw-semibold">Destino</label>
-                                <input type="text" id="destino" name="destino" class="form-control" placeholder="Ciudad / dirección..." required>
-                            </div>
-                        </div>
 
-                        <!-- Motivo -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold">Motivo</label>
-                                <textarea class="form-control" id="motivo" name="motivo" rows="3" placeholder="Describe el motivo del préstamo..." required></textarea>
-                            </div>
-                        </div>
 
-                        <div class="text-center">
-                            <button type="button" class="btn btn-primary px-4" onclick="RegistrarPrestamo()">
-                                <i class="fas fa-save me-1"></i> Guardar solicitud
-                            </button>
+                                <div class="text-right mt-3">
+                                    <button type="button" class="btn btn-primary px-4" onclick="RegistrarPrestamo()">
+                                        <i class="fas fa-save me-1"></i> Guardar solicitud
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
-                </div>
+                    </div>
                 </div>
             </div>
             <footer class = "sticky-footer bg-white">

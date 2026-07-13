@@ -104,15 +104,10 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
     overflow: hidden;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    /* Mantener los cuadros del patrón de fondo con bordes duros al escalar
-       en impresión (evita el suavizado/borrosidad de background-image). */
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
 }
-/* El QR (SVG) y el logo central deben seguir suavizados, no pixelados. */
 .sticker-qr-ring canvas,
 .sticker-qr-ring svg,
-.sticker-qr-ring img { display: block; image-rendering: auto; }
+.sticker-qr-ring img { display: block; }
 
 /* Right — info panel */
 .sticker-right {
@@ -182,7 +177,7 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
 #loteGrid {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 8px;
     justify-content: flex-start;
 }
 .btn-quitar-sticker { font-size: 0.68rem; border-radius: 0; }
@@ -213,7 +208,8 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
         display: inline-flex !important;
     }
     .sticker-body     { padding: 2mm 3mm 2mm 2mm; gap: 2.5mm; }
-    .sticker-qr-ring  { width: 48mm; height: 48mm; border-width: 1mm; }
+    .sticker-qr-ring  { width: 48mm; height: 48mm; border-width: 1mm; image-rendering: pixelated; image-rendering: crisp-edges; }
+    .sticker-qr-ring svg, .sticker-qr-ring canvas, .sticker-qr-ring img { image-rendering: auto; }
     .sticker-right    { gap: 1mm; }
     .sticker-ride-img { width: 100%; height: 15mm; object-fit: contain; object-position: top center; }
     .sticker-infobox  { padding: 1mm 2mm; border-radius: 1.5mm; line-height: 1.2; }

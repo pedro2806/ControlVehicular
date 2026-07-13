@@ -296,7 +296,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 cornersSquareOptions: { color: '#074480', type: 'square' },
                 cornersDotOptions:    { color: '#074480', type: 'square' },
                 image: 'img/MESS_07_CuboMess_1.png',
-                imageOptions: { crossOrigin: 'anonymous', margin: 3, imageSize: 0.3 }
+                imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
             }).append(document.getElementById(qrDivId));
 
             loteIds.push(id);

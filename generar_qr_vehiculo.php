@@ -284,6 +284,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             $('#loteGrid').append(html);
             $('#loteContainer').show();
 
+            //QR Code Styling
             new QRCodeStyling({
                 width: 123,
                 height: 123,

@@ -240,6 +240,55 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         // Agregar al lote
+        // Hace únicos los IDs internos del SVG del QR (clip-path-dot-color, etc.).
+        // qr-code-styling los emite SIN sufijo, así que con varios QR en la misma
+        // página los url(#id) colisionan (SVG resuelve al primer id del documento)
+        // y los QR salen recortados/mal. Se les añade el id del contenedor como sufijo.
+        function hacerIdsUnicos(cont, sufijo) {
+            var svg = cont.querySelector('svg');
+            if (!svg) return false;
+            var conId = svg.querySelectorAll('[id]');
+            if (!conId.length) return false;
+            conId.forEach(function (el) {
+                var viejo = el.id, nuevo = viejo + '-' + sufijo;
+                el.id = nuevo;
+                svg.querySelectorAll('*').forEach(function (n) {
+                    ['clip-path', 'mask', 'fill', 'stroke'].forEach(function (a) {
+                        if (n.getAttribute && n.getAttribute(a) === 'url(#' + viejo + ')') {
+                            n.setAttribute(a, 'url(#' + nuevo + ')');
+                        }
+                    });
+                });
+            });
+            return true;
+        }
+
+        function generarQrUnico(qrDivId, url) {
+            var cont = document.getElementById(qrDivId);
+            if (!cont) return;
+            new QRCodeStyling({
+                width: 123,
+                height: 123,
+                margin: 0,
+                type: 'svg',
+                data: url,
+                qrOptions: { errorCorrectionLevel: 'Q' },
+                dotsOptions:          { color: '#074480', type: 'square' },
+                backgroundOptions:    { color: '#ffffff' },
+                cornersSquareOptions: { color: '#074480', type: 'square' },
+                cornersDotOptions:    { color: '#074480', type: 'square' },
+                image: 'img/MESS_07_CuboMess_1.png',
+                imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
+            }).append(cont);
+            // qr-code-styling dibuja de forma asíncrona; en cuanto el SVG tenga sus IDs
+            // los hacemos únicos y desconectamos el observer.
+            var obs = new MutationObserver(function () {
+                if (hacerIdsUnicos(cont, qrDivId)) obs.disconnect();
+            });
+            obs.observe(cont, { childList: true, subtree: true });
+            setTimeout(function () { if (hacerIdsUnicos(cont, qrDivId)) obs.disconnect(); }, 600);
+        }
+
         function agregarAlLote(id, placa, modelo, marca, anio, skipScroll) {
             if (loteIds.indexOf(id) !== -1) {
                 Swal.fire({ icon: 'info', title: 'Ya en el lote', text: placa + ' ya está agregado.', timer: 1800, showConfirmButton: false });
@@ -284,20 +333,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             $('#loteGrid').append(html);
             $('#loteContainer').show();
 
-            new QRCodeStyling({
-                width: 123,
-                height: 123,
-                margin: 0,
-                type: 'svg',
-                data: url,
-                qrOptions: { errorCorrectionLevel: 'Q' },
-                dotsOptions:          { color: '#074480', type: 'square' },
-                backgroundOptions:    { color: '#ffffff' },
-                cornersSquareOptions: { color: '#074480', type: 'square' },
-                cornersDotOptions:    { color: '#074480', type: 'square' },
-                image: 'img/MESS_07_CuboMess_1.png',
-                imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
-            }).append(document.getElementById(qrDivId));
+            generarQrUnico(qrDivId, url);
 
             loteIds.push(id);
             actualizarContador();

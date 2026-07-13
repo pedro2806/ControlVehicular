@@ -45,7 +45,12 @@
             </div>
         </div>
     </div>
+</nav>
+<!-- End of Topbar -->
 
+<!-- Modales globales: DEBEN vivir fuera del .topbar. El topbar es position:sticky
+     + z-index, lo que crea un stacking context que atrapa el modal por debajo del
+     backdrop (pantalla oscura y sin clicks). No mover estos modales dentro del <nav>. -->
     <!-- Logout Modal-->
     <div class="modal fade" id="logoutModalN" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -327,9 +332,7 @@
             </div>
         </div>
     </div>
-
-    </nav>
-<!-- End of Topbar -->
+<!-- Fin de modales globales -->
 
 <!-- Aviso global de permisos de ubicacion -->
 <div id="avisoUbicacion" class="alert alert-warning alert-dismissible fade show mb-2 mx-3 d-none" role="alert" style="border-left: 4px solid #f6c23e;">

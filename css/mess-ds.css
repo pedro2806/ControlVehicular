@@ -23,13 +23,16 @@
     --text:       #1f2937;
     --text-muted: #6c757d;
 
-    /* acento institucional MESS (Pantone 072 C) */
-    --accent:      #050D9E;
-    --accent-dark: #040a7a;
+    /* acento interactivo institucional MESS (homologado con incidencias/loginMaster) */
+    --accent:      #1c83f1;
+    --accent-dark: #166fe5;
     --accent-soft: #eaf3ff;
 
+    /* gradiente navy institucional del sidebar (portado de incidencias) */
+    --header-gradient: linear-gradient(180deg, #074480 0%, #0a1c61 100%);
+
     /* paleta institucional MESS (logotipo/branding) */
-    --mess-azul:    #050D9E;
+    --mess-azul:    #0a1c61;
     --mess-gris:    #8E8E8E;
     --mess-naranja: #EAAA00;
 
@@ -142,7 +145,7 @@ body {
     margin: 0;
     list-style: none;
     background-color: var(--mess-azul);
-    background-image: linear-gradient(180deg, var(--mess-azul) 10%, #224abe 100%);
+    background-image: var(--header-gradient);
     transition: width .25s ease-out;
     flex-shrink: 0;
     z-index: 1000;

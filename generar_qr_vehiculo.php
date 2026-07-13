@@ -290,7 +290,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 margin: 0,
                 type: 'svg',
                 data: url,
-                qrOptions: { errorCorrectionLevel: 'H' },
+                qrOptions: { errorCorrectionLevel: 'Q' },
                 dotsOptions:          { color: '#074480', type: 'square' },
                 backgroundOptions:    { color: '#ffffff' },
                 cornersSquareOptions: { color: '#074480', type: 'square' },

@@ -240,7 +240,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         // Agregar al lote
-        function agregarAlLote(id, placa, modelo, marca, anio) {
+        function agregarAlLote(id, placa, modelo, marca, anio, skipScroll) {
             if (loteIds.indexOf(id) !== -1) {
                 Swal.fire({ icon: 'info', title: 'Ya en el lote', text: placa + ' ya está agregado.', timer: 1800, showConfirmButton: false });
                 return;
@@ -301,7 +301,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
 
             loteIds.push(id);
             actualizarContador();
-            $('html, body').animate({ scrollTop: $('#loteContainer').offset().top - 20 }, 400);
+            if (!skipScroll) $('html, body').animate({ scrollTop: $('#loteContainer').offset().top - 20 }, 400);
         }
 
         function quitarDelLote(id) {
@@ -346,14 +346,28 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
         }
 
         function agregarSeleccionados() {
-            selectedIds.forEach(function (id) {
-                var v = vehiculosData[id];
-                if (v) agregarAlLote(v.id, v.placa, v.modelo, v.marca, v.anio);
-            });
+            var ids = Array.from(selectedIds);
             selectedIds.clear();
             $('.chk-vehiculo').prop('checked', false);
             actualizarChkTodos();
             actualizarSeleccionados();
+
+            // Generación SECUENCIAL con respiro entre cada uno. qr-code-styling
+            // dibuja de forma asíncrona (carga la imagen central antes de pintar
+            // el fondo/módulos); si se disparan todos en el mismo tick los renders
+            // se pisan y salen QR incompletos (el fondo blanco no cubre y el patrón
+            // del círculo se cuela). Uno a la vez = cada render termina limpio.
+            var i = 0;
+            (function next() {
+                if (i >= ids.length) {
+                    if (ids.length) $('html, body').animate({ scrollTop: $('#loteContainer').offset().top - 20 }, 400);
+                    return;
+                }
+                var v = vehiculosData[ids[i]];
+                if (v) agregarAlLote(v.id, v.placa, v.modelo, v.marca, v.anio, true);
+                i++;
+                setTimeout(next, 70);
+            })();
         }
 
         function escapeHtml(str) {

@@ -333,7 +333,21 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             $('#loteGrid').append(html);
             $('#loteContainer').show();
 
-            generarQrUnico(qrDivId, url);
+            //QR Code Styling
+            new QRCodeStyling({
+                width: 123,
+                height: 123,
+                margin: 0,
+                type: 'svg',
+                data: url,
+                qrOptions: { errorCorrectionLevel: 'Q' },
+                dotsOptions:          { color: '#074480', type: 'square' },
+                backgroundOptions:    { color: '#ffffff' },
+                cornersSquareOptions: { color: '#074480', type: 'square' },
+                cornersDotOptions:    { color: '#074480', type: 'square' },
+                image: 'img/MESS_07_CuboMess_1.png',
+                imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
+            }).append(document.getElementById(qrDivId));
 
             loteIds.push(id);
             actualizarContador();

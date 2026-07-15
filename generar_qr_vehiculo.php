@@ -272,7 +272,14 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 margin: 0,
                 type: 'svg',
                 data: url,
-                qrOptions: { errorCorrectionLevel: 'Q' },
+                // typeNumber 6 = 41 módulos -> 123/41 = 3px exactos por módulo.
+                // Sin fijarlo, la versión la elige la librería según el largo de la URL:
+                // los ids de 1 dígito daban v5 (37 módulos) -> floor(123/37)=3 -> QR de
+                // 111px, y el fondo blanco de 123x123 asomaba alrededor.
+                // Capacidad v6 con EC 'Q' = 74 bytes (la URL usa ~62). Si baseUrl crece
+                // más allá de eso hay que subir typeNumber Y ajustar el ancho a múltiplo
+                // de sus módulos (17 + 4*typeNumber).
+                qrOptions: { typeNumber: 6, errorCorrectionLevel: 'Q' },
                 dotsOptions:          { color: '#074480', type: 'square' },
                 backgroundOptions:    { color: '#ffffff' },
                 cornersSquareOptions: { color: '#074480', type: 'square' },
@@ -340,7 +347,14 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 margin: 0,
                 type: 'svg',
                 data: url,
-                qrOptions: { errorCorrectionLevel: 'Q' },
+                // typeNumber 6 = 41 módulos -> 123/41 = 3px exactos por módulo.
+                // Sin fijarlo, la versión la elige la librería según el largo de la URL:
+                // los ids de 1 dígito daban v5 (37 módulos) -> floor(123/37)=3 -> QR de
+                // 111px, y el fondo blanco de 123x123 asomaba alrededor.
+                // Capacidad v6 con EC 'Q' = 74 bytes (la URL usa ~62). Si baseUrl crece
+                // más allá de eso hay que subir typeNumber Y ajustar el ancho a múltiplo
+                // de sus módulos (17 + 4*typeNumber).
+                qrOptions: { typeNumber: 6, errorCorrectionLevel: 'Q' },
                 dotsOptions:          { color: '#074480', type: 'square' },
                 backgroundOptions:    { color: '#ffffff' },
                 cornersSquareOptions: { color: '#074480', type: 'square' },

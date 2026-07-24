@@ -39,11 +39,15 @@ function verPlaca(selectVehiculo, inputKm, saldo) {
             dataType: 'json',
             data: { accion: 'tomaKm', IDvehiculoAsignado: IDvehiculoAsignado },
             success: function (Registros) {
-                if (Registros && Registros[0] && Registros[0].kmMax !== undefined) {
-                    $('#' + inputKm).val(Registros[0].kmMax);
-                    $('#gasActual').val(Registros[0].gasolina_actual);
-                    $('#monto').val(Registros[0].saldo);
-                }
+                var r = (Registros && Registros[0]) ? Registros[0] : {};
+                // km y gasolina se prellenan si hay actividad previa; si no, vacío
+                // (captura manual). Nunca dejar el literal "null" en el input.
+                $('#' + inputKm).val(r.kmMax != null ? r.kmMax : '');
+                $('#gasActual').val(r.gasolina_actual != null ? r.gasolina_actual : '');
+                // Monto = saldo que arrastra la carga anterior; si no hay saldo previo
+                // o quedó en 0, la tarjeta arranca con el crédito de 4000.
+                var saldoPrev = parseFloat(r.saldo);
+                $('#monto').val((isNaN(saldoPrev) || saldoPrev <= 0) ? 4000 : saldoPrev);
             }
         });
     }

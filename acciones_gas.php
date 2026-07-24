@@ -15,6 +15,66 @@ $km_actual = isset($_POST['km_actual']) ? $_POST['km_actual'] : null;
 $fecha_carga = isset($_POST['fecha_carga']) ? $_POST['fecha_carga'] : null;
 $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : null;
 
+    /**
+     * Conjunto de vehículos que el usuario puede consultar en gasolina.
+     * Replica el criterio de consultarInventario (acciones_siniestro.php):
+     * super usuario = acceso registrarMantenimiento con inf_adicional='TODAS'.
+     * Devuelve ['todas'=>bool, 'ids'=>int[]].
+     */
+    function vehiculosPermitidosGas($conn, $id_usuario, $noEmpleado) {
+        $id_usuario = intval($id_usuario);
+        $noEmpleado = intval($noEmpleado);
+
+        $infAdicional = null;
+        $stmtReg = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'registrarMantenimiento' AND estatus = 1 LIMIT 1");
+        if ($stmtReg) {
+            $stmtReg->bind_param("i", $noEmpleado);
+            $stmtReg->execute();
+            $rowReg = $stmtReg->get_result()->fetch_assoc();
+            if ($rowReg && !empty($rowReg['inf_adicional']) && $rowReg['inf_adicional'] !== '-') {
+                $infAdicional = trim($rowReg['inf_adicional']);
+            }
+            $stmtReg->close();
+        }
+
+        if ($infAdicional === 'TODAS') {
+            return ['todas' => true, 'ids' => []];
+        }
+
+        $areas = [];
+        $deptos = [];
+        if ($infAdicional) {
+            foreach (array_map('trim', explode(',', $infAdicional)) as $item) {
+                if (stripos($item, 'LAB:') === 0) {
+                    $id = (int) substr($item, 4);
+                    if ($id > 0) $deptos[] = $id;
+                } else {
+                    $areas[] = $conn->real_escape_string($item);
+                }
+            }
+        }
+
+        $sql = "SELECT inv.id_vehiculo FROM inventario inv
+                WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
+                UNION
+                SELECT inv.id_vehiculo FROM prestamos p
+                INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
+                WHERE p.id_usuario = $id_usuario AND p.estatus = 'AUTORIZADO'";
+        if (!empty($areas)) {
+            $areasEsc = implode("','", $areas);
+            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv WHERE inv.area IN ('$areasEsc')";
+        }
+        if (!empty($deptos)) {
+            $deptosEsc = implode(',', $deptos);
+            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario WHERE us.departamento IN ($deptosEsc)";
+        }
+
+        $ids = [];
+        $res = $conn->query($sql);
+        if ($res) { while ($r = $res->fetch_assoc()) { $ids[] = intval($r['id_vehiculo']); } }
+        return ['todas' => false, 'ids' => $ids];
+    }
+
     //FUNCION PARA REGISTRAR CARGA
     if ($accion == 'registraGas'){
         $sqlR = "INSERT INTO carga_gasolina (`id_usuario`, `id_vehiculo`, `monto`, `pagos`, `saldo`, `km_actual`, `fecha_carga`, `fecha_registro`) 
@@ -75,8 +135,20 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         exit;
     }
 
-    // Historial completo con km_consumidos calculado
+    // Historial de UN vehículo (tarjeta de gas por vehículo) con km_consumidos calculado
     if ($accion == 'obtenerHistorialGas') {
+        $idVeh = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
+
+        // La vista es por-vehículo: sin vehículo no se devuelve nada.
+        if ($idVeh <= 0) { echo json_encode([]); exit; }
+
+        // Salvaguarda anti-IDOR: solo vehículos permitidos (asignados, o todos si super).
+        $perm = vehiculosPermitidosGas($conn, $id_usuario, $noEmpleado);
+        if (!$perm['todas'] && !in_array($idVeh, $perm['ids'], true)) {
+            echo json_encode([]);
+            exit;
+        }
+
         $sqlU = "SELECT
                     cg.*,
                     CONCAT(inv.placa, ' - ', inv.modelo, ' ', inv.marca) AS Vehiculo,
@@ -92,18 +164,60 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                  INNER JOIN inventario inv ON inv.id_vehiculo = cg.id_vehiculo
                  LEFT JOIN usuarios u ON u.id_usuario = cg.id_usuario
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+                 WHERE cg.id_vehiculo = ?
                  ORDER BY cg.id DESC";
 
-        $resultU = $conn->query($sqlU);
         $registros = [];
-        if ($resultU) {
+        $stmt = $conn->prepare($sqlU);
+        if ($stmt) {
+            $stmt->bind_param("i", $idVeh);
+            $stmt->execute();
+            $resultU = $stmt->get_result();
             while ($row = $resultU->fetch_assoc()) {
                 $registros[] = $row;
             }
+            $stmt->close();
             echo json_encode($registros);
         } else {
             echo json_encode(['status' => 'error', 'message' => $conn->error]);
         }
+        exit;
+    }
+
+    // Vehículo a precargar en el historial: el de más km recorridos del usuario
+    // (o el de más km global si es super). Fallback: primer vehículo asignado.
+    if ($accion == 'vehiculoPrincipalGas') {
+        $perm = vehiculosPermitidosGas($conn, $id_usuario, $noEmpleado);
+        $idElegido = 0;
+
+        if ($perm['todas']) {
+            $res = $conn->query("SELECT id_vehiculo FROM reporte_km_vehiculo GROUP BY id_vehiculo ORDER BY SUM(km_registrado) DESC LIMIT 1");
+            if ($res && ($row = $res->fetch_assoc())) { $idElegido = intval($row['id_vehiculo']); }
+            if (!$idElegido) {
+                $res2 = $conn->query("SELECT id_vehiculo FROM inventario WHERE estatus = 'Activo' ORDER BY id_vehiculo LIMIT 1");
+                if ($res2 && ($row2 = $res2->fetch_assoc())) { $idElegido = intval($row2['id_vehiculo']); }
+            }
+        } else {
+            $ids = $perm['ids'];
+            if (!empty($ids)) {
+                $idsEsc = implode(',', array_map('intval', $ids));
+                $res = $conn->query("SELECT id_vehiculo FROM reporte_km_vehiculo WHERE id_vehiculo IN ($idsEsc) GROUP BY id_vehiculo ORDER BY SUM(km_registrado) DESC LIMIT 1");
+                if ($res && ($row = $res->fetch_assoc())) { $idElegido = intval($row['id_vehiculo']); }
+                if (!$idElegido) { $idElegido = intval($ids[0]); } // fallback: primero asignado
+            }
+        }
+
+        $placaElegida = '';
+        if ($idElegido) {
+            $stmtP = $conn->prepare("SELECT placa FROM inventario WHERE id_vehiculo = ? LIMIT 1");
+            $stmtP->bind_param("i", $idElegido);
+            $stmtP->execute();
+            $rp = $stmtP->get_result()->fetch_assoc();
+            $placaElegida = $rp ? $rp['placa'] : '';
+            $stmtP->close();
+        }
+
+        echo json_encode(['id_vehiculo' => $idElegido, 'placa' => $placaElegida]);
         exit;
     }
 

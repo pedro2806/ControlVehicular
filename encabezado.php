@@ -305,7 +305,7 @@
                         
                             <div class="col-4 col-md-4">
                                 <label for="pagos" class="form-label">Pagos</label>
-                                <input type="text" class="form-control" id="pagos" name="pagos" placeholder="$00.00" onblur="calcularSaldo()" required>
+                                <input type="text" class="form-control" id="pagos" name="pagos" placeholder="$00.00" oninput="calcularSaldo()" required>
                             </div>
 
                             <div class="col-4 col-md-4">

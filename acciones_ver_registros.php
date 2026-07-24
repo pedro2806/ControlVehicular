@@ -206,6 +206,7 @@ if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
     exit;
 }
 
+// Actualiza el estado de mantenimiento a "REALIZADO"
 if($_POST['accion'] == 'mantenimientoRealizado'){
     $id_mantenimiento = $_POST['id_mantenimiento'];
     $sql = "UPDATE mantenimientos SET VoBo_jefe = 'REALIZADO' WHERE id_mantenimiento = $id_mantenimiento";

@@ -870,8 +870,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
         function verificarCompletitud() {
             var inputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
+            var dots = document.querySelectorAll('.chk-dot');
             inputs.forEach(function(input, idx) {
-                if (pasoTieneFoto(idx)) marcarDotLleno(idx);
+                // Sincroniza el verde con el estado real: verde SOLO si el apartado
+                // tiene foto. Antes solo agregaba (marcarDotLleno) y nunca quitaba, por
+                // eso al borrar una foto el punto seguía marcado verde como completo.
+                if (dots[idx]) dots[idx].classList.toggle('filled', pasoTieneFoto(idx));
             });
         }
 

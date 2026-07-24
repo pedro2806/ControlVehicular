@@ -4,6 +4,14 @@ header('Content-Type: application/json');
 mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
 
+// El login (loginMaster/messbook) a veces deja $_COOKIE['id_usuario'] vacío aunque sí
+// puebla id_usuarioL (el id de usuario de CV confiable). Se normaliza aquí, una sola
+// vez, para que TODO el código que lee $_COOKIE['id_usuario'] use el id correcto —
+// sin tener que parchear cada módulo (gas, kilometraje, siniestros/consultarInventario, etc.).
+if (!empty($_COOKIE['id_usuarioL']) && intval($_COOKIE['id_usuarioL']) > 0) {
+    $_COOKIE['id_usuario'] = $_COOKIE['id_usuarioL'];
+}
+
 $tieneVehiculo = false;
 if (!empty($_COOKIE['noEmpleadoL'])) {
     $connCV = new mysqli("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");

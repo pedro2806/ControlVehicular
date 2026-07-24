@@ -47,16 +47,27 @@ if (isset($_FILES['foto']) && $_FILES['foto']['error'] == UPLOAD_ERR_OK) {
 
 if ($accion == 'CargarVehiculos'){
 
+        // Resolver el id de usuario de forma robusta: preferir id_usuarioL (el id de
+        // CV que setea el login) y caer a id_usuario si aquel viene vacío. Antes usaba
+        // solo id_usuario, que en algunas sesiones venía vacío -> 0 filas -> error.
+        $idU = intval($_COOKIE['id_usuarioL'] ?? 0);
+        if ($idU <= 0) { $idU = intval($_COOKIE['id_usuario'] ?? 0); }
+        if ($idU <= 0) {
+            // Sin usuario válido no se consulta (evita hacer match con id_usuario=0 = S/A).
+            echo json_encode(['status' => 'error', 'message' => 'No se encontraron vehículos activos.']);
+            exit;
+        }
+
         $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo, '' as estatus
-            FROM inventario Where id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'
+            FROM inventario Where id_usuario = $idU OR id_us_asignado = $idU
             UNION
             SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-            WHERE (p.id_usuario = '".$_COOKIE['id_usuario']."') AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
+            WHERE (p.id_usuario = $idU) AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
     $result = $conn->query($sql);
-    
-    if ($result->num_rows > 0) {
+
+    if ($result && $result->num_rows > 0) {
         $vehiculos = [];
         while ($row = $result->fetch_assoc()) {
             $vehiculos[] = $row;
@@ -89,33 +100,35 @@ if ($accion == 'CargarVehiculosPTenencia'){
 
 
 if ($accion == 'tomaKm'){
-    
-    $IDvehiculoAsignado = isset($_POST['IDvehiculoAsignado']) ? $_POST['IDvehiculoAsignado'] : null;
-    
-    // Consultar los vehículos activos del usuario actual
-    $sql = "SELECT av.gasolina_actual, av.km_actual AS kmMax, cg.saldo
-            FROM actividad_vehiculo av 
-            INNER JOIN carga_gasolina cg ON av.id_vehiculo = cg.id_vehiculo
-            WHERE av.id_vehiculo = $IDvehiculoAsignado 
-                AND cg.id = (
-                    SELECT MAX(id)
-                    FROM carga_gasolina
-                    WHERE id_vehiculo = $IDvehiculoAsignado
-                )
-            ORDER BY av.km_actual DESC
-            LIMIT 1";
-            
+
+    $IDvehiculoAsignado = intval($_POST['IDvehiculoAsignado'] ?? 0);
+
+    // Subconsultas escalares independientes: SIEMPRE devuelve 1 fila (con NULL donde
+    // no haya datos). Antes usaba INNER JOIN actividad_vehiculo + carga_gasolina, que
+    // devolvía 0 filas (y error) si el vehículo aún no tenía actividad NI cargas.
+    //   kmMax           = último odómetro registrado en actividad
+    //   gasolina_actual = nivel de gasolina de la última actividad
+    //   saldo           = saldo de la última carga de gasolina (si hay)
+    $sql = "SELECT
+                (SELECT av.km_actual FROM actividad_vehiculo av
+                 WHERE av.id_vehiculo = $IDvehiculoAsignado
+                 ORDER BY av.km_actual DESC LIMIT 1) AS kmMax,
+                (SELECT av.gasolina_actual FROM actividad_vehiculo av
+                 WHERE av.id_vehiculo = $IDvehiculoAsignado
+                 ORDER BY av.id_actividad DESC LIMIT 1) AS gasolina_actual,
+                (SELECT cg.saldo FROM carga_gasolina cg
+                 WHERE cg.id_vehiculo = $IDvehiculoAsignado
+                 ORDER BY cg.id DESC LIMIT 1) AS saldo";
+
     $result = $conn->query($sql);
 
-    if ($result->num_rows > 0) {
-        $vehiculos = [];
+    $vehiculos = [];
+    if ($result) {
         while ($row = $result->fetch_assoc()) {
             $vehiculos[] = $row;
         }
-        echo json_encode($vehiculos);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'No se encontraron vehículos activos.']);
     }
+    echo json_encode($vehiculos);
     exit;
 }
 

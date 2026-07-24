@@ -32,10 +32,10 @@ if (empty($_COOKIE['noEmpleado'])) {
                 <div class="d-sm-flex align-items-center justify-content-between mb-3">
                     <h1 class="h3 mb-0 text-gray-800">Historial de Cargas de Gasolina</h1>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-outline-warning btn-sm" onclick="descargarTabla()">
+                        <button id="btnDescargar" class="btn btn-outline-warning btn-sm" onclick="descargarTabla()" disabled>
                             <i class="fas fa-file-excel me-1"></i> Descargar XLSX
                         </button>
-                        <button class="btn btn-primary btn-sm" onclick="solicitarReposicionGeneral()">
+                        <button id="btnReposicion" class="btn btn-primary btn-sm" onclick="solicitarReposicionVehiculo()" disabled>
                             <i class="fas fa-gas-pump me-1"></i> Solicitar reposición de crédito
                         </button>
                     </div>
@@ -44,22 +44,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                 <div class="card shadow mb-4">
                     <div class="card-header bg-white py-2">
                         <div class="row g-2 align-items-end">
-                            <div class="col-12 col-md-4">
-                                <label class="form-label small mb-1">Filtrar por vehículo</label>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small mb-1">Vehículo (tarjeta de gas)</label>
                                 <select id="filtroVehiculo" class="form-select form-select-sm">
-                                    <option value="">Todos los vehículos</option>
+                                    <option value="">Selecciona un vehículo</option>
                                 </select>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <label class="form-label small mb-1">Filtrar por usuario</label>
-                                <select id="filtroUsuario" class="form-select form-select-sm">
-                                    <option value="">Todos los usuarios</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltros()">
-                                    <i class="fas fa-times me-1"></i> Limpiar filtros
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -107,17 +96,9 @@ if (empty($_COOKIE['noEmpleado'])) {
 
 <script>
 var tabla;
-var datosGas = [];
-
-// Filtros personalizados por columna (índice 0=vehículo, 1=usuario)
-$.fn.dataTable.ext.search.push(function(settings, data) {
-    if (settings.nTable.id !== 'tablaGas') return true;
-    var filtroV = $('#filtroVehiculo').val();
-    var filtroU = $('#filtroUsuario').val();
-    if (filtroV && data[0].indexOf(filtroV) === -1) return false;
-    if (filtroU && data[1].indexOf(filtroU) === -1) return false;
-    return true;
-});
+var idVehSel = 0;
+var placaSel = '';
+var saldoSel = 0;
 
 $(document).ready(function () {
     tabla = $('#tablaGas').DataTable({
@@ -134,6 +115,7 @@ $(document).ready(function () {
         language: {
             lengthMenu: "Mostrar _MENU_ registros",
             zeroRecords: "No se encontraron resultados",
+            emptyTable: "Selecciona un vehículo para ver su tarjeta de gas",
             info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
             infoEmpty: "Sin registros disponibles",
             infoFiltered: "(filtrado de _MAX_ totales)",
@@ -142,52 +124,98 @@ $(document).ready(function () {
         }
     });
 
-    cargarHistorial();
+    // El select se llena con los vehículos asignados (o todos si super usuario),
+    // igual que mantenimiento; al cargar se precarga uno automáticamente.
+    cargarSelectVehiculos(preseleccionarVehiculo);
 
-    $('#filtroVehiculo, #filtroUsuario').on('change', function () {
-        tabla.draw();
-    });
+    $('#filtroVehiculo').on('change', cargarHistorialVehiculo);
 });
 
-function cargarHistorial() {
+// Llena el select con consultarInventario (asignados / todos), como mantenimiento
+function cargarSelectVehiculos(callback) {
+    $.ajax({
+        url: 'acciones_siniestro',
+        type: 'POST',
+        data: { accion: 'consultarInventario' },
+        dataType: 'json',
+        success: function (data) {
+            var sel = $('#filtroVehiculo');
+            sel.empty().append('<option value="">Selecciona un vehículo</option>');
+            if (Array.isArray(data)) {
+                data.forEach(function (v) {
+                    sel.append('<option value="' + v.id_vehiculo + '" data-placa="' + escHtml(v.placa) + '">'
+                        + escHtml(v.placa) + ' - ' + escHtml(v.modelo) + ' ' + escHtml(v.marca) + '</option>');
+                });
+            }
+            if (typeof callback === 'function') callback();
+        },
+        error: function () {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar la lista de vehículos.' });
+        }
+    });
+}
+
+// Precarga: 1 vehículo -> ese; varios -> el de más km recorridos (vehiculoPrincipalGas)
+function preseleccionarVehiculo() {
+    var opciones = $('#filtroVehiculo option').filter(function () { return this.value !== ''; });
+    if (opciones.length === 0) { cargarHistorialVehiculo(); return; }
+    if (opciones.length === 1) {
+        $('#filtroVehiculo').val(opciones.first().val());
+        cargarHistorialVehiculo();
+        return;
+    }
     $.ajax({
         url: 'acciones_gas.php',
         type: 'POST',
-        data: { accion: 'obtenerHistorialGas' },
+        data: { accion: 'vehiculoPrincipalGas' },
+        dataType: 'json',
+        success: function (resp) {
+            var id = (resp && resp.id_vehiculo) ? String(resp.id_vehiculo) : '';
+            if (id && $('#filtroVehiculo option[value="' + id + '"]').length) {
+                $('#filtroVehiculo').val(id);
+            } else {
+                $('#filtroVehiculo').val(opciones.first().val());
+            }
+            cargarHistorialVehiculo();
+        },
+        error: function () {
+            $('#filtroVehiculo').val(opciones.first().val());
+            cargarHistorialVehiculo();
+        }
+    });
+}
+
+function cargarHistorialVehiculo() {
+    idVehSel = parseInt($('#filtroVehiculo').val()) || 0;
+    placaSel = $('#filtroVehiculo option:selected').data('placa') || '';
+
+    if (!idVehSel) {
+        tabla.clear().draw();
+        toggleBotones(false);
+        return;
+    }
+
+    $.ajax({
+        url: 'acciones_gas.php',
+        type: 'POST',
+        data: { accion: 'obtenerHistorialGas', id_vehiculo: idVehSel },
         dataType: 'json',
         success: function (data) {
-            if (!Array.isArray(data)) return;
-            datosGas = data;
+            if (!Array.isArray(data)) data = [];
             tabla.clear();
 
-            // Registro más reciente (mayor id) por vehículo
-            var latestIdPorVehiculo = {};
-            data.forEach(function (r) {
-                var vid = String(r.id_vehiculo);
-                if (!latestIdPorVehiculo[vid] || parseInt(r.id) > parseInt(latestIdPorVehiculo[vid].id)) {
-                    latestIdPorVehiculo[vid] = r;
-                }
-            });
-
-            // IDs que muestran botón: son el más reciente de su vehículo Y el dueño es el usuario actual
+            // La carga más reciente (mayor id) muestra el botón de reposición si es del usuario actual
             var currentUserId = getCookie('id_usuario') || getCookie('id_usuarioL') || '';
-            var mostrarBoton = new Set();
-            Object.values(latestIdPorVehiculo).forEach(function (r) {
-                if (String(r.id_usuario) === String(currentUserId)) {
-                    mostrarBoton.add(String(r.id));
-                }
+            var latest = null;
+            data.forEach(function (r) {
+                if (!latest || parseInt(r.id) > parseInt(latest.id)) latest = r;
             });
-
-            var vehiculos = {}, usuarios = {};
+            saldoSel = latest ? (parseFloat(latest.saldo) || 0) : 0;
 
             data.forEach(function (r) {
-                var saldo    = parseFloat(r.saldo) || 0;
-                var kmCons   = parseInt(r.km_consumidos) || 0;
-                var usuario  = r.nombre_usuario || r.usuario || '—';
-                var placa    = r.placa || r.Vehiculo;
-
-                vehiculos[placa]  = r.Vehiculo;
-                usuarios[usuario] = usuario;
+                var saldo   = parseFloat(r.saldo) || 0;
+                var kmCons  = parseInt(r.km_consumidos) || 0;
+                var usuario = r.nombre_usuario || r.usuario || '—';
 
                 var badgeSaldo = saldo <= 0
                     ? '<span class="badge bg-danger">$' + saldo.toFixed(2) + '</span>'
@@ -199,9 +227,11 @@ function cargarHistorial() {
                     ? '<span class="text-primary fw-bold">' + kmCons.toLocaleString() + ' km</span>'
                     : '<span class="text-muted">—</span>';
 
-                var btnRepos = mostrarBoton.has(String(r.id))
+                var esUltimoPropio = latest && String(r.id) === String(latest.id)
+                    && String(r.id_usuario) === String(currentUserId);
+                var btnRepos = esUltimoPropio
                     ? '<button class="btn btn-outline-primary btn-sm" '
-                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldo.toFixed(2) + ',\'' + escHtml(placa) + '\')" '
+                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldo.toFixed(2) + ',\'' + escHtml(placaSel) + '\')" '
                         + 'title="Solicitar reposición de crédito">'
                         + '<i class="fas fa-redo me-1"></i>Renovar</button>'
                     : '';
@@ -221,20 +251,7 @@ function cargarHistorial() {
             });
 
             tabla.draw(false);
-
-            // Poblar filtros
-            var selV = $('#filtroVehiculo'), selU = $('#filtroUsuario');
-            var currentV = selV.val(), currentU = selU.val();
-            selV.empty().append('<option value="">Todos los vehículos</option>');
-            selU.empty().append('<option value="">Todos los usuarios</option>');
-            Object.entries(vehiculos).forEach(function([placa, label]) {
-                selV.append('<option value="' + escHtml(placa) + '">' + escHtml(label) + '</option>');
-            });
-            Object.keys(usuarios).sort().forEach(function(u) {
-                selU.append('<option value="' + escHtml(u) + '">' + escHtml(u) + '</option>');
-            });
-            if (currentV) selV.val(currentV);
-            if (currentU) selU.val(currentU);
+            toggleBotones(data.length > 0);
         },
         error: function () {
             Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el historial.' });
@@ -242,9 +259,8 @@ function cargarHistorial() {
     });
 }
 
-function limpiarFiltros() {
-    $('#filtroVehiculo, #filtroUsuario').val('');
-    tabla.draw();
+function toggleBotones(activo) {
+    $('#btnDescargar, #btnReposicion').prop('disabled', !activo);
 }
 
 function solicitarReposicion(id_vehiculo, saldo, placa) {
@@ -279,12 +295,11 @@ function solicitarReposicion(id_vehiculo, saldo, placa) {
     });
 }
 
-function solicitarReposicionGeneral() {
-    // Obtiene el vehículo con menor saldo del historial del usuario actual
-    var noEmp = getCookie('noEmpleado') || '';
+function solicitarReposicionVehiculo() {
+    if (!idVehSel) return;
     Swal.fire({
-        title: 'Solicitar reposición de crédito',
-        html: 'Se notificará al encargado que necesitas reposición de crédito de gasolina.',
+        title: '¿Solicitar reposición?',
+        html: 'Se enviará un correo al encargado solicitando crédito de gasolina para <strong>' + escHtml(placaSel) + '</strong>.<br>Saldo actual: <strong>$' + saldoSel.toFixed(2) + '</strong>',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Enviar solicitud',
@@ -296,7 +311,7 @@ function solicitarReposicionGeneral() {
             url: 'acciones_gas.php',
             method: 'POST',
             dataType: 'json',
-            data: { accion: 'solicitarReposicionGas', id_vehiculo: 0, saldo: 0 },
+            data: { accion: 'solicitarReposicionGas', id_vehiculo: idVehSel, saldo: saldoSel },
             success: function (resp) {
                 Swal.fire({
                     icon: resp.status === 'success' ? 'success' : 'error',
@@ -314,10 +329,12 @@ function solicitarReposicionGeneral() {
 }
 
 function descargarTabla() {
+    if (!idVehSel) return;
     var wb = XLSX.utils.book_new();
     var ws = XLSX.utils.table_to_sheet(document.getElementById('tablaGas'));
     XLSX.utils.book_append_sheet(wb, ws, 'Gasolina');
-    XLSX.writeFile(wb, 'Historial_Gasolina.xlsx');
+    var placa = placaSel ? String(placaSel).replace(/[^A-Za-z0-9_-]/g, '') : ('veh' + idVehSel);
+    XLSX.writeFile(wb, 'Gasolina_' + placa + '.xlsx');
 }
 
 function escHtml(str) {

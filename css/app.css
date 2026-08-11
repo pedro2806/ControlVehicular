@@ -109,6 +109,51 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
 .sticker-qr-ring svg,
 .sticker-qr-ring img { display: block; }
 
+/* Respaldo blanco del QR. qr-code-styling pinta su rect de fondo con
+   clip-path="url('#clip-path-background-color')" pero NUNCA crea ese clipPath: la
+   referencia inválida hace que el navegador no dibuje el rect, así que los puntos del
+   QR caían directamente sobre el patrón decorativo del aro y lo volvían ilegible.
+   El blanco lo pone el CSS.
+
+   Es CUADRADO y mide 70.7%, el lado máximo de un cuadrado inscrito en el círculo
+   (D/raiz(2)): así deja asomar el background-image decorativo de .sticker-qr-ring en
+   los cuatro segmentos que no cubre, que es lo que hace que el QR se funda con el
+   fondo. Para un aro blanco liso, ponerlo a 100% con border-radius 50%.
+
+   NO quitar este blanco ni difuminarlo con mask: verificado con un lector real
+   (jsQR), si el patrón del aro se cuela dentro del área del QR mete módulos oscuros
+   falsos y el código DEJA DE DECODIFICAR por completo. */
+.sticker-qr-ring > div {
+    width: 62.6%; height: 62.6%;
+    flex-shrink: 0;
+    background: #ffffff;
+    border-radius: 4%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* El QR se genera a 123px fijos y sin esta regla no escala con el aro: al reducir
+   la etiqueta se desbordaría. En %, cualquier cambio de tamaño solo requiere tocar
+   .sticker-qr-ring. Al ser SVG, escalarlo no pierde nitidez.
+   Requiere el viewBox que le pone hacerEscalable() en generar_qr_vehiculo.php.
+
+   Este 96% es relativo al PANEL blanco de arriba, no al aro: el QR mide 0.626 x 0.96
+   = 60% del aro y el panel le queda casi al ras. Ese 4% sobrante es la ZONA DE
+   SILENCIO (~0.9 módulos), el margen blanco con el que el lector delimita el código.
+
+   NO subirlo a 100%. Medido con jsQR dejando el panel exactamente del tamaño del QR:
+   no decodifica a NINGUNA resolución, ni a 900px. El umbral es abrupto: con 0 módulos
+   falla y con 0.4 ya lee. Se dejó en 0.9 para tener margen ante la ganancia de tinta
+   al imprimir, que se come parte de ese blanco.
+
+   Si el panel se pusiera a 100% (aro blanco liso), el tope de este valor pasa a ser
+   70.7%: por encima, el aro (border-radius 50% + overflow hidden) muerde las ESQUINAS
+   del QR, que es donde están los patrones de localización, y deja de escanear. */
+.sticker-qr-ring canvas,
+.sticker-qr-ring svg,
+.sticker-qr-ring img { width: 96%; height: 96%; }
+
 /* Right — info panel */
 .sticker-right {
     flex: 1;
@@ -119,25 +164,25 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
     min-width: 0;
 }
 
-/* RIDE branding */
+/* RIDE branding — reducido para dar aire a la barra de logos */
 .sticker-ride-img {
     width: 100%;
-    height: 90px;
+    height: 66px;
     display: block;
     object-fit: contain;
     object-position: top center;
 }
 
-/* Vehicle info box */
+/* Vehicle info box — reducido */
 .sticker-infobox {
     border: 1.5px solid #cccccc;
     border-radius: 8px;
-    padding: 3px 9px;
+    padding: 2px 7px;
     line-height: 1.35;
     min-width: 0;
 }
 .sticker-v-line1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #111;
     text-transform: uppercase;
@@ -145,21 +190,22 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.sticker-v-line2 { font-size: 1.6rem; color: #333; text-transform: uppercase; }
-.sticker-v-line3 { font-size: 1.6rem; color: #333; }
-.sticker-v-line4 { font-size: 1.6rem; font-weight: 700; color: #111; letter-spacing: 1px; }
+.sticker-v-line2 { font-size: 1.3rem; color: #333; text-transform: uppercase; }
+.sticker-v-line3 { font-size: 1.3rem; color: #333; }
+.sticker-v-line4 { font-size: 1.3rem; font-weight: 700; color: #111; letter-spacing: 1px; }
 
-/* Bottom logos bar */
-.sticker-logos-bar { display: flex; align-items: center; gap: 10px; }
-.sticker-logo-mess { height: 26px; width: auto; flex-shrink: 0; }
-.sticker-logo-divider { width: 1px; height: 26px; background: #cccccc; flex-shrink: 0; }
+/* Bottom logos bar — agrandada. Misma proporción que en @media print: la columna
+   derecha mide 220px y la barra suma ~200px, así que no hay margen para más. */
+.sticker-logos-bar { display: flex; align-items: center; gap: 8px; }
+.sticker-logo-mess { height: 32px; width: auto; flex-shrink: 0; }
+.sticker-logo-divider { width: 1px; height: 32px; background: #cccccc; flex-shrink: 0; }
 .sticker-b1 { display: flex; align-items: center; gap: 6px; }
 .b1-box {
     background: #050D9E;
     color: #ffffff;
     font-weight: 900;
-    font-size: 1rem;
-    width: 28px; height: 28px;
+    font-size: 1.25rem;
+    width: 32px; height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -167,7 +213,7 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
     flex-shrink: 0;
 }
 .b1-desc {
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     color: #050D9E;
     font-weight: 700;
     text-transform: uppercase;
@@ -195,30 +241,42 @@ body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }
         max-height: none !important; overflow: visible !important;
         height: auto !important; width: 100% !important;
     }
+    /* Etiqueta 9 x 4 cm, 2 por fila.
+       Ancho:  2 x 90mm + 3mm de gap = 183mm de los 205.9mm útiles (Carta, margen 5mm).
+       Alto:   6 filas de 40mm + 5 x 3mm = 255mm de 269.4mm -> 12 etiquetas por hoja. */
     #loteGrid {
         display: grid;
-        grid-template-columns: repeat(2, 98mm);
+        grid-template-columns: repeat(2, 90mm);
         gap: 3mm;
         justify-content: center;
     }
     .sticker-item {
-        width: 98mm; height: 58mm;
+        width: 90mm; height: 40mm;
         box-sizing: border-box; overflow: hidden;
         break-inside: avoid;
         display: inline-flex !important;
     }
     .sticker-body     { padding: 2mm 3mm 2mm 2mm; gap: 2.5mm; }
-    .sticker-qr-ring  { width: 48mm; height: 48mm; border-width: 1mm; image-rendering: pixelated; image-rendering: crisp-edges; }
+    /* Aquí manda el ALTO: el cuerpo mide 36mm (40 - 4 de padding) y el aro es el
+       elemento más alto, así que 35mm es su techo. La columna derecha queda en
+       90 - 5 - 35 - 2.5 = 47.5mm, y la barra de logos mide ~44mm: entra justa. */
+    .sticker-qr-ring  { width: 35mm; height: 35mm; border-width: 0.8mm; image-rendering: pixelated; image-rendering: crisp-edges; }
     .sticker-qr-ring svg, .sticker-qr-ring canvas, .sticker-qr-ring img { image-rendering: auto; }
-    .sticker-right    { gap: 1mm; }
-    .sticker-ride-img { width: 100%; height: 15mm; object-fit: contain; object-position: top center; }
-    .sticker-infobox  { padding: 1mm 2mm; border-radius: 1.5mm; line-height: 1.2; }
-    .sticker-v-line1  { font-size: 12pt; white-space: normal; overflow: visible; text-overflow: unset; }
-    .sticker-v-line4  { font-size: 12pt; }
-    .sticker-v-line2, .sticker-v-line3 { font-size: 10pt; }
-    .sticker-logos-bar { gap: 2mm; }
-    .sticker-logo-mess { height: 6mm; }
-    .sticker-logo-divider { height: 6mm; }
-    .b1-box  { width: 6mm; height: 6mm; font-size: 3mm; border-radius: 1mm; }
-    .b1-desc { font-size: 3pt; }
+    .sticker-right    { gap: 0.8mm; }
+    /* Con 36mm de cuerpo el alto va apretado: RIDE + infobox + barra suman ~34mm.
+       Subir cualquiera de estas medidas es lo primero que desborda a lo alto. */
+    .sticker-ride-img { width: 100%; height: 8mm; object-fit: contain; object-position: top center; }
+    .sticker-infobox  { padding: 0.6mm 1.5mm; border-radius: 1mm; line-height: 1.15; }
+    .sticker-v-line1  { font-size: 9pt; white-space: normal; overflow: visible; text-overflow: unset; }
+    .sticker-v-line4  { font-size: 9pt; }
+    .sticker-v-line2, .sticker-v-line3 { font-size: 7pt; }
+    /* Barra de logos, +2%: 8.5 -> 8.67mm. El imagotipo MESS es 2.36:1, así que ocupa
+       20.5mm; con divisor, B1 y descripción la barra suma ~44mm y entra holgada en los
+       57.5mm de la columna. El techo aquí es el ANCHO de la columna derecha: si se
+       agranda el aro, esta barra es lo primero que se desborda. */
+    .sticker-logos-bar { gap: 1.5mm; }
+    .sticker-logo-mess { height: 8.67mm; }
+    .sticker-logo-divider { height: 8.67mm; }
+    .b1-box  { width: 8.67mm; height: 8.67mm; font-size: 4.28mm; border-radius: 1.3mm; }
+    .b1-desc { font-size: 4.08pt; }
 }

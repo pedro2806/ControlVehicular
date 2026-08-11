@@ -20,8 +20,19 @@ if (!$tieneAcceso) {
     header('location: inicio');
     exit;
 }
-$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-$baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
+// URL base que se codifica en el QR impreso. Es CONSTANTE a propósito: la etiqueta
+// es física y permanente, así que no puede depender de desde dónde se generó.
+// Derivándola de HTTP_HOST, generar el lote desde WAMP imprimía stickers con
+// http://localhost/... de forma irreversible.
+//
+// Capacidad del QR: typeNumber 6 + EC 'Q' = 74 bytes; con el id del vehículo esta
+// URL usa ~62. Si la constante crece más allá de eso, la librería lanza excepción y
+// el sticker sale vacío: hay que subir typeNumber en generarQrUnico() y ajustar el
+// ancho a un múltiplo de sus módulos (17 + 4*typeNumber).
+$QR_BASE_URL = 'https://messbook.com.mx/ControlVehicular';
+
+// Solo para avisar en pantalla que se está previsualizando fuera de producción.
+$esProduccion = stripos($_SERVER['HTTP_HOST'] ?? '', 'messbook.com.mx') !== false;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -52,6 +63,16 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
 
                 <div class="container-fluid">
                     <h1 class="h3 mb-3 text-black-800 no-print">Generar QR por Vehículo</h1>
+
+<?php if (!$esProduccion): ?>
+                    <div class="alert alert-warning d-flex align-items-center gap-2 no-print" role="alert">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>Vista local.</strong> Los QR de estas etiquetas apuntan a
+                            <strong>PRODUCCIÓN</strong> (<?= htmlspecialchars($QR_BASE_URL) ?>), no a este servidor.
+                        </div>
+                    </div>
+<?php endif; ?>
 
                     <!-- Tabla de vehículos -->
                     <div class="card shadow mb-4 no-print">
@@ -130,7 +151,7 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        var baseUrl       = <?php echo json_encode($baseUrl); ?>;
+        var baseUrl       = <?php echo json_encode($QR_BASE_URL); ?>;
         var loteIds       = [];
         var vehiculosData = {};
         var selectedIds   = new Set();
@@ -241,21 +262,38 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
 
         // Agregar al lote
         // Hace únicos los IDs internos del SVG del QR (clip-path-dot-color, etc.).
-        // qr-code-styling los emite SIN sufijo, así que con varios QR en la misma
-        // página los url(#id) colisionan (SVG resuelve al primer id del documento)
-        // y los QR salen recortados/mal. Se les añade el id del contenedor como sufijo.
+        // qr-code-styling los emite SIN sufijo de instancia: 'clip-path-dot-color' y
+        // 'clip-path-background-color' son literales, y los de las esquinas se indexan
+        // por posición ('...-0-0'), no por QR. Con varios QR en la misma página los
+        // url(#id) colisionan —SVG resuelve al primer id del documento— y TODAS las
+        // etiquetas acaban pintando el QR de la primera. Pasó en producción: se
+        // imprimió un lote entero donde todas escaneaban al mismo vehículo.
+        // Se les añade el id del contenedor como sufijo.
+        var ATRIBUTOS_CON_REF = ['clip-path', 'mask', 'fill', 'stroke'];
+
         function hacerIdsUnicos(cont, sufijo) {
             var svg = cont.querySelector('svg');
             if (!svg) return false;
             var conId = svg.querySelectorAll('[id]');
             if (!conId.length) return false;
+            var nodos = svg.querySelectorAll('*');
             conId.forEach(function (el) {
                 var viejo = el.id, nuevo = viejo + '-' + sufijo;
                 el.id = nuevo;
-                svg.querySelectorAll('*').forEach(function (n) {
-                    ['clip-path', 'mask', 'fill', 'stroke'].forEach(function (a) {
-                        if (n.getAttribute && n.getAttribute(a) === 'url(#' + viejo + ')') {
-                            n.setAttribute(a, 'url(#' + nuevo + ')');
+                // La librería escribe las referencias como url('#id') CON comillas
+                // simples, así que no sirve comparar contra la cadena url(#id) pelada.
+                // Se contemplan las tres formas: url(#id), url('#id') y url("#id").
+                // El \) final es lo que evita que #clip-path-corners-dot-color haga
+                // match parcial dentro de #clip-path-corners-dot-color-0-0.
+                var ref = new RegExp(
+                    'url\\((["\']?)#' + viejo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\1\\)',
+                    'g'
+                );
+                nodos.forEach(function (n) {
+                    ATRIBUTOS_CON_REF.forEach(function (a) {
+                        var val = n.getAttribute(a);
+                        if (val && val.indexOf('#' + viejo) !== -1) {
+                            n.setAttribute(a, val.replace(ref, 'url($1#' + nuevo + '$1)'));
                         }
                     });
                 });
@@ -287,13 +325,41 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
                 image: 'img/MESS_07_CuboMess_1.png',
                 imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
             }).append(cont);
-            // qr-code-styling dibuja de forma asíncrona; en cuanto el SVG tenga sus IDs
-            // los hacemos únicos y desconectamos el observer.
+            // qr-code-styling dibuja de forma asíncrona; en cuanto el SVG esté listo
+            // lo preparamos y desconectamos el observer.
             var obs = new MutationObserver(function () {
-                if (hacerIdsUnicos(cont, qrDivId)) obs.disconnect();
+                if (prepararSvg(cont, qrDivId)) obs.disconnect();
             });
             obs.observe(cont, { childList: true, subtree: true });
-            setTimeout(function () { if (hacerIdsUnicos(cont, qrDivId)) obs.disconnect(); }, 600);
+            setTimeout(function () { if (prepararSvg(cont, qrDivId)) obs.disconnect(); }, 600);
+        }
+
+        // La librería crea el <svg> con width/height="123" y SIN viewBox. Sin viewBox
+        // el dibujo tiene tamaño fijo en unidades de usuario: darle un ancho por CSS
+        // encoge la ventana pero NO el contenido, así que el QR sale RECORTADO en vez
+        // de escalado. Cambiando width/height por un viewBox equivalente, el SVG pasa
+        // a escalar de verdad y obedece el % de .sticker-qr-ring en css/app.css.
+        function hacerEscalable(svg) {
+            if (svg.getAttribute('viewBox')) return;
+            var w = parseFloat(svg.getAttribute('width')),
+                h = parseFloat(svg.getAttribute('height'));
+            if (!w || !h) return;
+            svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+            svg.removeAttribute('width');
+            svg.removeAttribute('height');
+        }
+
+        // Idempotente a propósito: la llaman el MutationObserver y el setTimeout de
+        // respaldo, y sin la marca el sufijo se aplicaba dos veces
+        // (clip-path-dot-color-qrLote5-qrLote5).
+        function prepararSvg(cont, sufijo) {
+            var svg = cont.querySelector('svg');
+            if (!svg) return false;
+            if (svg.dataset.qrListo === '1') return true;
+            if (!hacerIdsUnicos(cont, sufijo)) return false;
+            hacerEscalable(svg);
+            svg.dataset.qrListo = '1';
+            return true;
         }
 
         function agregarAlLote(id, placa, modelo, marca, anio, skipScroll) {
@@ -340,28 +406,11 @@ $baseUrl   = $protocol . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER[
             $('#loteGrid').append(html);
             $('#loteContainer').show();
 
-            //QR Code Styling
-            new QRCodeStyling({
-                width: 123,
-                height: 123,
-                margin: 0,
-                type: 'svg',
-                data: url,
-                // typeNumber 6 = 41 módulos -> 123/41 = 3px exactos por módulo.
-                // Sin fijarlo, la versión la elige la librería según el largo de la URL:
-                // los ids de 1 dígito daban v5 (37 módulos) -> floor(123/37)=3 -> QR de
-                // 111px, y el fondo blanco de 123x123 asomaba alrededor.
-                // Capacidad v6 con EC 'Q' = 74 bytes (la URL usa ~62). Si baseUrl crece
-                // más allá de eso hay que subir typeNumber Y ajustar el ancho a múltiplo
-                // de sus módulos (17 + 4*typeNumber).
-                qrOptions: { typeNumber: 6, errorCorrectionLevel: 'Q' },
-                dotsOptions:          { color: '#074480', type: 'square' },
-                backgroundOptions:    { color: '#ffffff' },
-                cornersSquareOptions: { color: '#074480', type: 'square' },
-                cornersDotOptions:    { color: '#074480', type: 'square' },
-                image: 'img/MESS_07_CuboMess_1.png',
-                imageOptions: { crossOrigin: 'anonymous', margin: 0, imageSize: 0.3 }
-            }).append(document.getElementById(qrDivId));
+            // SIEMPRE vía generarQrUnico(). Instanciar QRCodeStyling aquí en línea se
+            // salta hacerIdsUnicos() y todas las etiquetas del lote salen con el QR de
+            // la primera. Ya se perdió una vez resolviendo un merge (67c4673) y llegó
+            // así a producción.
+            generarQrUnico(qrDivId, url);
 
             loteIds.push(id);
             actualizarContador();

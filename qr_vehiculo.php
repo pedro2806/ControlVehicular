@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/sesion_cookies.php';
 
 $id_vehiculo = intval($_GET['v'] ?? 0);
 if (!$id_vehiculo) {
@@ -676,6 +677,20 @@ if (empty($_COOKIE['noEmpleado'])) {
                 return;
             }
 
+            // La sección de foto solo se muestra cuando es el primer KM de la semana
+            // (resp.primerKMDeLaSemana), y en ese caso la foto es obligatoria. Se valida
+            // aquí para no hacerle subir el formulario y rebotarlo desde el servidor,
+            // que igual lo rechaza.
+            if ($('#checkinFotoSection').is(':visible') && !$('#checkinFoto')[0].files[0]) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Falta la foto del KM',
+                    text: 'Es el primer registro de la semana para este vehículo: toma la foto del odómetro para continuar.',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
+
             $('#btnGuardarCheckinKM').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
 
             function enviar(latNum, lngNum) {
@@ -739,8 +754,8 @@ if (empty($_COOKIE['noEmpleado'])) {
             function gpsFallo() {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Activa tu ubicación',
-                    text: 'No pudimos obtener tu ubicación, que es obligatoria para registrar el check-in. Habilita el GPS y el permiso de ubicación del navegador e inténtalo de nuevo.',
+                    title: 'Se necesita la ubicación activada',
+                    text: 'No pudimos obtener tu ubicación, y es obligatoria para registrar el check-in.',
                     confirmButtonText: 'Reintentar'
                 });
                 $('#btnGuardarCheckinKM').prop('disabled', false).text('Registrar Entrada');

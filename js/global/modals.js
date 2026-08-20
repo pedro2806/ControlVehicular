@@ -6,24 +6,37 @@ function verificarPermisoUbicacion() {
     var msg    = document.getElementById('avisoUbicacionMsg');
     var btn    = document.getElementById('btnAceptarUbicacion');
 
-    // El permiso del SITIO en el navegador y el GPS del teléfono son cosas distintas:
-    // activar la ubicación del celular no desbloquea un sitio que ya fue denegado. El
-    // texto de 'denied' lo dice explícitamente porque es la confusión más común.
+    // Mensajes cortos y sin recetas de ajustes del sistema: esas instrucciones cambian
+    // por navegador y versión, y suelen apuntar a interruptores que el usuario no
+    // siempre puede tocar. Aquí solo se dice qué falta; lo accionable desde la página es
+    // el botón, y de eso se encarga aplicar().
     var TEXTOS = {
-        denied: ['Ubicación bloqueada', 'Activar el GPS del teléfono no basta: la ubicación está bloqueada para este sitio en el navegador. Permítela desde el candado de la barra de direcciones (Ajustes del sitio → Ubicación) y pulsa "Volver a comprobar".'],
-        prompt: ['Habilita el acceso a tu ubicación', 'Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.']
+        denied: ['Se necesita la ubicación activada',
+                 'Permite el acceso a tu ubicación para poder usar Control Vehicular.'],
+        prompt: ['Se necesita la ubicación activada',
+                 'Acepta el permiso de ubicación cuando el navegador te lo solicite.']
     };
 
     var estadoActual = 'prompt';
 
+    // localStorage puede lanzar (Safari en navegación privada, bloqueo de datos de sitio
+    // en el navegador de una app). Antes el setItem iba ANTES de ocultar el banner, así
+    // que al lanzar dejaba el aviso puesto aunque el permiso estuviera concedido.
+    function recordar(valor) {
+        try { localStorage.setItem('cv_ubicacion_aceptada', valor); } catch (e) {}
+    }
+    function recordado() {
+        try { return localStorage.getItem('cv_ubicacion_aceptada'); } catch (e) { return null; }
+    }
+
     function aplicar(state) {
         estadoActual = state;
         if (state === 'granted') {
-            localStorage.setItem('cv_ubicacion_aceptada', '1');
-            banner.classList.add('d-none');
+            banner.classList.add('d-none');   // ocultar primero: el storage puede fallar
+            recordar('1');
             return;
         }
-        if (state === 'prompt' && localStorage.getItem('cv_ubicacion_aceptada')) {
+        if (state === 'prompt' && recordado()) {
             banner.classList.add('d-none');
             return;
         }
@@ -42,15 +55,45 @@ function verificarPermisoUbicacion() {
         banner.classList.remove('d-none');
     }
 
+    /**
+     * Sondea el permiso real. permissions.query es una OPTIMIZACIÓN (lee el estado sin
+     * abrir el diálogo y avisa de cambios), pero la FUENTE DE VERDAD es getCurrentPosition,
+     * que funciona en todos los navegadores.
+     *
+     * Este era el fallo de raíz del aviso que no se iba en iPhone: Safari no implementa
+     * permissions.query para geolocation, así que se caía al respaldo y daba 'prompt'
+     * SIN preguntarle nunca a la API de ubicación. Con el permiso concedido o no, el
+     * resultado era el mismo y el aviso se quedaba puesto.
+     *
+     * No añade diálogos extra: encabezado.php ya llama a obtenerCoordenadas() en cada
+     * carga, que hace su propio getCurrentPosition.
+     */
+    function sondear() {
+        navigator.geolocation.getCurrentPosition(
+            function () { aplicar('granted'); },
+            function (err) {
+                // Solo el código 1 (PERMISSION_DENIED) significa bloqueo. Los códigos 2 y 3
+                // (sin señal / se agotó el tiempo) son fallos de GPS, no de permiso: decir
+                // "bloqueada" ahí manda al usuario a revisar ajustes que están bien.
+                if (err && err.code === 1) aplicar('denied');
+                else                       aplicar('prompt');
+            },
+            { timeout: 8000, maximumAge: 60000 }
+        );
+    }
+
     function consultar() {
         if (navigator.permissions && navigator.permissions.query) {
             navigator.permissions.query({ name: 'geolocation' }).then(function (status) {
-                aplicar(status.state);
+                if (status.state === 'granted' || status.state === 'denied') {
+                    aplicar(status.state);
+                } else {
+                    sondear();   // 'prompt' no distingue: preguntar de verdad
+                }
                 status.onchange = function () { aplicar(status.state); };
-            }).catch(function () { aplicar('prompt'); });
+            }).catch(sondear);
         } else {
-            // Safari/iOS no implementa permissions.query para geolocation.
-            aplicar('prompt');
+            sondear();   // Safari/iOS: no hay permissions.query, la API real decide
         }
     }
 
@@ -115,7 +158,7 @@ function avisoUbicacionObligatoria() {
     Swal.fire({
         icon: 'error',
         title: 'Ubicación obligatoria',
-        text: 'No pudimos obtener tu ubicación. Habilita el GPS y el permiso de ubicación del navegador e inténtalo de nuevo.',
+        text: 'No pudimos obtener tu ubicación, y es obligatoria para continuar.',
         confirmButtonText: 'Entendido'
     });
 }

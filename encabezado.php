@@ -299,8 +299,13 @@
                         </div>
                         <div class="mb-2 row g-2">    
                             <div class="col-4 col-md-4">
-                                <label for="monto" class="form-label">Monto</label>
-                                <input type="text" class="form-control" id="monto" name="monto" placeholder="$00.00" readonly required>
+                                <label for="monto" class="form-label">Monto <i class="fas fa-lock text-muted small" title="Se calcula solo"></i></label>
+                                <!-- Sigue siendo readonly (no disabled) para que gas.js lo lea, pero se
+                                     presenta como dato fijo: los usuarios reportaron que con apariencia
+                                     de input creían que podían editarlo. tabindex=-1 lo saca del tab. -->
+                                <input type="text" class="form-control-plaintext bg-body-secondary rounded px-2 fw-semibold"
+                                       id="monto" name="monto" placeholder="$00.00" readonly required
+                                       tabindex="-1" aria-readonly="true" style="cursor:not-allowed;">
                             </div>
                         
                             <div class="col-4 col-md-4">
@@ -309,8 +314,12 @@
                             </div>
 
                             <div class="col-4 col-md-4">
-                                <label for="saldo" class="form-label">Saldo</label>
-                                <input type="number" class="form-control" id="saldo" name="saldo" placeholder="$00.00" readonly required>
+                                <label for="saldo" class="form-label">Saldo <i class="fas fa-lock text-muted small" title="Se calcula solo"></i></label>
+                                <!-- Mismo tratamiento que Monto: readonly para que gas.js lo lea, pero
+                                     presentado como dato fijo. Lo calcula calcularSaldo() (monto - pagos). -->
+                                <input type="number" class="form-control-plaintext bg-body-secondary rounded px-2 fw-semibold"
+                                       id="saldo" name="saldo" placeholder="$00.00" readonly required
+                                       tabindex="-1" aria-readonly="true" style="cursor:not-allowed;">
                             </div>
                         </div>
                         <div class="mb-2 row g-2">
@@ -320,7 +329,11 @@
                             </div>
                             <div class="col-4 col-md-6">
                                 <label id="kmActual" for="kmActual" class="form-label">Km Actual</label>
-                                <input type="number" class="form-control" id="kmActualGas" name="kmActualGas" min="0" required>
+                                <!-- step=1 + inputmode numeric: la columna km_actual es INT, los
+                                     decimales solo se redondeaban en silencio. gas.js además impide
+                                     teclear el separador (ver soloKmEntero). -->
+                                <input type="number" class="form-control" id="kmActualGas" name="kmActualGas"
+                                       min="0" step="1" inputmode="numeric" required>
                             </div>
                         </div>
                     </form>
@@ -339,9 +352,11 @@
     <div class="d-flex align-items-start gap-2">
         <i class="fas fa-map-marker-alt mt-1"></i>
         <div class="flex-grow-1">
-            <div class="fw-semibold" id="avisoUbicacionTitulo">Habilita el acceso a tu ubicación</div>
+            <!-- Estos son los valores por defecto; verificarPermisoUbicacion() los ajusta
+                 según el permiso real (js/global/modals.js). -->
+            <div class="fw-semibold" id="avisoUbicacionTitulo">Se necesita la ubicación activada</div>
             <div class="small mb-1" id="avisoUbicacionMsg">
-                Para el correcto funcionamiento de Control Vehicular necesitamos acceso a tu ubicación y cookies. Acepta los permisos cuando el navegador te lo solicite.
+                Acepta el permiso de ubicación cuando el navegador te lo solicite.
             </div>
             <button type="button" class="btn btn-sm btn-warning fw-semibold mt-1" id="btnAceptarUbicacion">
                 <i class="fas fa-check me-1"></i> Habilitar ubicación
@@ -362,9 +377,9 @@
         verificarPermisoUbicacion();
     });
     window.addEventListener('load', function () {
-        var ahora = new Date();
-        var fechaCargaInput = document.getElementById("fechaCarga");
-        if (fechaCargaInput) fechaCargaInput.value = ahora.toISOString().slice(0,16);
+        // La fecha de carga ya no se pone aquí: la establece prepararModalGas() cada vez
+        // que se abre el modal (js/global/gas.js). Además, aquí se usaba toISOString()
+        // sin compensar la zona horaria, así que proponía la hora en UTC (6 h adelantada).
         var cookieValue = getCookie("noEmpleado");
         if (cookieValue) {
             var noEmpleadoInput = document.getElementById("noEmpleado");

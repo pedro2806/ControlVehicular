@@ -112,9 +112,17 @@ if ($accion === 'obtenerValidacionesVehiculo') {
     foreach ($subareas as $key => $tabla) {
         $estatus = 'no_revisado'; // default si no hay registro
         if ($idChecklist > 0) {
-            // Si todos los registros de la subárea tienen buen_estado='Si' → ok; si hay al menos uno != Si → mal; si no hay registros → no_revisado
-            $sqlSub = "SELECT COUNT(*) AS total,
-                              SUM(CASE WHEN buen_estado = 'Si' THEN 1 ELSE 0 END) AS ok
+            // buen_estado guarda '1' (bien) / '0' (mal) / '' (sin responder). Antes esto
+            // comparaba contra 'Si', valor que NO EXISTE en la tabla: en las 480 filas de
+            // la BD solo hay '0', '1' y ''. Por eso el conteo de OK siempre daba 0 y el
+            // panel pintaba TODAS las subáreas en rojo, aunque estuvieran revisadas y bien.
+            // Se aceptan también 'Si'/'SI' por si algún registro viejo los trae.
+            //
+            // Las filas sin responder no cuentan como 'mal': se ignoran, y si no queda
+            // ninguna respondida la subárea es 'no_revisado'.
+            $sqlSub = "SELECT
+                          SUM(CASE WHEN TRIM(buen_estado) <> '' THEN 1 ELSE 0 END) AS respondidas,
+                          SUM(CASE WHEN buen_estado = '1' OR UPPER(buen_estado) = 'SI' THEN 1 ELSE 0 END) AS ok
                        FROM $tabla WHERE id_checklist = ?";
             $stmtSub = $conn->prepare($sqlSub);
             if ($stmtSub) {
@@ -122,11 +130,11 @@ if ($accion === 'obtenerValidacionesVehiculo') {
                 $stmtSub->execute();
                 $rowSub = $stmtSub->get_result()->fetch_assoc();
                 $stmtSub->close();
-                $total = intval($rowSub['total']);
-                $ok    = intval($rowSub['ok']);
-                if ($total === 0)        $estatus = 'no_revisado';
-                else if ($ok === $total) $estatus = 'ok';
-                else                     $estatus = 'mal';
+                $respondidas = intval($rowSub['respondidas']);
+                $ok          = intval($rowSub['ok']);
+                if ($respondidas === 0)      $estatus = 'no_revisado';
+                else if ($ok === $respondidas) $estatus = 'ok';
+                else                         $estatus = 'mal';
             }
         }
         $detalleSubareas[$key] = $estatus;
@@ -288,6 +296,26 @@ if ($accion === 'checkInQR') {
     $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
     if ($km_actual > 0 && $ultimoKM > 0 && $km_actual < $ultimoKM) {
         echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al ultimo registrado ($ultimoKM)."]);
+        exit;
+    }
+
+    // La foto del odómetro es OBLIGATORIA en el primer registro de KM de la semana: es la
+    // única evidencia de esa lectura y sin ella el KPI de kilometraje no se puede auditar.
+    // Se recalcula aquí en vez de confiar en el flag que mandó el cliente, que es
+    // manipulable; la condición es la misma que usa 'verificarEstadoCheckin'.
+    $stmtSem = $conn->prepare("
+        SELECT 1 FROM actividad_vehiculo
+        WHERE id_vehiculo = ? AND km_actual > 0
+          AND YEARWEEK(fecha_actividad, 1) = YEARWEEK(CURDATE(), 1)
+        LIMIT 1
+    ");
+    $stmtSem->bind_param("i", $id_vehiculo);
+    $stmtSem->execute();
+    $hayKMEstaSemana = (bool) $stmtSem->get_result()->fetch_assoc();
+    $stmtSem->close();
+
+    if (!$hayKMEstaSemana && !(isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK)) {
+        echo json_encode(['error' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.']);
         exit;
     }
 

@@ -77,14 +77,69 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
 
     //FUNCION PARA REGISTRAR CARGA
     if ($accion == 'registraGas'){
-        $sqlR = "INSERT INTO carga_gasolina (`id_usuario`, `id_vehiculo`, `monto`, `pagos`, `saldo`, `km_actual`, `fecha_carga`, `fecha_registro`) 
-                VALUES ('$id_usuario', '$id_vehiculo', '$monto', '$pagos', '$saldo', '$km_actual', '$fecha_carga', now())";
-            
-        $resultR = $conn->query($sqlR);
-        if($resultR){
-            echo json_encode(array("status" => "success", "message" => "Carga de gasolina registrada correctamente."));
+        // Validación y normalización en servidor. Antes se concatenaba todo directo al
+        // INSERT y se confiaba en que MySQL acomodara los tipos: en local funciona
+        // porque sql_mode está vacío y MySQL convierte en silencio, pero con
+        // STRICT_TRANS_TABLES (lo normal en producción) el mismo INSERT falla. Como el
+        // front daba por buena cualquier respuesta HTTP 200, el usuario veía "Guardado"
+        // sin que se hubiera guardado nada.
+        $idVeh = intval($id_vehiculo);
+        $idUsr = intval($id_usuario);
+        if ($idVeh <= 0 || $idUsr <= 0) {
+            echo json_encode(["status" => "error", "message" => "Falta el vehículo o la sesión no es válida."]);
+            exit;
+        }
+
+        // km_actual es INT en la tabla: se rechaza el decimal en vez de dejar que MySQL
+        // lo redondee sin avisar (un odómetro no lleva fracciones).
+        if ($km_actual === null || $km_actual === '' || !is_numeric($km_actual)) {
+            echo json_encode(["status" => "error", "message" => "El kilometraje es obligatorio y debe ser un número."]);
+            exit;
+        }
+        if (floor((float)$km_actual) != (float)$km_actual) {
+            echo json_encode(["status" => "error", "message" => "El kilometraje debe ser un número entero, sin decimales."]);
+            exit;
+        }
+        $km = intval($km_actual);
+        if ($km < 0) {
+            echo json_encode(["status" => "error", "message" => "El kilometraje no puede ser negativo."]);
+            exit;
+        }
+
+        // fecha_carga es DATE, pero el input es datetime-local y manda "2026-08-20T12:43".
+        // Se normaliza a Y-m-d; la hora se descarta porque la columna no la guarda.
+        $fechaLimpia = null;
+        if (!empty($fecha_carga)) {
+            $ts = strtotime(str_replace('T', ' ', $fecha_carga));
+            if ($ts) $fechaLimpia = date('Y-m-d', $ts);
+        }
+        if (!$fechaLimpia) {
+            echo json_encode(["status" => "error", "message" => "La fecha de carga es obligatoria y debe tener un formato válido."]);
+            exit;
+        }
+
+        $montoNum = is_numeric($monto) ? (float)$monto : 0;
+        $pagosNum = is_numeric($pagos) ? (float)$pagos : 0;
+        $saldoNum = is_numeric($saldo) ? (float)$saldo : ($montoNum - $pagosNum);
+
+        $stmt = $conn->prepare(
+            "INSERT INTO carga_gasolina
+                (id_usuario, id_vehiculo, monto, pagos, saldo, km_actual, fecha_carga, fecha_registro)
+             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())"
+        );
+        if (!$stmt) {
+            echo json_encode(["status" => "error", "message" => "Error al preparar el registro: " . $conn->error]);
+            exit;
+        }
+        $stmt->bind_param("iidddis", $idUsr, $idVeh, $montoNum, $pagosNum, $saldoNum, $km, $fechaLimpia);
+        $ok = $stmt->execute();
+        $err = $stmt->error;
+        $stmt->close();
+
+        if ($ok) {
+            echo json_encode(["status" => "success", "message" => "Carga de gasolina registrada correctamente.", "saldo" => $saldoNum]);
         } else {
-            echo json_encode(array("status" => "error", "message" => "Error al registrar la carga de gasolina: " . $conn->error));
+            echo json_encode(["status" => "error", "message" => "Error al registrar la carga de gasolina: " . $err]);
         }
         exit;
     }

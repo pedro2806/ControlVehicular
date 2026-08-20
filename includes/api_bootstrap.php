@@ -4,12 +4,46 @@ header('Content-Type: application/json');
 mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
 
-// El login (loginMaster/messbook) a veces deja $_COOKIE['id_usuario'] vacío aunque sí
-// puebla id_usuarioL (el id de usuario de CV confiable). Se normaliza aquí, una sola
-// vez, para que TODO el código que lee $_COOKIE['id_usuario'] use el id correcto —
-// sin tener que parchear cada módulo (gas, kilometraje, siniestros/consultarInventario, etc.).
-if (!empty($_COOKIE['id_usuarioL']) && intval($_COOKIE['id_usuarioL']) > 0) {
-    $_COOKIE['id_usuario'] = $_COOKIE['id_usuarioL'];
+// Normalización de $_COOKIE['id_usuario'] (ver includes/sesion_cookies.php). Está en un
+// archivo aparte porque las VISTAS también la necesitan y no pueden incluir este
+// bootstrap, que manda cabeceras JSON.
+require_once __DIR__ . '/sesion_cookies.php';
+
+/**
+ * Consulta un acceso especial de ctrlVehicular para un empleado.
+ *
+ * Se resuelve SIEMPRE en el servidor. Ojo: la cookie `rol` la escribe el cliente sin
+ * firma (index.php / validaLoginMaster.php la ponen con document.cookie), así que no
+ * sirve como barrera de permisos — cualquiera puede editarla en el navegador. Todo
+ * permiso nuevo debe pasar por aquí.
+ *
+ * @return array{tiene: bool, inf_adicional: ?string}
+ *         inf_adicional se normaliza a null cuando viene vacío o '-' (= sin filtro).
+ */
+function accesoEspecial($conn, $noEmpleado, $opcion) {
+    $vacio = ['tiene' => false, 'inf_adicional' => null];
+    $ne = intval($noEmpleado);
+    if ($ne <= 0) return $vacio;
+
+    $stmt = $conn->prepare(
+        "SELECT inf_adicional FROM mess_rrhh.accesos_especiales
+         WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = ? AND estatus = 1
+         LIMIT 1"
+    );
+    if (!$stmt) { error_log("accesoEspecial: prepare falló - " . $conn->error); return $vacio; }
+    $stmt->bind_param("is", $ne, $opcion);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) return $vacio;
+
+    $inf = trim((string) ($row['inf_adicional'] ?? ''));
+    return ['tiene' => true, 'inf_adicional' => ($inf === '' || $inf === '-') ? null : $inf];
+}
+
+/** Atajo cuando solo importa si tiene el acceso, sin el filtro de inf_adicional. */
+function tieneAccesoEspecial($conn, $noEmpleado, $opcion) {
+    return accesoEspecial($conn, $noEmpleado, $opcion)['tiene'];
 }
 
 $tieneVehiculo = false;

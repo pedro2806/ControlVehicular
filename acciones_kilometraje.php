@@ -268,6 +268,80 @@ if($accion == 'ActividadesPendientes'){
     exit;
 }
 
+/**
+ * Vista de gerentes: TODOS los check-in en crudo.
+ *
+ * Deliberadamente NO cruza INICIO con FINALIZACION como hace 'Actividades' más abajo.
+ * Ese cruce solo devuelve viajes cerrados y los usuarios no cierran la actividad: de
+ * 379 INICIO hay 312 FINALIZACION, así que un listado por pares esconde justo los
+ * registros que hay que auditar. Aquí sale una fila por registro, y los INICIO sin
+ * cierre posterior se marcan con abierto = 1.
+ *
+ * El acceso se valida en servidor con accesos_especiales (nunca con la cookie `rol`,
+ * que la escribe el cliente). Ver includes/api_bootstrap.php.
+ *
+ * Se usa verTodosVehiculo y no un permiso propio: ver los check-in de toda la flota
+ * implica ver toda la flota, así que separarlos permitiría dar uno sin el otro.
+ */
+if ($accion == 'consultarCheckins') {
+    if (!tieneAccesoEspecial($conn, $_COOKIE['noEmpleado'] ?? 0, 'verTodosVehiculo')) {
+        echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a esta vista.']);
+        exit;
+    }
+
+    $desde = $_POST['desde'] ?? '';
+    $hasta = $_POST['hasta'] ?? '';
+    $idVeh = intval($_POST['id_vehiculo'] ?? 0);
+
+    // Por defecto los últimos 30 días: la tabla crece sin tope y traerla completa
+    // castiga al navegador del que abre la vista.
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde)) $desde = date('Y-m-d', strtotime('-30 days'));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta)) $hasta = date('Y-m-d');
+
+    $filtroVeh = $idVeh > 0 ? " AND av.id_vehiculo = ? " : "";
+
+    // El JOIN a usuarios usa MAX(id) porque usuarios.id_usuario NO es único; un LEFT
+    // JOIN directo multiplicaría las filas del listado.
+    $sql = "SELECT av.id_actividad, av.id_vehiculo, av.tipo_actividad, av.fecha_actividad,
+                   av.km_actual, av.gasolina_actual, av.coordenadas, av.foto_url,
+                   av.notas, av.ot, av.patron,
+                   inv.placa, inv.marca, inv.modelo,
+                   IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario,
+                   CASE WHEN av.tipo_actividad = 'INICIO' AND NOT EXISTS (
+                            SELECT 1 FROM actividad_vehiculo f
+                            WHERE f.id_vehiculo = av.id_vehiculo
+                              AND f.id_usuario  = av.id_usuario
+                              AND f.tipo_actividad = 'FINALIZACION'
+                              AND f.fecha_actividad > av.fecha_actividad
+                        ) THEN 1 ELSE 0 END AS abierto
+            FROM actividad_vehiculo av
+            LEFT JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo
+            LEFT JOIN usuarios u ON u.id = (
+                SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario
+            )
+            LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+            WHERE DATE(av.fecha_actividad) BETWEEN ? AND ?
+            $filtroVeh
+            ORDER BY av.fecha_actividad DESC, av.id_actividad DESC";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        echo json_encode(['status' => 'error', 'message' => 'Error al preparar la consulta.']);
+        exit;
+    }
+    if ($idVeh > 0) $stmt->bind_param("ssi", $desde, $hasta, $idVeh);
+    else            $stmt->bind_param("ss", $desde, $hasta);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    $checkins = [];
+    while ($row = $res->fetch_assoc()) $checkins[] = $row;
+    $stmt->close();
+
+    echo json_encode(['status' => 'success', 'desde' => $desde, 'hasta' => $hasta, 'checkins' => $checkins]);
+    exit;
+}
+
 if($accion == 'Actividades'){
     // Consultar las actividades del usuario actual
     /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario

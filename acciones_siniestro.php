@@ -233,10 +233,15 @@ if ($accion == "consultarInventarioAutoriza") {
 
 // Feed cronológico de todos los siniestros
 if ($accion == "obtenerFeedSiniestros") {
-    $rol = $_COOKIE['rol'] ?? null;
+    // Antes esto dependía de la cookie `rol`: cualquier valor distinto de '1' veía TODOS
+    // los siniestros de la empresa. Como esa cookie la escribe el cliente y no va firmada,
+    // bastaba con editarla en el navegador para saltarse el filtro. Ahora el acceso total
+    // se valida en servidor contra accesos_especiales; quien no lo tenga sigue viendo solo
+    // los siniestros de sus vehículos (propios, asignados o en préstamo autorizado).
+    $verTodos = tieneAccesoEspecial($conn, $noEmpleado, 'verHistorialSiniestro');
 
     $whereClause = '';
-    if ($rol == '1') {
+    if (!$verTodos) {
         $idU = intval($id_usuario);
         $whereClause = "WHERE s.id_vehiculo IN (
             SELECT inv.id_vehiculo FROM inventario inv WHERE inv.id_us_asignado = $idU OR inv.id_usuario = $idU

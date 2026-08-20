@@ -1,5 +1,6 @@
 <?php
 include 'includes/api_bootstrap.php';
+require_once __DIR__ . '/includes/enviar_notificacion.php';  // aviso de nueva solicitud
 
 $accion = $_POST["accion"] ?? '';
 
@@ -36,15 +37,39 @@ $tipo_uso = $_POST["tipo_uso"] ?? null;
 $detalle_tipo_uso = $_POST["detalle_tipo_uso"] ?? null;
 $notas_jefe = $_POST["notas_jefe"] ?? null;
 $destino = $_POST["destino"] ?? null;
+
+// Guard de sesión. Si id_usuario llega vacío, las consultas de abajo lo interpolan sin
+// comillas (WHERE id_usuario = ) y revientan con error de sintaxis; el front solo
+// alcanzaba a mostrar "error" y la lista de vehículos quedaba vacía, sin pista de por qué.
+// api_bootstrap.php ya normaliza la cookie desde id_usuarioL, así que llegar aquí sin id
+// significa sesión perdida de verdad: hay que decirlo, no dejar reventar el SQL.
+if (intval($id_usuario) <= 0) {
+    echo json_encode([
+        "success" => false,
+        "error"   => "sesion_invalida",
+        "message" => "Tu sesión no tiene un usuario válido. Vuelve a iniciar sesión e inténtalo de nuevo."
+    ]);
+    exit;
+}
 /*---------------------------------------------*/
 //Registro de Prestamo
 if ($accion == "RegistrarPrestamo") {
     $sqlregistro = "INSERT INTO prestamos
                     (fecha_registro, id_usuario, fecha_inc_prestamo, fecha_fin_prestamo, estatus, motivo_us, tipo_uso, destino, id_vehiculo)
                     VALUES (NOW(), '$id_usuario', '$fecha_inc_prestamo', '$fecha_fin_prestamo', 'PENDIENTE', '$motivo', '$tipo_uso',  '$destino', '$id_vehiculo')";
-    $resultregistro = $conn->query($sqlregistro); 
+    $resultregistro = $conn->query($sqlregistro);
     if ($resultregistro) {
-        echo json_encode(["success" => true, "message" => "Préstamo registrado exitosamente."]);
+        // El aviso se manda desde aquí y no por AJAX a correoPrestamo.php: ahí el id
+        // del préstamo recién creado ya existe y se pueden incluir vehículo, fechas,
+        // destino y tipo de uso. (La llamada a correoPrestamo.php estaba comentada en
+        // prestamos.php, así que este correo llevaba tiempo sin enviarse.)
+        $avisado = false;
+        try {
+            $avisado = enviarNotificacionSolicitudPrestamo($conn, $conn->insert_id);
+        } catch (Throwable $e) {
+            error_log("Fallo al notificar solicitud de préstamo: " . $e->getMessage());
+        }
+        echo json_encode(["success" => true, "message" => "Préstamo registrado exitosamente.", "notificado" => $avisado]);
     } else {
         echo json_encode(["success" => false, "message" => "Error al registrar la solicitud: " . $conn->error]);
     }
@@ -70,6 +95,10 @@ if ($accion == "consultarPrestamos") {
         $esJefe = $stmtJefe->get_result()->num_rows > 0;
         $stmtJefe->close();
 
+        // Tercera vía: acceso especial al historial completo, para quien necesita verlo
+        // sin ser jefe de nadie (la jerarquía de arriba no lo cubre). Se valida en servidor.
+        $verTodosPrestamos = tieneAccesoEspecial($conn, $noEmpleado, 'verHistorialPrestamos');
+
         $selectFechas = $usarFechasActividad
             ? "(SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'INICIO') AS fecha_inc_prestamo,
             (SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'FINALIZACION') AS fecha_fin_prestamo,"
@@ -78,11 +107,13 @@ if ($accion == "consultarPrestamos") {
         $camposExtra = $esPendiente ? "" : ", prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
                         (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km";
 
-        $propiedadCol = $esJefe
+        $propiedadCol = ($esJefe || $verTodosPrestamos)
             ? ", CASE WHEN inv.id_usuario = $id_usuario THEN 'mio' ELSE 'otro' END AS propiedad_vehiculo"
             : "";
 
-        if ($esJefe) {
+        if ($verTodosPrestamos) {
+            $whereRol = "1 = 1";
+        } elseif ($esJefe) {
             $whereRol = "(prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                         OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario))";
         } else {

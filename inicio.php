@@ -115,6 +115,22 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             cargarVehiculosDocs();
         });
 
+        // El panel se armaba una sola vez al cargar la página, así que si el usuario iba
+        // a llenar el checklist y volvía, seguía viendo el estado viejo hasta recargar a
+        // mano. Al recuperar el foco se vuelve a pedir: es justo cuando regresa de
+        // checkVehiculo o del QR. Se ignora si la pestaña sigue oculta.
+        var recargandoPanel = false;
+        function refrescarPanelVehiculos() {
+            if (recargandoPanel || document.hidden) return;
+            recargandoPanel = true;
+            cargarVehiculosDocs();
+            // Margen para no encadenar recargas si el navegador dispara varios eventos
+            // seguidos (visibilitychange + focus suelen venir juntos).
+            setTimeout(function () { recargandoPanel = false; }, 1500);
+        }
+        document.addEventListener('visibilitychange', refrescarPanelVehiculos);
+        window.addEventListener('pageshow', function (e) { if (e.persisted) refrescarPanelVehiculos(); });
+
         // Cargar vehículos prestados
         function cargarVehiculosInicio(selectVehiculo) {
             $.ajax({

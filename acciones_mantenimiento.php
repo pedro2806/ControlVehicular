@@ -1,5 +1,6 @@
 <?php
 include 'includes/api_bootstrap.php';
+require_once __DIR__ . '/includes/enviar_notificacion.php';  // aviso al solicitante al resolver
 
 $accion = $_POST["accion"] ?? '';
 
@@ -260,20 +261,47 @@ if ($accion == "consultarMantenimientos") {
 
 //Aprobar Mantenimiento
 if ($accion == "autorizarMantenimiento") {
-    $sqlAutoriza = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'AUTORIZADO', notas = '$notas', fecha_programada = '$fecha_programada', folio = '$folioOC', costo = '$costo'
-            WHERE id_mantenimiento = $id_mantenimiento";
-    $resultAutoriza = $conn->query($sqlAutoriza);
-    echo json_encode(["success" => true]);
+    $stmt = $conn->prepare("UPDATE mantenimientos
+            SET VoBo_jefe = 'AUTORIZADO', notas = ?, fecha_programada = ?, folio = ?, costo = ?
+            WHERE id_mantenimiento = ?");
+    $stmt->bind_param("ssssi", $notas, $fecha_programada, $folioOC, $costo, $id_mantenimiento);
+    $stmt->execute();
+    $actualizo = $stmt->affected_rows > 0;
+    $stmt->close();
+
+    // El correo va DESPUÉS de confirmar el UPDATE y no debe tumbar la operación: si
+    // el SMTP falla, el mantenimiento igual quedó autorizado.
+    $avisado = false;
+    if ($actualizo) {
+        try {
+            $avisado = enviarNotificacionResolucionMantenimiento($conn, $id_mantenimiento, 'AUTORIZADO');
+        } catch (Throwable $e) {
+            error_log("Fallo al notificar autorización de $id_mantenimiento: " . $e->getMessage());
+        }
+    }
+
+    echo json_encode(["success" => $actualizo, "notificado" => $avisado]);
 }
 
 //Denegar Mantenimiento
 if ($accion == "denegarMantenimiento") {
-    $sqlDenegar = "UPDATE mantenimientos 
-            SET VoBo_jefe = 'DENEGADO', notas = '$notas', fecha_programada = '$fecha_programada' 
-            WHERE id_mantenimiento = '$id_mantenimiento'";
-    $resultDenegar = $conn->query($sqlDenegar);
+    $stmt = $conn->prepare("UPDATE mantenimientos
+            SET VoBo_jefe = 'DENEGADO', notas = ?, fecha_programada = ?
+            WHERE id_mantenimiento = ?");
+    $stmt->bind_param("ssi", $notas, $fecha_programada, $id_mantenimiento);
+    $stmt->execute();
+    $actualizo = $stmt->affected_rows > 0;
+    $stmt->close();
 
-    echo json_encode(["success" => true]);
+    $avisado = false;
+    if ($actualizo) {
+        try {
+            $avisado = enviarNotificacionResolucionMantenimiento($conn, $id_mantenimiento, 'DENEGADO');
+        } catch (Throwable $e) {
+            error_log("Fallo al notificar denegación de $id_mantenimiento: " . $e->getMessage());
+        }
+    }
+
+    echo json_encode(["success" => $actualizo, "notificado" => $avisado]);
 }
 ?>

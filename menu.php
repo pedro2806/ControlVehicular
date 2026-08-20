@@ -22,6 +22,10 @@
     $puedeAutorizarMant = !empty($accesos['autorizaMantenimiento']);
     $puedeVerQR         = !empty($accesos['verQR']);
     $puedeCargarReportes= !empty($accesos['cargarReportes']);
+    // Los check-ins de toda la flota se gobiernan con verTodosVehiculo: quien los ve,
+    // necesariamente ve todos los vehículos. Un permiso propio permitiría concederlo
+    // sin el otro, que no tiene sentido.
+    $puedeVerCheckins   = !empty($accesos['verTodosVehiculo']);
     $muestraAdmin       = $puedeVerQR || $puedeCargarReportes;
 
     // Página activa para resaltar el item del menú
@@ -86,6 +90,18 @@
             <span>Historial de Cargas</span>
         </a>
     </li>
+
+    <?php if ($puedeVerCheckins): ?>
+    <!-- Check-ins de TODOS los vehículos. Va con verTodosVehiculo: ver los check-in de
+         toda la flota implica ver toda la flota, así que no tiene sentido un permiso
+         aparte que se pueda dar sin el otro. -->
+    <li class="nav-item<?= menuActivo('ver_checkins', $paginaActual) ?>">
+        <a class="nav-link py-2" href="ver_checkins">
+            <i class="fas fa-fw fa-clipboard-list"></i>
+            <span>Check-ins</span>
+        </a>
+    </li>
+    <?php endif; ?>
 
     <!-- Menú CheckIn -->
     <?php if (!empty($accesos['verActividades'])): ?>

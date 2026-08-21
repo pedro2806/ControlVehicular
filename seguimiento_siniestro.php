@@ -33,12 +33,39 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <span class="badge bg-secondary fs-6" id="badgeTotal"></span>
                     </div>
 
-                    <!-- Buscador -->
-                    <div class="mb-4">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0" id="buscadorFeed"
-                                   placeholder="Buscar por placa, lugar o descripción...">
+                    <!-- Filtros -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body py-3">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-6 col-md-3">
+                                    <label for="fDesde" class="form-label mb-1 small fw-semibold">Desde</label>
+                                    <input type="date" class="form-control form-control-sm" id="fDesde">
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="fHasta" class="form-label mb-1 small fw-semibold">Hasta</label>
+                                    <input type="date" class="form-control form-control-sm" id="fHasta">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="fVehiculo" class="form-label mb-1 small fw-semibold">Vehículo</label>
+                                    <select class="form-select form-select-sm" id="fVehiculo">
+                                        <option value="">Todos</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-2 d-grid">
+                                    <button class="btn btn-outline-secondary btn-sm" id="btnLimpiarFiltros">
+                                        <i class="fas fa-eraser me-1"></i> Limpiar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-12">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                        <input type="text" class="form-control border-start-0" id="buscadorFeed"
+                                               placeholder="Buscar por placa, lugar o descripción...">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -94,8 +121,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $(document).ready(function () {
             cargarFeed();
 
-            $('#buscadorFeed').on('input', function () {
-                filtrarFeed($(this).val().toLowerCase().trim());
+            $('#buscadorFeed').on('input', filtrarFeed);
+            $('#fDesde, #fHasta, #fVehiculo').on('change', filtrarFeed);
+            $('#btnLimpiarFiltros').on('click', function () {
+                $('#fDesde, #fHasta, #buscadorFeed').val('');
+                $('#fVehiculo').val('');
+                filtrarFeed();
             });
 
             document.getElementById('modalDetalleSiniestro').addEventListener('hidden.bs.modal', function () {
@@ -131,6 +162,7 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 return;
             }
             $('#noResultados').hide();
+            llenarFiltroVehiculos(items);
 
             items.forEach(function (s) {
                 var desc = s.descripcion || '';
@@ -142,7 +174,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 var busqueda = ((s.placa || '') + ' ' + (s.lugar || '') + ' ' + desc).toLowerCase();
 
                 var card = `
-                    <div class="col-lg-6 col-12 mb-3 feed-card" data-busqueda="${busqueda.replace(/"/g, '&quot;')}">
+                    <div class="col-lg-6 col-12 mb-3 feed-card" data-busqueda="${busqueda.replace(/"/g, '&quot;')}"
+                         data-fecha="${fechaDisplay}" data-vehiculo="${s.id_vehiculo || ''}">
                         <div class="card shadow-sm h-100 border-0">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -176,19 +209,57 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
         }
 
-        function filtrarFeed(busqueda) {
-            if (!busqueda) {
-                $('.feed-card').show();
-                $('#noResultados').hide();
-                return;
-            }
+        /**
+         * Aplica los cuatro filtros a la vez sobre las tarjetas ya cargadas.
+         *
+         * Antes solo existía el buscador de texto. Las fechas se comparan como cadena
+         * "AAAA-MM-DD", que en ese formato ordena igual que cronológicamente, así que no
+         * hace falta convertir a Date.
+         */
+        /** Marcador para cuando una foto no carga (la ruta guardada ya no resuelve). */
+        function marcadorSinFoto() {
+            return '<div class="d-flex flex-column align-items-center justify-content-center bg-body-secondary text-muted"'
+                 + ' style="height:280px;" title="Sin foto">'
+                 + '<i class="fas fa-image fa-2x mb-2"></i><span class="small">No se pudo cargar la imagen</span></div>';
+        }
+
+        function filtrarFeed() {
+            var busqueda = ($('#buscadorFeed').val() || '').toLowerCase().trim();
+            var desde    = $('#fDesde').val();
+            var hasta    = $('#fHasta').val();
+            var vehiculo = $('#fVehiculo').val();
+
             var visibles = 0;
             $('.feed-card').each(function () {
-                var texto = $(this).data('busqueda') || '';
-                if (texto.indexOf(busqueda) !== -1) { $(this).show(); visibles++; }
-                else { $(this).hide(); }
+                var $c = $(this);
+                var ok = true;
+
+                if (busqueda && String($c.data('busqueda') || '').indexOf(busqueda) === -1) ok = false;
+
+                var fecha = String($c.data('fecha') || '');
+                if (ok && desde && (!fecha || fecha < desde)) ok = false;
+                if (ok && hasta && (!fecha || fecha > hasta)) ok = false;
+
+                if (ok && vehiculo && String($c.data('vehiculo')) !== String(vehiculo)) ok = false;
+
+                $c.toggle(ok);
+                if (ok) visibles++;
             });
+
             $('#noResultados').toggle(visibles === 0);
+            $('#badgeTotal').text(visibles + (visibles === 1 ? ' siniestro' : ' siniestros'));
+        }
+
+        /** Llena el selector de vehículo con los que realmente aparecen en el feed. */
+        function llenarFiltroVehiculos(lista) {
+            var vistos = {};
+            var $sel = $('#fVehiculo');
+            lista.forEach(function (s) {
+                var id = s.id_vehiculo;
+                if (!id || vistos[id]) return;
+                vistos[id] = true;
+                $sel.append($('<option>').val(id).text((s.placa || 'S/P') + ' - ' + (s.modelo || '')));
+            });
         }
 
         function verDetalle(id_siniestro) {
@@ -211,9 +282,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     var fotosHtml = '';
                     if (Array.isArray(s.imagenes) && s.imagenes.length > 0) {
                         var items = s.imagenes.map(function (img, i) {
+                            // El respaldo NO apunta a img/sin_foto.png: ese archivo no
+                            // existe en el proyecto, así que la imagen de reemplazo
+                            // quedaba igual de rota. Se sustituye por un marcador propio.
                             return `<div class="carousel-item ${i === 0 ? 'active' : ''}">
                                 <img src="${img}" class="d-block w-100" style="max-height:280px;object-fit:contain;"
-                                     onerror="this.src='img/sin_foto.png'">
+                                     onerror="this.onerror=null; this.outerHTML=marcadorSinFoto();">
                             </div>`;
                         }).join('');
                         fotosHtml = `<div id="carruselDetalle" class="carousel slide" data-bs-ride="carousel">

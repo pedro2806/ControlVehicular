@@ -574,12 +574,33 @@ if (empty($_COOKIE['noEmpleado'])) {
 
             $('#btnGuardarAnomalia').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
 
-            comprimirImagen(foto).then(function (fotoComprimida) {
+            // La ubicación se intenta obtener pero NO es obligatoria: si el GPS falla o
+            // tarda, la anomalía se registra igual sin coordenadas. A diferencia del
+            // check-in, aquí bloquear al usuario no aporta nada.
+            function obtenerCoordsOpcional() {
+                return new Promise(function (resolve) {
+                    if (!navigator.geolocation) { resolve(''); return; }
+                    navigator.geolocation.getCurrentPosition(
+                        function (pos) {
+                            resolve(pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6));
+                        },
+                        function (err) {
+                            console.warn('Anomalía sin coordenadas:', err && err.message);
+                            resolve('');
+                        },
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+                    );
+                });
+            }
+
+            Promise.all([comprimirImagen(foto), obtenerCoordsOpcional()]).then(function (res) {
+            var fotoComprimida = res[0];
             var formData = new FormData();
             formData.append('accion', 'registrarAnomalia');
             formData.append('id_vehiculo', idVehiculo);
             formData.append('descripcion', descripcion);
             formData.append('foto', fotoComprimida, 'foto.jpg');
+            formData.append('coordenadas', res[1] || '');
 
             $.ajax({
                 url: 'acciones_anomalias.php',

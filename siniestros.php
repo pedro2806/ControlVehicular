@@ -106,7 +106,7 @@
                         <h1 class="h5 mb-2 text-gray-800">Detalles del Automóvil</h1>
                         <div class="row mb-3">
                             <div class="col-lg-3 col-md-6 col-sm-6 col-12 mb-2">
-                                <label>Ubicación del vehículo:</label>
+                                <label>Ubicación actual del vehículo:</label>
                                 <select class="form-select" id="ubicacion" name="ubicacion" required onchange="toggleUbicacionOtro()">
                                     <option value="">Seleccione...</option>
                                     <option value="MESS">MESS</option>
@@ -176,9 +176,15 @@
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function (position) {
-                        const lat = position.coords.latitude.toFixed(6); 
-                        const lon = position.coords.longitude.toFixed(6); 
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lon = position.coords.longitude.toFixed(6);
                         $("#coordenadas").val(`${lat}, ${lon}`); // Establecer las coordenadas en el campo
+                    },
+                    // El fallo se registra solo en consola, para diagnóstico. Al usuario no
+                    // se le muestra nada: el siniestro se puede registrar igual y un aviso
+                    // aquí solo estorbaría en un momento en el que ya tiene un problema.
+                    function (err) {
+                        console.warn('No se pudieron obtener las coordenadas del siniestro:', err && err.message);
                     }
                 );
             }

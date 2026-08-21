@@ -126,6 +126,29 @@ if (!$tieneAcceso) {
 
     <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
 
+    <!-- Mapa de la ubicación del check-in. Se usa el embed de Google Maps, que no
+         requiere API key; el iframe se rellena al abrir para no cargar 691 mapas. -->
+    <div class="modal fade" id="modalMapa" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" id="modalMapaTitulo">Ubicación del check-in</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe id="mapaFrame" src="" style="border:0; width:100%; height:60vh;"
+                            loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                <div class="modal-footer py-2">
+                    <span class="small text-muted me-auto" id="modalMapaCoords"></span>
+                    <a id="modalMapaAbrir" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-up-right-from-square me-1"></i> Abrir en Google Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
     var filas = [];
 
@@ -175,8 +198,12 @@ if (!$tieneAcceso) {
                 : '<span class="text-muted">&mdash;</span>';
 
             // Sin coordenadas no se pinta nada: un enlace de mapa vacío solo estorba.
+            // El mapa se abre en un modal dentro de la misma vista, para no perder la
+            // tabla ni los filtros al consultar una ubicación.
             var ubic = f.coordenadas
-                ? '<a href="https://www.google.com/maps?q=' + encodeURIComponent(f.coordenadas) + '" target="_blank" rel="noopener" title="' + esc(f.coordenadas) + '"><i class="fas fa-map-marker-alt"></i></a>'
+                ? '<button type="button" class="btn btn-link btn-sm p-0 btn-mapa" data-coords="' + esc(f.coordenadas) + '"'
+                    + ' data-titulo="' + esc((f.placa || '') + ' · ' + fmtFecha(f.fecha_actividad)) + '"'
+                    + ' title="' + esc(f.coordenadas) + '"><i class="fas fa-map-marker-alt"></i></button>'
                 : '<span class="text-muted">&mdash;</span>';
 
             $tb.append(
@@ -185,7 +212,9 @@ if (!$tieneAcceso) {
                 '<td class="small">' + vehiculo + '</td>' +
                 '<td class="small">' + esc(f.usuario || 'S/R') + '</td>' +
                 '<td>' + badgeTipo(f) + '</td>' +
-                '<td class="text-end small">' + (f.km_actual ? Number(f.km_actual).toLocaleString('es-MX') : '') + '</td>' +
+                // Con la unidad explícita: junto a la columna de OT/OV el número solo no
+                // dejaba claro qué representaba.
+                '<td class="text-end small text-nowrap">' + (f.km_actual ? Number(f.km_actual).toLocaleString('es-MX') + ' km' : '') + '</td>' +
                 '<td class="small">' + esc(f.ot || '') + '</td>' +
                 '<td class="text-center">' + foto + '</td>' +
                 '<td class="text-center">' + ubic + '</td>' +

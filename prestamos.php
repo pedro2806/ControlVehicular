@@ -41,7 +41,8 @@
                 ?>
                 
                 <!-- Begin Page Content -->
-                <div class="container-fluid">    
+                <div class="container-fluid">
+                    <h1 class="h3 mb-3 text-black-800">Solicitar Préstamo</h1>
                     <div class="card shadow-sm border-0">
                         <div class="card-header text-bg-secondary">
                             Solicitud de Préstamo Vehicular
@@ -184,7 +185,7 @@
         function toggleDato() {
             var tipo = $("#visita_vinculada").val();
             var necesitaDato = ['OV', 'OT', 'Proyecto'].includes(tipo);
-            var labels = { OV: 'Número de OV', OT: 'Número de OT', Proyecto: 'Nombre del proyecto' };
+            var labels = { OV: 'Número de OV', OT: 'Número de OT', Proyecto: 'Número del proyecto' };
             if (necesitaDato) {
                 $("#labelDato").text(labels[tipo] || 'OV / Cliente / OT / Proyecto');
                 $("#colDato").show();

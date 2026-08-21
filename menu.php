@@ -26,6 +26,7 @@
     // necesariamente ve todos los vehículos. Un permiso propio permitiría concederlo
     // sin el otro, que no tiene sentido.
     $puedeVerCheckins   = !empty($accesos['verTodosVehiculo']);
+    $puedeVerRecargas   = !empty($accesos['verSolicitudesGas']);
     $muestraAdmin       = $puedeVerQR || $puedeCargarReportes;
 
     // Página activa para resaltar el item del menú
@@ -74,6 +75,13 @@
         </a>
     </li>
 
+    <li class="nav-item<?= menuActivo('seguimiento_anomalias', $paginaActual) ?>">
+        <a class="nav-link py-2" href="seguimiento_anomalias">
+            <i class="fas fa-fw fa-triangle-exclamation"></i>
+            <span>Hist. Anomalías</span>
+        </a>
+    </li>
+
     <li class="nav-item<?= menuActivo('seguimiento_siniestro', $paginaActual) ?>">
         <a class="nav-link py-2" href="seguimiento_siniestro">
             <i class="fas fa-fw fa-car-crash"></i>
@@ -90,6 +98,15 @@
             <span>Historial de Cargas</span>
         </a>
     </li>
+
+    <?php if ($puedeVerRecargas): ?>
+    <li class="nav-item<?= menuActivo('validar_recargas', $paginaActual) ?>">
+        <a class="nav-link py-2" href="validar_recargas">
+            <i class="fas fa-fw fa-credit-card"></i>
+            <span>Recargas de Gas</span>
+        </a>
+    </li>
+    <?php endif; ?>
 
     <?php if ($puedeVerCheckins): ?>
     <!-- Check-ins de TODOS los vehículos. Va con verTodosVehiculo: ver los check-in de

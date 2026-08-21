@@ -71,8 +71,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div class="col-12 mb-3">
                             <div id="vehiculosAsignados" name="vehiculosAsignados"></div>
                         </div>
+                        <!-- El manual iba embebido con <embed> a 650px de alto: cargaba el
+                             PDF completo en cada visita al inicio y en móvil se veía mal.
+                             Ahora es un botón de descarga. -->
                         <div class="col-xl-12 col-lg-12">
-                            <embed id="vistaPrevia" src='img/Manual Control Vehicular.pdf' type="application/pdf" width="100%" height="650">
+                            <div class="card shadow-sm">
+                                <div class="card-body d-flex align-items-center flex-wrap gap-3">
+                                    <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">Manual de usuario</div>
+                                        <div class="small text-muted">Guía de uso del sistema de Control Vehicular.</div>
+                                    </div>
+                                    <a href="img/Manual Control Vehicular.pdf" download
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-download me-1"></i> Descargar
+                                    </a>
+                                    <a href="img/Manual Control Vehicular.pdf" target="_blank" rel="noopener"
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-up-right-from-square me-1"></i> Abrir
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

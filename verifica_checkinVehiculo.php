@@ -62,7 +62,8 @@ if ($stmtAcc) {
                 ?>
 
                 <!-- Begin Page Content -->
-                <div class="container-fluid">                    
+                <div class="container-fluid">
+                    <h1 class="h3 mb-3 text-black-800">Consulta de Check List</h1>
                     <div class="row" name="DivVehiculosAsignados" id="DivVehiculosAsignados">
                         <div class="col-12">
                             <div class="table-responsive">

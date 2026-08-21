@@ -203,23 +203,12 @@ function evaluarValidaciones(data) {
         if (subareas[k] === 'ok') ok++;
     });
 
-    // Mantenimiento (3 items: autorizado, sin pendientes, próximo al día).
-    // Misma semántica que renderListaMantenimiento: REALIZADO cuenta como autorizado
-    // y "sin fecha_proxi tras un REALIZADO" cuenta como al día.
-    var mt = data.mantenimiento || null;
-    total += 3;
-    if (mt) {
-        var vobo = (mt.VoBo_jefe || '').toUpperCase();
-        var realizado = (vobo === 'REALIZADO');
-        if (vobo === 'AUTORIZADO' || realizado) ok++;
-        if (vobo && vobo !== 'PENDIENTE') ok++;
-        if (mt.fecha_proxi) {
-            var prox = new Date(mt.fecha_proxi);
-            if (!isNaN(prox.getTime()) && prox >= new Date()) ok++;
-        } else if (realizado) {
-            ok++;
-        }
-    }
+    // Mantenimiento excluido del semáforo por decisión de negocio: la tarjeta es solo
+    // INFORMATIVA. Un mantenimiento pendiente o sin fecha próxima no es un incumplimiento
+    // del usuario del vehículo, así que no debe bajarle el semáforo.
+    //
+    // messbook (loginMaster/inicio.php) ya lo excluía; aquí seguía sumando 3 items, así
+    // que el mismo vehículo daba semáforos distintos según dónde se mirara.
 
     return { ok: ok, total: total };
 }

@@ -57,7 +57,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 ?>
 
                 <!-- Begin Page Content -->
-                <div class="container-fluid">                    
+                <div class="container-fluid">
+                    <h1 class="h3 mb-3 text-black-800">Checklist de Vehículo</h1>
                     <div class="row" name="DivVehiculosAsignados" id="DivVehiculosAsignados">
                         <div class="col-xl-12 col-lg-12 col-md-1 col-sm-12 col-12">
                             <table id="TVehiculosAsignados" name="TVehiculosAsignados" class="table table-striped table-bordered">
@@ -118,9 +119,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </div>
                         </div>
                         <div class="d-flex justify-content-end mb-3">
+                            <!-- Aquí había un segundo par de botones (btnguardarCheck2 /
+                                 btnGuardarAvance2) que repetía los del pie del asistente, con
+                                 etiquetas distintas para la misma acción ("Registrar avance"
+                                 arriba, "Guardar avance" abajo). Se dejan solo los del pie,
+                                 que es donde está la navegación entre pasos. -->
                             <button type="button" class="btn btn-primary btn-sm mr-1" onclick="MostrarDivVehiculosAsignados()"><i class="fas fa-exchange-alt mr-1"></i>Cambiar de vehículo</button>
-                            <button type="button" id="btnguardarCheck2" name="btnguardarCheck2" class="btn btn-success btn-sm mr-1" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
-                            <button type="button" id="btnGuardarAvance2" name="btnGuardarAvance2" class="btn btn-warning btn-sm" onclick="guardarAvance()">Registrar avance</button>
                         </div>
                         <input type="hidden" id="marca" name="marca">
                         <input type="hidden" id="modelo" name="modelo">
@@ -161,8 +165,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         flex-shrink: 0;
                     }
                     .chk-dot:hover { transform: scale(1.15); }
-                    .chk-dot.active { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
                     .chk-dot.filled { background: #1cc88a; color: #fff; border-color: #17a673; }
+                    /* Amarillo: el apartado tiene datos capturados pero le falta la foto.
+                       Antes solo había verde (con foto) y gris (sin nada), así que un
+                       apartado a medio llenar se veía igual que uno sin tocar. */
+                    .chk-dot.parcial { background: #f6c23e; color: #6b4c00; border-color: #dda20a; }
+                    /* .active va al FINAL y con doble clase a propósito: marca en qué paso
+                       estás y debe ganarle al color de estado. Declarada antes, el verde y
+                       el amarillo la tapaban y se perdía el "aquí estás". */
+                    .chk-dot.active,
+                    .chk-dot.active.filled,
+                    .chk-dot.active.parcial { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
                     .chk-foto-area { display: flex; flex-direction: column; align-items: center; }
                     .chk-foto-preview { max-width: 180px; max-height: 140px; border-radius: 8px; margin-top: 6px; display: none; }
                 </style>
@@ -383,7 +396,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     '<i class="fas fa-car fa-1x"></i><b> ' + Registro.placa + ' </b>',
                                     '<b> ' + Registro.modelo + ' </b>',
                                     asignado,
-                                    '<div class="text-center"><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-check fa-1x"></i></button></div>'
+                                    // Antes era solo un ✔ sin texto: no se entendía que ese
+                                    // botón abre el checklist del vehículo.
+                                    '<div class="text-center"><button type="button" class="btn btn-sm btn-success" onclick=\'SeleccionaVehiculo(' + JSON.stringify(Registro) + ')\'><i class="fas fa-clipboard-check mr-1"></i>Registrar</button></div>'
                                 ]).draw(false);
                             });
 
@@ -419,7 +434,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('#fotoVehiculoPlaceholder').show();
         }
 
-        limpiarRutasFoto();
+        // Limpieza completa: si no, al cambiar de vehículo se quedaban las fotos y los
+        // datos capturados del anterior.
+        idChecklistActual = 0;
+        forzarChecklistNuevo = false;
+        limpiarFormularioChecklist();
         OcultaDivVehiculosAsignados();
         verificarBorrador(Registro.idCoche);
         verificarCompletitud();
@@ -469,12 +488,16 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // Agregar opción al FormData
             formData.append('opcion', 'guardarCheckIn');
             formData.append('estatus', 'completo');
+            // Identifica el checklist destino: evita que el servidor adivine "el último
+            // borrador del vehículo" y acabe escribiendo en otro.
+            if (idChecklistActual > 0) formData.append('id_checklist', idChecklistActual);
+            if (forzarChecklistNuevo)  formData.append('nuevo', '1');
 
             // Deshabilitar botones para evitar múltiples envíos
             $('#btnguardarCheck').prop('disabled', true);
-            $('#btnguardarCheck2').prop('disabled', true);
+            
             $('#btnGuardarAvance').prop('disabled', true);
-            $('#btnGuardarAvance2').prop('disabled', true);
+            
             
             // Mostrar mensaje de procesamiento
             Swal.fire({
@@ -502,21 +525,28 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         window.location.assign("verifica_checkinVehiculo");
                     } else {
                         Swal.fire("Error", "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
-                        $('#btnguardarCheck, #btnguardarCheck2, #btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                        $('#btnguardarCheck, #btnGuardarAvance').prop('disabled', false);
                         verificarCompletitud();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     Swal.close();
                     Swal.fire("Error", "No se pudo completar la solicitud. Por favor, inténtalo más tarde.", "error");
-                    $('#btnguardarCheck, #btnguardarCheck2, #btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                    $('#btnguardarCheck, #btnGuardarAvance').prop('disabled', false);
                     verificarCompletitud();
                 }
             });
             
         }
 
-        function guardarAvance() {
+        /**
+         * Guarda el avance del checklist.
+         *
+         * @param {boolean} silencioso  true cuando lo dispara el cambio de apartado:
+         *        no bloquea con el modal de carga ni muestra el "Avance guardado", que
+         *        en cada paso sería insoportable. Solo avisa si algo falla.
+         */
+        function guardarAvance(silencioso) {
             let formData = new FormData();
 
             $('input[type="text"], input[type="date"], input[type="input"], input[type="hidden"]').each(function () {
@@ -536,27 +566,40 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('textarea').each(function () {
                 formData.append($(this).attr('name'), $(this).val());
             });
+            // Cada foto se envía UNA sola vez. getFotoInfo() en AccionesCheckVehiculo.php
+            // renombra el archivo con la hora de subida, así que reenviarlo en cada
+            // guardado dejaría una copia distinta en disco por cada paso. Y no hace falta:
+            // cuando no llega archivo, el servidor CONSERVA la ruta que ya tenía
+            // (upsertChecklistSeccion), así que la foto guardada no se pierde ni se
+            // sustituye. Solo se vuelve a mandar si el usuario elige otra imagen, que es
+            // cuando se borra la marca (ver el listener de change de los input file).
+            var enviadasAhora = [];
             $('input[type="file"]').each(function () {
-                if ($(this)[0].files.length > 0) {
-                    formData.append($(this).attr('name'), $(this)[0].files[0]);
+                var nombre = $(this).attr('name');
+                if ($(this)[0].files.length > 0 && !fotosEnviadas.has(nombre)) {
+                    formData.append(nombre, $(this)[0].files[0]);
+                    enviadasAhora.push(nombre);
                 }
             });
 
             formData.append('opcion', 'guardarCheckIn');
             formData.append('estatus', 'borrador');
+            // Identifica el checklist destino (ver comentario en guardarCheckIn).
+            if (idChecklistActual > 0) formData.append('id_checklist', idChecklistActual);
+            if (forzarChecklistNuevo)  formData.append('nuevo', '1');
 
             $('#btnguardarCheck').prop('disabled', true);
-            $('#btnguardarCheck2').prop('disabled', true);
             $('#btnGuardarAvance').prop('disabled', true);
-            $('#btnGuardarAvance2').prop('disabled', true);
 
-            Swal.fire({
-                title: "Guardando avance...",
-                text: "Se está guardando tu progreso.",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+            if (!silencioso) {
+                Swal.fire({
+                    title: "Guardando avance...",
+                    text: "Se está guardando tu progreso.",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            }
 
             $.ajax({
                 url: 'AccionesCheckVehiculo.php',
@@ -566,25 +609,82 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 contentType: false,
                 dataType: 'json',
                 success: function(response) {
-                    Swal.close();
+                    if (!silencioso) Swal.close();
+                    $('#btnGuardarAvance').prop('disabled', false);
+
                     if (response.success) {
-                        Swal.fire("Avance guardado", "Tu progreso fue guardado. Puedes continuar el registro más tarde.", "success").then(function() {
-                            $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                        // A partir de aquí ya se sabe en qué checklist se trabaja: los
+                        // siguientes guardados lo reenvían y dejan de depender de que el
+                        // servidor adivine cuál es.
+                        if (response.id_checklist) {
+                            idChecklistActual = parseInt(response.id_checklist, 10) || 0;
+                            forzarChecklistNuevo = false;
+                        }
+
+                        // Ya están en el servidor: no volver a subirlas en los siguientes
+                        // guardados. Si el usuario cambia la imagen, el listener de change
+                        // quita la marca y vuelve a viajar.
+                        enviadasAhora.forEach(function (n) { fotosEnviadas.add(n); });
+                        // En silencioso no se confirma nada: el usuario ya está en el
+                        // siguiente apartado y un modal ahí solo estorbaría.
+                        if (!silencioso) {
+                            Swal.fire("Avance guardado", "Tu progreso fue guardado. Puedes continuar el registro más tarde.", "success").then(verificarCompletitud);
+                        } else {
                             verificarCompletitud();
-                        });
+                        }
                     } else {
+                        // El error sí se avisa siempre: si no se guardó, el usuario tiene
+                        // que enterarse aunque el guardado fuera automático.
                         Swal.fire("Error", "Hubo un problema al guardar el avance.", "error");
-                        $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
                         verificarCompletitud();
                     }
                 },
                 error: function() {
-                    Swal.close();
+                    if (!silencioso) Swal.close();
                     Swal.fire("Error", "No se pudo completar la solicitud.", "error");
-                    $('#btnGuardarAvance, #btnGuardarAvance2').prop('disabled', false);
+                    $('#btnGuardarAvance').prop('disabled', false);
                     verificarCompletitud();
                 }
             });
+        }
+
+        /**
+         * Deja el formulario del checklist como recién abierto.
+         *
+         * limpiarRutasFoto() solo vaciaba los campos ruta_foto_*, pero NO quitaba las
+         * miniaturas que inserta setRuta() (.foto-borrador-preview) ni los datos ya
+         * capturados. Por eso, al empezar un checklist nuevo o al cambiar de vehículo,
+         * seguían viéndose las fotos y los valores del anterior.
+         *
+         * Se limpia solo el contenido de los pasos (.chk-slide): fuera de ahí están los
+         * campos ocultos del vehículo (id_coche, placa, marca...), que deben conservarse.
+         */
+        // Chrome restaura los valores de los inputs al volver a una página (bfcache /
+        // restauración de sesión), y lo hace DESPUÉS de que corra la limpieza. Con
+        // autocomplete=off deja de hacerlo, así que un checklist nuevo no aparece con los
+        // datos del anterior.
+        $(function () {
+            $('.chk-slide').find('input, textarea, select').attr('autocomplete', 'off');
+        });
+
+        function limpiarFormularioChecklist() {
+            limpiarRutasFoto();
+
+            // Miniaturas del borrador y previsualizaciones de fotos recién tomadas
+            $('.foto-borrador-preview').remove();
+            $('[id^="preview_foto_"]').attr('src', '');
+            $('[id^="wrap_foto_"]').hide();
+            $('[id^="captura_foto_"]').show();
+
+            $('.chk-slide').find('input[type="file"]').val('');
+            $('.chk-slide').find('input[type="text"], input[type="date"], input[type="number"], textarea').val('');
+            $('.chk-slide').find('select').prop('selectedIndex', 0);
+            $('.chk-slide').find('input[type="checkbox"]').prop('checked', false);
+
+            // Ninguna foto de esta sesión sigue vigente para el checklist nuevo.
+            fotosEnviadas.clear();
+
+            verificarCompletitud();
         }
 
         function limpiarRutasFoto() {
@@ -608,7 +708,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             cancelButtonText: 'No, empezar de nuevo'
                         }).then(function(result) {
                             if (result.isConfirmed) {
+                                // Continuar el borrador existente: se trabaja sobre él.
+                                idChecklistActual = parseInt(response.id_checklist, 10) || 0;
+                                forzarChecklistNuevo = false;
                                 cargarDatosBorrador(response);
+                            } else {
+                                // Empezar de cero. Antes esto no hacía NADA: ni vaciaba el
+                                // formulario ni creaba un checklist nuevo, así que se veían
+                                // los datos del anterior y el guardado terminaba pisándolo.
+                                idChecklistActual = 0;
+                                forzarChecklistNuevo = true;
+                                limpiarFormularioChecklist();
                             }
                         });
                     }
@@ -816,8 +926,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         var pasoActual = 0;
         var totalPasos = <?= $totalPasos ?>;
 
-        function irAPaso(n) {
+        function irAPaso(n, sinGuardar) {
             if (n < 0 || n >= totalPasos) return;
+
+            // El avance se guarda solo al cambiar de apartado, que era el acuerdo: el
+            // usuario llenaba una sección, se movía y perdía lo capturado si no se
+            // acordaba de pulsar el botón. Se guarda en silencio (sin el modal de
+            // "Guardando avance...") para no interrumpir la navegación.
+            // sinGuardar = true en las llamadas que no son navegación del usuario:
+            // el arranque en el paso 0 y el salto a la sección con fotos faltantes.
+            if (!sinGuardar && n !== pasoActual && typeof guardarAvance === 'function') {
+                guardarAvance(true);
+            }
+
             pasoActual = n;
             document.getElementById('chkTrack').style.transform = 'translateX(-' + (pasoActual * 100) + '%)';
             document.getElementById('pasoInfo').textContent = 'Paso ' + (pasoActual + 1) + ' de ' + totalPasos;
@@ -868,14 +989,54 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             return faltantes;
         }
 
+        /**
+         * ¿El apartado tiene algo capturado, aunque le falte la foto?
+         *
+         * Se mira el contenido real del slide: texto, fechas, observaciones, selects y
+         * casillas marcadas. Sirve para distinguir un apartado a medio llenar de uno
+         * que nadie ha tocado, que antes se veían igual (los dos grises).
+         */
+        // Fotos que ya viajaron al servidor en esta sesión de captura. Evita reenviar el
+        // mismo archivo en cada guardado, que crearía una copia nueva en disco cada vez.
+        var fotosEnviadas = new Set();
+
+        // Checklist sobre el que se está trabajando. El servidor lo devuelve al guardar y
+        // se reenvía en los guardados siguientes; así se escribe siempre en el mismo, en
+        // lugar de que el servidor adivine "el último borrador del vehículo" y acabe
+        // sobrescribiendo otro.
+        var idChecklistActual = 0;
+        // true cuando el usuario eligió "No, empezar de nuevo": el primer guardado debe
+        // crear un checklist nuevo en vez de continuar el borrador existente.
+        var forzarChecklistNuevo = false;
+
+        function pasoTieneDatos(idx) {
+            var slide = document.querySelectorAll('.chk-slide')[idx];
+            if (!slide) return false;
+
+            var conDato = false;
+            slide.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea, select').forEach(function(el) {
+                if (String(el.value || '').trim() !== '') conDato = true;
+            });
+            if (!conDato) {
+                slide.querySelectorAll('input[type="checkbox"]').forEach(function(el) {
+                    if (el.checked) conDato = true;
+                });
+            }
+            return conDato;
+        }
+
         function verificarCompletitud() {
             var inputs = document.querySelectorAll('input[type="file"][name^="foto_"]');
             var dots = document.querySelectorAll('.chk-dot');
             inputs.forEach(function(input, idx) {
-                // Sincroniza el verde con el estado real: verde SOLO si el apartado
-                // tiene foto. Antes solo agregaba (marcarDotLleno) y nunca quitaba, por
-                // eso al borrar una foto el punto seguía marcado verde como completo.
-                if (dots[idx]) dots[idx].classList.toggle('filled', pasoTieneFoto(idx));
+                // Tres estados: verde = con foto (completo), amarillo = capturado pero
+                // sin foto, gris = sin tocar.
+                // El verde se sincroniza en ambos sentidos: antes solo se agregaba y
+                // nunca se quitaba, así que al borrar una foto el punto seguía en verde.
+                var tieneFoto = pasoTieneFoto(idx);
+                if (!dots[idx]) return;
+                dots[idx].classList.toggle('filled', tieneFoto);
+                dots[idx].classList.toggle('parcial', !tieneFoto && pasoTieneDatos(idx));
             });
         }
 
@@ -897,20 +1058,22 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 cancelButtonText: 'Guardar avance'
             }).then(function(result) {
                 if (result.isConfirmed) {
-                    irAPaso(faltantes[0].idx);
+                    irAPaso(faltantes[0].idx, true);   // salto guiado, no es navegacion del usuario
                 } else if (result.dismiss === Swal.DismissReason.cancel) {
                     guardarAvance();
                 }
             });
         }
 
-        $(document).on('input', 'textarea, input[type="text"], input[type="date"]', verificarCompletitud);
-        $(document).on('change', 'input[type="checkbox"]', verificarCompletitud);
+        // Se añaden number y select para que el amarillo (capturado sin foto) también
+        // reaccione a esos campos; pasoTieneDatos() los mira.
+        $(document).on('input', 'textarea, input[type="text"], input[type="date"], input[type="number"]', verificarCompletitud);
+        $(document).on('change', 'input[type="checkbox"], select', verificarCompletitud);
 
         function OcultaDivVehiculosAsignados() {
             $('#DivVehiculosAsignados').hide();
             $('#DivBtnVehiculosAsignados').show();
-            irAPaso(0);
+            irAPaso(0, true);   // arranque: no hay nada que guardar todavia
         }
         function MostrarDivVehiculosAsignados() {
             $('#DivBtnVehiculosAsignados').hide();
@@ -921,6 +1084,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             var input = this;
             var file = input.files[0];
             if (!file) return;
+            // Imagen nueva para este apartado: se quita la marca para que vuelva a
+            // subirse y sustituya a la anterior en el servidor.
+            fotosEnviadas.delete(input.name);
             var id = input.name.replace('foto_', '');
             var preview = document.getElementById('preview_foto_' + id);
             var captura = document.getElementById('captura_foto_' + id);
@@ -943,8 +1109,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             var wrap = document.getElementById('wrap_foto_' + id);
             var preview = document.getElementById('preview_foto_' + id);
             var ruta = document.querySelector('input[name="ruta_foto_' + id + '"]');
-            if (input) input.value = '';
-            if (ruta) ruta.value = '';
+            if (input) {
+                input.value = '';
+                fotosEnviadas.delete(input.name);
+            }
+            // Centinela, no cadena vacía: el servidor conserva la foto guardada cuando no
+            // recibe archivo ni ruta (para que un guardado parcial no la borre), así que
+            // hace falta una señal explícita de "esta sí quiero quitarla".
+            if (ruta) ruta.value = '__BORRAR__';
             if (preview) preview.src = '';
             if (wrap) wrap.style.display = 'none';
             if (captura) captura.style.display = '';

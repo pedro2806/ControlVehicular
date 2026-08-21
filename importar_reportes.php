@@ -49,6 +49,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                 <?php include 'encabezado.php'; ?>
 
                 <div class="container-fluid pb-4" style="max-width: 820px;">
+                    <h1 class="h3 mb-3 text-black-800">Importar Reportes</h1>
 
                     <!-- Bloqueo por acceso -->
                     <div id="loadingAcceso" class="text-center py-5">

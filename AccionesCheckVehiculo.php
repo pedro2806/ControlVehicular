@@ -264,6 +264,14 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
         return ['ruta' => "{$dir}/{$nombre}", 'dir' => $dir, 'nombre' => $nombre, 'tmp' => $archivo['tmp_name'], 'subir' => true];
     }
     $rutaExistente = !empty($_POST["ruta_{$fileKey}"]) ? $_POST["ruta_{$fileKey}"] : null;
+
+    // Centinela que manda quitarFoto() en checkVehiculo.php. Distingue "el usuario quitó
+    // la foto" de "esta petición simplemente no la incluye": sin esto, al conservar la
+    // ruta en el segundo caso tampoco se podría borrar en el primero.
+    if ($rutaExistente === '__BORRAR__') {
+        return ['ruta' => '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false, 'limpiar' => true];
+    }
+
     return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false];
 }
 
@@ -294,11 +302,17 @@ function upsertChecklistSeccion($conn, $tabla, $id_checklist, $campos, $fotoKey,
     $foto = getFotoInfo($fotoKey, $placa, $fotoTipo, $subdir);
     $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
 
+    // Si en esta petición no viene ni archivo nuevo ni ruta previa, la columna foto NO
+    // se toca: se conserva lo que ya estuviera guardado. Antes se escribía cadena vacía,
+    // así que cualquier guardado parcial BORRABA la ruta de una foto ya subida. Con el
+    // guardado automático al cambiar de apartado eso pasaría en cada paso.
+    $conservarFoto = !$foto['subir'] && empty($foto['limpiar']) && ($foto['ruta'] === '' || $foto['ruta'] === null);
+
     $r = mysqli_query($conn, "SELECT id_checklist FROM $tabla WHERE id_checklist='$id_checklist'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sets = [];
         foreach ($campos as $col => $val) { $sets[] = "$col='$val'"; }
-        $sets[] = "foto=$fotoSql";
+        if (!$conservarFoto) $sets[] = "foto=$fotoSql";
         $sql = "UPDATE $tabla SET " . implode(', ', $sets) . " WHERE id_checklist='$id_checklist'";
     } else {
         $cols = array_keys($campos);
@@ -319,11 +333,15 @@ function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campo
     $foto = getFotoInfo($fotoKey, $placa, $fotoTipo, $subdir);
     $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
 
+    // Mismo criterio que upsertChecklistSeccion: sin archivo nuevo ni ruta previa, la
+    // columna foto se deja como está en vez de sobrescribirla con cadena vacía.
+    $conservarFoto = !$foto['subir'] && empty($foto['limpiar']) && ($foto['ruta'] === '' || $foto['ruta'] === null);
+
     $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='$t_documento'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sets = [];
         foreach ($campos as $col => $val) { $sets[] = "$col='$val'"; }
-        $sets[] = "foto=$fotoSql";
+        if (!$conservarFoto) $sets[] = "foto=$fotoSql";
         $sql = "UPDATE checklist_documentacion SET " . implode(', ', $sets) . " WHERE id_checklist='$id_checklist' AND t_documento='$t_documento'";
     } else {
         $allCols = ['id_checklist', 't_documento'];
@@ -353,9 +371,41 @@ $TABLAS_CHECKLIST = [
 ];
 
 if ($opcion == 'guardarCheckIn') {
-    $resBorrador = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador' ORDER BY fecha DESC LIMIT 1");
+    // A qué checklist escribir. Antes se buscaba siempre "el último borrador del
+    // vehículo", así que empezar un checklist nuevo SOBRESCRIBÍA el anterior: la opción
+    // "No, empezar de nuevo" del cliente no creaba nada, solo dejaba el formulario en
+    // blanco y luego el guardado pisaba el borrador viejo.
+    //
+    //   id_checklist  -> el cliente ya sabe en cuál trabaja (se lo devolvimos al guardar)
+    //   nuevo=1       -> el usuario eligió empezar de cero: se fuerza uno nuevo
+    //   ninguno       -> comportamiento anterior: continuar el último borrador
+    $id_checklist_post = intval($_POST['id_checklist'] ?? 0);
+    $forzarNuevo       = !empty($_POST['nuevo']);
+    $id_checklist      = 0;
 
-    if ($resBorrador && mysqli_num_rows($resBorrador) > 0) {
+    if ($id_checklist_post > 0) {
+        $chk = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_checklist='$id_checklist_post' AND id_vehiculo='$id_coche' LIMIT 1");
+        if ($chk && mysqli_num_rows($chk) > 0) $id_checklist = $id_checklist_post;
+    }
+
+    $resBorrador = null;
+    if (!$id_checklist && !$forzarNuevo) {
+        $resBorrador = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador' ORDER BY fecha DESC LIMIT 1");
+    }
+
+    if ($id_checklist) {
+        if (!mysqli_query($conn, "UPDATE checklist SET fecha=NOW(), motivo='$motivo', estatus='$estatus' WHERE id_checklist='$id_checklist'")) {
+            die(json_encode(array("error" => "Failed to update checklist: " . mysqli_error($conn))));
+        }
+        if ($estatus === 'completo') {
+            $resHuerfanos = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador' AND id_checklist <> '$id_checklist'");
+            while ($rowH = mysqli_fetch_assoc($resHuerfanos)) {
+                $hId = $rowH['id_checklist'];
+                foreach ($TABLAS_CHECKLIST as $t) { mysqli_query($conn, "DELETE FROM $t WHERE id_checklist='$hId'"); }
+                mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$hId'");
+            }
+        }
+    } elseif ($resBorrador && mysqli_num_rows($resBorrador) > 0) {
         $rowBorrador = mysqli_fetch_assoc($resBorrador);
         $id_checklist = $rowBorrador['id_checklist'];
         if (!mysqli_query($conn, "UPDATE checklist SET fecha=NOW(), motivo='$motivo', estatus='$estatus' WHERE id_checklist='$id_checklist'")) {
@@ -412,7 +462,13 @@ if ($opcion == 'guardarCheckIn') {
         if (!$resultado) { die(json_encode(["error" => "Failed to insert documentacion $d[0]: " . mysqli_error($conn)])); }
     }
 
-    echo json_encode(array("success" => "Checklist and related data inserted successfully."));
+    // Se devuelve el id para que el cliente sepa en qué checklist está trabajando y lo
+    // reenvíe en los siguientes guardados. Sin esto, cada guardado volvía a adivinar
+    // "el último borrador del vehículo" y podía escribir en otro distinto.
+    echo json_encode(array(
+        "success"      => "Checklist and related data inserted successfully.",
+        "id_checklist" => $id_checklist
+    ));
 }
 
 // ======== CARGAR BORRADOR ========
@@ -428,7 +484,9 @@ if ($opcion == 'cargarBorrador') {
 
     $rowMain = mysqli_fetch_assoc($resBorrador);
     $id_checklist_borrador = $rowMain['id_checklist'];
-    $data = ['found' => true, 'motivo' => $rowMain['motivo']];
+    // id_checklist va en la respuesta para que el cliente sepa cuál está continuando y
+    // lo reenvíe al guardar, en vez de dejar que el servidor lo adivine cada vez.
+    $data = ['found' => true, 'id_checklist' => $id_checklist_borrador, 'motivo' => $rowMain['motivo']];
 
     $seccionesFisicas = [
         'asientos'        => 'checklist_asientos',

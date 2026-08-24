@@ -6,34 +6,68 @@
    ========================================================= */
 $(function () {
     /* ===== Sidebar toggle (estilo SB Admin 2) ===== */
-    function aplicarToggle() {
-        var toggled = $('.sidebar').hasClass('toggled');
-        try { localStorage.setItem('sidebarToggled', toggled); } catch (e) {}
+    var ANCHO_MOVIL = 768;
+
+    function esMovil() { return $(window).width() < ANCHO_MOVIL; }
+
+    // Backdrop del menú en móvil. Se inyecta aquí para que valga en todas las
+    // vistas sin tocar el markup de cada una.
+    var $backdrop = $('<div class="sidebar-backdrop"></div>').appendTo('body');
+
+    function pintarBackdrop() {
+        $('body').toggleClass('sidebar-abierto', !$('.sidebar').hasClass('toggled'));
     }
 
-    // Toggle interno del sidebar (botón circular al pie)
-    $(document).on('click', '#sidebarToggle', function (e) {
-        e.preventDefault();
+    function guardarPreferencia() {
+        // La preferencia es solo de escritorio. En móvil el menú siempre arranca
+        // cerrado; persistir ese estado dejaría el sidebar colapsado al volver
+        // a una pantalla grande.
+        if (esMovil()) return;
+        try { localStorage.setItem('sidebarToggled', $('.sidebar').hasClass('toggled')); } catch (e) {}
+    }
+
+    function alternarSidebar() {
         $('.sidebar').toggleClass('toggled');
-        aplicarToggle();
+        pintarBackdrop();
+        guardarPreferencia();
+    }
+
+    function cerrarSidebar() {
+        $('.sidebar').addClass('toggled');
+        pintarBackdrop();
+        guardarPreferencia();
+    }
+
+    // Toggle del pie del sidebar y de la topbar
+    $(document).on('click', '#sidebarToggle, #sidebarToggleTop', function (e) {
+        e.preventDefault();
+        alternarSidebar();
     });
 
-    // Toggle desde topbar (visible en mobile)
-    $(document).on('click', '#sidebarToggleTop', function (e) {
+    // Salidas del menú abierto en móvil: botón de cerrar, tocar el backdrop y
+    // Escape. El toggle de la topbar no sirve ahí porque el sidebar lo tapa.
+    $(document).on('click', '#sidebarCerrarMovil', function (e) {
         e.preventDefault();
-        $('.sidebar').toggleClass('toggled');
-        aplicarToggle();
+        cerrarSidebar();
+    });
+    $backdrop.on('click', cerrarSidebar);
+    $(document).on('keydown', function (e) {
+        if (e.key === 'Escape' && !$('.sidebar').hasClass('toggled') && esMovil()) cerrarSidebar();
     });
 
     // Auto-cerrar en mobile después de navegar
-    if ($(window).width() < 768) {
+    if (esMovil()) {
         $('.sidebar').addClass('toggled');
         $(document).on('click', '.sidebar .nav-link:not([data-bs-toggle])', function () {
-            if ($(window).width() < 768) $('.sidebar').addClass('toggled');
+            if (esMovil()) cerrarSidebar();
         });
     } else if (localStorage.getItem('sidebarToggled') === 'true') {
         $('.sidebar').addClass('toggled');
     }
+    pintarBackdrop();
+
+    // Al girar el teléfono o pasar a escritorio, el backdrop no debe quedarse.
+    $(window).on('resize', pintarBackdrop);
 
     /* ===== Theme toggle (MESS) =====
        Clave unificada 'mess-theme': el tema se hereda entre sistemas MESS. */

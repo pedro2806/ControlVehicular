@@ -56,6 +56,15 @@
         </div>
     </a>
 
+    <!-- Cerrar el menú (solo móvil). El toggle de la topbar queda debajo del
+         sidebar abierto y el del pie es d-none en móvil, así que esta es la
+         única salida visible desde arriba. -->
+    <div class="sidebar-cerrar-wrap d-md-none">
+        <button type="button" id="sidebarCerrarMovil" aria-label="Cerrar menú" title="Cerrar menú">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
     <!-- Nav Item - Dashboard -->
     <li class="nav-item<?= menuActivo('inicio', $paginaActual) ?>">
         <a class="nav-link py-2" href="inicio">
@@ -75,13 +84,6 @@
         </a>
     </li>
 
-    <li class="nav-item<?= menuActivo('seguimiento_anomalias', $paginaActual) ?>">
-        <a class="nav-link py-2" href="seguimiento_anomalias">
-            <i class="fas fa-fw fa-triangle-exclamation"></i>
-            <span>Hist. Anomalías</span>
-        </a>
-    </li>
-
     <li class="nav-item<?= menuActivo('seguimiento_siniestro', $paginaActual) ?>">
         <a class="nav-link py-2" href="seguimiento_siniestro">
             <i class="fas fa-fw fa-car-crash"></i>
@@ -89,6 +91,12 @@
         </a>
     </li>
 
+    <li class="nav-item<?= menuActivo('seguimiento_anomalias', $paginaActual) ?>">
+        <a class="nav-link py-2" href="seguimiento_anomalias">
+            <i class="fas fa-fw fa-triangle-exclamation"></i>
+            <span>Hist. Anomalías</span>
+        </a>
+    </li>
     <hr class="sidebar-divider">
 
     <!-- Menú Gasolina — solo historial (registro de gas se hace desde QR) -->

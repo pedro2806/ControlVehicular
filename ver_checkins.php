@@ -93,15 +93,19 @@ if (!$tieneAcceso) {
                                 <table class="table table-hover table-sm align-middle mb-0" id="tablaCheckins">
                                     <thead class="table-light">
                                         <tr>
+                                            <!-- d-none d-lg-table-cell: en celular estas
+                                                 tres columnas no caben y aplastaban al
+                                                 resto (el nombre del usuario se partía en
+                                                 tres renglones). Desde lg vuelven a salir. -->
                                             <th>Fecha</th>
                                             <th>Vehículo</th>
-                                            <th>Usuario</th>
+                                            <th class="d-none d-lg-table-cell">Usuario</th>
                                             <th>Tipo</th>
                                             <th class="text-end">Km</th>
-                                            <th>OT / OV</th>
+                                            <th class="d-none d-lg-table-cell">OT / OV</th>
                                             <th class="text-center">Foto</th>
                                             <th class="text-center">Ubicación</th>
-                                            <th>Notas</th>
+                                            <th class="d-none d-lg-table-cell">Notas</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -192,6 +196,14 @@ if (!$tieneAcceso) {
             if (f.marca || f.modelo) {
                 vehiculo += '<br><span class="small text-muted">' + esc([f.marca, f.modelo].filter(Boolean).join(' ')) + '</span>';
             }
+            // En celular las columnas Usuario, OT/OV y Notas están ocultas porque no
+            // caben; su contenido se repite aquí debajo del vehículo (d-lg-none) para
+            // que esconderlas no signifique perder el dato.
+            var extrasMovil = '';
+            if (f.usuario) extrasMovil += '<div class="small text-muted">' + esc(f.usuario) + '</div>';
+            if (f.ot)      extrasMovil += '<div class="small text-muted">OT/OV: ' + esc(f.ot) + '</div>';
+            if (f.notas)   extrasMovil += '<div class="small text-muted fst-italic">' + esc(f.notas) + '</div>';
+            if (extrasMovil) vehiculo += '<div class="d-lg-none mt-1">' + extrasMovil + '</div>';
 
             var foto = f.foto_url
                 ? '<a href="' + esc(f.foto_url) + '" target="_blank" rel="noopener" title="Ver foto"><i class="fas fa-image"></i></a>'
@@ -210,15 +222,15 @@ if (!$tieneAcceso) {
                 '<tr' + (f.abierto == 1 ? ' class="table-warning"' : '') + '>' +
                 '<td class="text-nowrap small">' + fmtFecha(f.fecha_actividad) + '</td>' +
                 '<td class="small">' + vehiculo + '</td>' +
-                '<td class="small">' + esc(f.usuario || 'S/R') + '</td>' +
+                '<td class="small d-none d-lg-table-cell">' + esc(f.usuario || 'S/R') + '</td>' +
                 '<td>' + badgeTipo(f) + '</td>' +
                 // Con la unidad explícita: junto a la columna de OT/OV el número solo no
                 // dejaba claro qué representaba.
                 '<td class="text-end small text-nowrap">' + (f.km_actual ? Number(f.km_actual).toLocaleString('es-MX') + ' km' : '') + '</td>' +
-                '<td class="small">' + esc(f.ot || '') + '</td>' +
+                '<td class="small d-none d-lg-table-cell">' + esc(f.ot || '') + '</td>' +
                 '<td class="text-center">' + foto + '</td>' +
                 '<td class="text-center">' + ubic + '</td>' +
-                '<td class="small text-muted">' + esc(f.notas || '') + '</td>' +
+                '<td class="small text-muted d-none d-lg-table-cell">' + esc(f.notas || '') + '</td>' +
                 '</tr>'
             );
         });
@@ -278,6 +290,34 @@ if (!$tieneAcceso) {
         cargar();
         $('#btnBuscar').on('click', cargar);
         $('#fTexto').on('input', pintar);
+
+        // El botón de la columna Ubicación se dibujaba con sus data-* y el modal ya
+        // existía, pero nadie los conectaba: al tocarlo no pasaba nada. Va delegado
+        // porque las filas se vuelven a pintar en cada búsqueda y en cada filtrado.
+        $(document).on('click', '.btn-mapa', function () {
+            var coords = ($(this).data('coords') || '').toString().trim();
+            if (!coords) return;
+
+            // La BD las guarda como "lat, lng" con espacio. El embed de Google Maps
+            // no acepta el espacio en la query, así que se normaliza a "lat,lng".
+            var limpias = coords.replace(/\s+/g, '');
+
+            $('#modalMapaTitulo').text($(this).data('titulo') || 'Ubicación del check-in');
+            $('#modalMapaCoords').text(limpias);
+            $('#modalMapaAbrir').attr('href', 'https://www.google.com/maps?q=' + encodeURIComponent(limpias));
+            // El src se asigna aquí y no al pintar la tabla: con 691 filas serían 691
+            // iframes cargando mapas de golpe.
+            $('#mapaFrame').attr('src', 'https://maps.google.com/maps?q=' + encodeURIComponent(limpias) + '&z=16&output=embed');
+
+            // getOrCreateInstance y no new: con new se acumula una instancia por clic.
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMapa')).show();
+        });
+
+        // Al cerrar se vacía el iframe: si no, el mapa anterior sigue vivo en segundo
+        // plano y al reabrir se alcanza a ver la ubicación de la fila pasada.
+        document.getElementById('modalMapa').addEventListener('hidden.bs.modal', function () {
+            $('#mapaFrame').attr('src', '');
+        });
     });
 </script>
 </body>

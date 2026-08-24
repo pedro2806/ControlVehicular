@@ -23,6 +23,7 @@
     <link href="css/mess-ds.css" rel="stylesheet">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="css/lib/responsive.bootstrap5.min.css">
 </head>
 <body id = "page-top">
     <!-- Page Wrapper -->
@@ -42,12 +43,25 @@
                 <!-- Begin Page Content -->
                 <div class = "container-fluid">
                     <!-- Page Heading -->
+                    <?php $vDesdeQR = intval($_GET['v'] ?? 0); ?>
                     <div class = "d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class = "h3 mb-0 text-black-800">Registro de Documentos</h1>                        
+                        <h1 class = "h3 mb-0 text-black-800">Registro de Documentos</h1>
+                        <?php if ($vDesdeQR): ?>
+                            <!-- Solo cuando se llegó escaneando el QR (?v=): ahí el usuario
+                                 viene de qr_vehiculo.php y no tiene menú a la mano. -->
+                            <a href="qr_vehiculo.php?v=<?= $vDesdeQR ?>"
+                               class="btn btn-outline-secondary btn-sm flex-shrink-0 mt-2 mt-sm-0">
+                                <i class="fas fa-qrcode me-1"></i> Volver al vehículo
+                            </a>
+                        <?php endif; ?>
                     </div>
                     <!-- TABLA DE VEHICULOS -->
-                    <div class="container">
-                        <table id="tablaInventario" class="table table-striped table-bordered">
+                    <!-- .table-responsive: esta tabla era la única del módulo sin él, y
+                         desde el celular (que es donde se suben las fotos) se salía de
+                         la pantalla sin manera de alcanzar la columna de Acción. -->
+                    <div class="container px-0">
+                        <div class="table-responsive">
+                        <table id="tablaInventario" class="table table-striped table-bordered w-100">
                             <thead>
                                 <tr>
                                     <th>Placa</th>
@@ -61,6 +75,7 @@
                                 <!-- Las filas se cargarán dinámicamente -->
                             </tbody>
                         </table>
+                        </div>
                     </div>
                     <!-- CONTENEDOR INFO AUTO -->
                     <div class="card shadow-sm mb-3" id="placaSeleccionada" style="display:none;">
@@ -255,7 +270,11 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
+    <!-- Responsive de DataTables (2.5.0), servido local: en móvil esconde las columnas
+         que no caben y las abre en una fila desplegable. -->
+    <script src="js/lib/dataTables.responsive.min.js"></script>
+    <script src="js/lib/responsive.bootstrap5.min.js"></script>
+
     <script type="text/javascript">
         $(document).ready(function() {
             infoVehiculos(); 
@@ -265,12 +284,23 @@
             $("#hora").val(hora);
             // Inicializar DataTables para la tabla de inventario.
             $("#tablaInventario").DataTable({
-                destroy: true, 
-                paging: true, 
-                pageLength: 10, 
-                ordering: true, 
-                searching: true, 
-                info: true, 
+                destroy: true,
+                paging: true,
+                pageLength: 10,
+                ordering: true,
+                searching: true,
+                info: true,
+                autoWidth: false,
+                responsive: true,
+                // Desde el celular lo único imprescindible es identificar el vehículo
+                // por placa y poder entrar a subirle los documentos; marca y color se
+                // esconden primero y quedan en la fila desplegable.
+                columnDefs: [
+                    { responsivePriority: 1,  targets: [0, 4] },  // Placa, Acción
+                    { responsivePriority: 2,  targets: 1 },       // Modelo
+                    { responsivePriority: 8,  targets: 2 },       // Marca
+                    { responsivePriority: 10, targets: 3 }        // Color
+                ],
                 language: {
                     decimal: ",",
                     thousands: ".",

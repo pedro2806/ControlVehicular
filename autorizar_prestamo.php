@@ -707,7 +707,7 @@
             var patronRelacionado = $('#Ppatronp').val();
             var notasCheckin = $('#notas_entrega').val();
             var gasActual = $('#gasolina_inicio').val();            
-            var imgCheckin = $('#fotos_inicio')[0].files[0];
+            var imgsCheckin = $('#fotos_inicio')[0].files;
             var tipoServicio = $('#PtipoActividadp').val();
             var id_prestamo = $('#PidPrestamop').val();
             // Validar que el tipo de servicio sea válido               
@@ -728,8 +728,12 @@
             formData.append('gasActual', gasActual);
             formData.append('tipoServicio', tipoServicio);
 
-            if (imgCheckin) {
-            formData.append('imgCheckin', imgCheckin);
+            // Como 'imgCheckin[]': el servidor recorre $_FILES['imgCheckin']['tmp_name']
+            // esperando una lista. Antes se mandaba un archivo suelto con nombre
+            // 'imgCheckin' y ahí tmp_name era un string, así que no se guardaba
+            // ninguna foto. El input es multiple, así que van todas.
+            for (var i = 0; i < imgsCheckin.length; i++) {
+                formData.append('imgCheckin[]', imgsCheckin[i]);
             }
 
             $.ajax({
@@ -740,6 +744,13 @@
             processData: false,
             contentType: false,
             success: function (resp) {
+                // El endpoint responde {status:'error'} cuando el INSERT falla. Sin este
+                // guard se anunciaba "¡Guardado!" aunque el check-in no se hubiera hecho.
+                if (!resp || resp.status !== 'success') {
+                    Swal.fire("Error", (resp && resp.message) || "No se pudo registrar el kilometraje.", "error");
+                    $('#msgKm').text((resp && resp.message) || 'Error al guardar el kilometraje.');
+                    return;
+                }
                 Swal.fire({
                 title: "¡Guardado!",
                 text: "Kilometraje registrado correctamente.",
@@ -747,8 +758,10 @@
                 timer: 2000,
                 timerProgressBar: true
                 }).then(function () {
-                $('#formCapturaKm')[0].reset();
-                bootstrap.Modal.getInstance(document.getElementById('capturaKmModal')).hide();
+                // Antes se reseteaba #formCapturaKm y se cerraba #capturaKmModal, que son
+                // del check-in del menú: ese acceso está oculto, el modal nunca se abre y
+                // getInstance() devolvía null, así que el .hide() tronaba con TypeError
+                // justo después de guardar. Este flujo usa #formInicioPrestamo.
                 $('#msgKm').text('');
                 });
             },

@@ -58,7 +58,18 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <h1 class="h3 mb-3 text-black-800">Checklist de Vehículo</h1>
+                    <?php $vDesdeQR = intval($_GET['v'] ?? 0); ?>
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                        <h1 class="h3 mb-0 text-black-800">Checklist de Vehículo</h1>
+                        <?php if ($vDesdeQR): ?>
+                            <!-- Solo cuando se llegó escaneando el QR (?v=). En ese flujo el
+                                 usuario viene de qr_vehiculo.php y no tiene menú a la mano. -->
+                            <a href="qr_vehiculo.php?v=<?= $vDesdeQR ?>"
+                               class="btn btn-outline-secondary btn-sm flex-shrink-0">
+                                <i class="fas fa-qrcode me-1"></i> Volver al vehículo
+                            </a>
+                        <?php endif; ?>
+                    </div>
                     <div class="row" name="DivVehiculosAsignados" id="DivVehiculosAsignados">
                         <div class="col-xl-12 col-lg-12 col-md-1 col-sm-12 col-12">
                             <table id="TVehiculosAsignados" name="TVehiculosAsignados" class="table table-striped table-bordered">
@@ -458,7 +469,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
             // Recolectar valores de checkboxes
             $('input[type="checkbox"]').each(function () {
-                formData.append($(this).attr('name'), $(this).is(':checked') ? 1 : 0);
+                var nombre = $(this).attr('name');
+                // Los toggles de "Buen estado" solo se mandan si el usuario los tocó.
+                // Antes se mandaba 0 para TODOS en cada autoguardado, así que al pasar
+                // del paso 1 al 2 se grababan las 15 secciones como "en mal estado"
+                // aunque no se hubieran revisado: 0 significaba a la vez "sin responder"
+                // y "en mal estado". Sin tocar se manda '' y queda como no respondida.
+                if (nombre && nombre.indexOf('buenEstado_') === 0 && this.dataset.tocado !== '1') {
+                    formData.append(nombre, '');
+                    return;
+                }
+                formData.append(nombre, $(this).is(':checked') ? 1 : 0);
             });
 
             // Recolectar valores de selects (si los hubiera)
@@ -553,7 +574,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 formData.append($(this).attr('name'), $(this).val());
             });
             $('input[type="checkbox"]').each(function () {
-                formData.append($(this).attr('name'), $(this).is(':checked') ? 1 : 0);
+                var nombre = $(this).attr('name');
+                // Los toggles de "Buen estado" solo se mandan si el usuario los tocó.
+                // Antes se mandaba 0 para TODOS en cada autoguardado, así que al pasar
+                // del paso 1 al 2 se grababan las 15 secciones como "en mal estado"
+                // aunque no se hubieran revisado: 0 significaba a la vez "sin responder"
+                // y "en mal estado". Sin tocar se manda '' y queda como no respondida.
+                if (nombre && nombre.indexOf('buenEstado_') === 0 && this.dataset.tocado !== '1') {
+                    formData.append(nombre, '');
+                    return;
+                }
+                formData.append(nombre, $(this).is(':checked') ? 1 : 0);
             });
             $('select').each(function () {
                 formData.append($(this).attr('name'), $(this).val());
@@ -667,6 +698,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('.chk-slide').find('input, textarea, select').attr('autocomplete', 'off');
         });
 
+        // Marca el toggle como respondido en cuanto el usuario lo mueve, en cualquiera
+        // de los dos sentidos: apagarlo a propósito es una respuesta ("está mal"), y hay
+        // que poder distinguirla de no haberlo tocado nunca.
+        $(document).on('change', 'input[type="checkbox"][name^="buenEstado_"]', function () {
+            this.dataset.tocado = '1';
+        });
+
         function limpiarFormularioChecklist() {
             limpiarRutasFoto();
 
@@ -679,7 +717,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             $('.chk-slide').find('input[type="file"]').val('');
             $('.chk-slide').find('input[type="text"], input[type="date"], input[type="number"], textarea').val('');
             $('.chk-slide').find('select').prop('selectedIndex', 0);
-            $('.chk-slide').find('input[type="checkbox"]').prop('checked', false);
+            // Se limpia también la marca de "tocado": en un checklist nuevo ninguna
+            // sección está respondida todavía.
+            $('.chk-slide').find('input[type="checkbox"]').prop('checked', false)
+                .each(function () { delete this.dataset.tocado; });
 
             // Ninguna foto de esta sesión sigue vigente para el checklist nuevo.
             fotosEnviadas.clear();
@@ -721,9 +762,40 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 limpiarFormularioChecklist();
                             }
                         });
+                    } else if (response.completo) {
+                        // Sin borrador pero con un checklist ya terminado. Antes se abría
+                        // un formulario en blanco sin avisar y parecía que el checklist
+                        // recién completado se había perdido.
+                        Swal.fire({
+                            title: 'Este vehículo ya tiene un checklist completo',
+                            html: 'Se registró el <b>' + fechaLegible(response.completo.fecha) + '</b>.<br>¿Quieres empezar uno nuevo?',
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, empezar uno nuevo',
+                            cancelButtonText: 'No, ver el vehículo'
+                        }).then(function (result) {
+                            if (result.isConfirmed) {
+                                idChecklistActual = 0;
+                                forzarChecklistNuevo = true;
+                                limpiarFormularioChecklist();
+                            } else if (id_coche) {
+                                // Se usa id_coche y no autoSelectVehiculo: este último solo
+                                // existe si se llegó con ?v= desde el QR, así que entrando
+                                // por el menú valía 0 y el botón no hacía nada.
+                                window.location.assign('qr_vehiculo.php?v=' + id_coche);
+                            }
+                        });
                     }
                 }
             });
+        }
+
+        // 'YYYY-MM-DD HH:MM:SS' -> 'DD/MM/YYYY'. Se arma por partes para no depender
+        // de cómo interprete new Date() una fecha de MySQL sin zona horaria.
+        function fechaLegible(fecha) {
+            if (!fecha) return 'fecha desconocida';
+            var p = String(fecha).split(' ')[0].split('-');
+            return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : String(fecha);
         }
 
         function cargarDatosBorrador(data) {
@@ -732,7 +804,16 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 $('[name="' + name + '"]').val(v);
             }
             function setCheck(name, val) {
-                $('input[name="' + name + '"]').prop('checked', val == 1 || val === '1');
+                var $el = $('input[name="' + name + '"]');
+                $el.prop('checked', val == 1 || val === '1');
+                // Un valor guardado ('0' o '1') ya es una respuesta del usuario: se marca
+                // como tocada para que el siguiente guardado no la borre. '' o 'S/R'
+                // siguen contando como sin responder.
+                var respondido = (val !== null && val !== undefined && val !== '' && val !== 'S/R');
+                $el.each(function () {
+                    if (respondido) { this.dataset.tocado = '1'; }
+                    else { delete this.dataset.tocado; }
+                });
             }
             function setRuta(name, val) {
                 if (!val) return;

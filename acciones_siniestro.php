@@ -28,7 +28,12 @@ $modelo = $_POST["modelo"] ?? null;
 $color = $_POST["color"] ?? null;
 $anio = $_POST["anio"] ?? null;
 $noEmpleado = $_COOKIE['noEmpleado'] ?? null;
-$id_usuario = $_COOKIE['id_usuario'] ?? null;
+// intval y no el valor crudo de la cookie: este archivo lo concatena directo en ~8
+// consultas. Con la cookie vacía quedaba "WHERE inv.id_usuario = " y MySQL tiraba un
+// fatal en HTML; el AJAX no podía parsearlo y en pantalla solo salía "Hubo un problema
+// al cargar los datos". Además la cookie la escribe el cliente, así que sin intval era
+// inyección SQL directa.
+$id_usuario = intval($_COOKIE['id_usuario'] ?? 0);
 $rutasImagenes = $_POST["rutasImagenes"] ?? null;
 
 $id_formato = $_POST["id_formato"] ?? null;
@@ -178,7 +183,21 @@ if ($accion == "consultarInventario") {
 
 // Consulta para obtener los vehiculos en general
 if ($accion == "consultarInventarioGeneral") {
+    // Sin sesión no se puede resolver qué vehículos le tocan al usuario. Se responde un
+    // JSON con motivo en vez de dejar que reviente la consulta: así el front puede decir
+    // qué pasó en lugar de un "error" pelón.
+    if ($id_usuario <= 0) {
+        echo json_encode(['error' => 'Tu sesión expiró. Vuelve a iniciar sesión para ver los vehículos.']);
+        exit;
+    }
+
     $rol = $_COOKIE['rol'] ?? null;
+    // Default para cualquier rol no contemplado (o cookie vacía): antes se quedaba sin
+    // definir $sqlConsultaVehiculosG y el archivo moría en el $conn->query().
+    $sqlConsultaVehiculosG = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
+                            FROM inventario inv
+                            WHERE inv.id_usuario = $id_usuario OR inv.id_us_asignado = $id_usuario
+                            ORDER BY inv.usuario";
     if ($rol == '3' || $rol == '4'  || $rol == '2') { // 3: Gerente, 4: Administrador
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv

@@ -23,6 +23,7 @@
     <link href="css/mess-ds.css" rel="stylesheet">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="css/lib/responsive.bootstrap5.min.css">
 </head>
 <body id = "page-top">
     <!-- Page Wrapper -->
@@ -143,6 +144,9 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Responsive de DataTables (2.5.0), servido local -->
+    <script src="js/lib/dataTables.responsive.min.js"></script>
+    <script src="js/lib/responsive.bootstrap5.min.js"></script>
     <!-- Ionicons -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
@@ -159,6 +163,20 @@
                 info: false, // Quitar leyendas a pie de tabla
                 pageLength: 10,
                 lengthMenu: [5, 10, 25, 50, 100],
+                autoWidth: false,
+                responsive: true,
+                // Desde el celular lo que se necesita para decidir es el vehículo, el
+                // estatus y el botón; solicitante, kilometraje y descripción se esconden
+                // primero y quedan en la fila desplegable.
+                columnDefs: [
+                    { responsivePriority: 1,  targets: [1, 7] },  // Vehículo, Acción
+                    { responsivePriority: 2,  targets: 6 },       // Estatus
+                    { responsivePriority: 3,  targets: 2 },       // Fecha Registro
+                    { responsivePriority: 6,  targets: 4 },       // Tipo
+                    { responsivePriority: 8,  targets: 0 },       // Solicita
+                    { responsivePriority: 9,  targets: 3 },       // Kilometraje
+                    { responsivePriority: 10, targets: 5 }        // Descripción
+                ],
                 language: {
                 decimal: ",",
                 thousands: ".",

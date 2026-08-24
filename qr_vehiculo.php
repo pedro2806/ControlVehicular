@@ -66,7 +66,12 @@ if (empty($_COOKIE['noEmpleado'])) {
                     </div>
 
                     <!-- Disclaimer checklist incompleto -->
-                    <div class="alert alert-warning d-flex gap-3 align-items-start mb-3" id="disclaimerChecklist" style="display:none;">
+                    <!-- Arranca con d-none, NO con style="display:none". Las utilidades
+                         de Bootstrap son !important, así que el d-flex le ganaba al
+                         estilo inline y el aviso salía siempre, incluso con el checklist
+                         completo (y el .hide() de jQuery tampoco podía taparlo). El
+                         d-flex se agrega desde JS solo cuando toca mostrarlo. -->
+                    <div class="alert alert-warning gap-3 align-items-start mb-3 d-none" id="disclaimerChecklist">
                         <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
                         <div class="flex-grow-1">
                             <div class="fw-semibold mb-1">Checklist incompleto</div>
@@ -459,15 +464,17 @@ if (empty($_COOKIE['noEmpleado'])) {
 
             // Disclaimer: visible para todos cuando el checklist no está completo
             // El botón de llenar checklist solo aparece al usuario asignado
+            // Se alterna por clases y no con show()/hide(): las utilidades d-* de
+            // Bootstrap llevan !important y le ganan al display inline que pone jQuery.
             if (v.estatus_checklist !== 'completo') {
-                $('#disclaimerChecklist').css('display', 'flex');
+                $('#disclaimerChecklist').removeClass('d-none').addClass('d-flex');
                 if (esAsignado) {
                     $('#btnIrChecklist').attr('href', 'checkVehiculo?v=' + v.id_vehiculo).show();
                 } else {
                     $('#btnIrChecklist').hide();
                 }
             } else {
-                $('#disclaimerChecklist').hide();
+                $('#disclaimerChecklist').removeClass('d-flex').addClass('d-none');
             }
 
             // Badge mantenimiento

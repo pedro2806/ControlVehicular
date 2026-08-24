@@ -77,36 +77,67 @@ if ($accion === 'obtenerValidacionesVehiculo') {
         exit;
     }
 
-    // 1) Último checklist del vehículo (encabezado) y subáreas
-    $idChecklist = 0;
-    $fechaChecklist = null;
-    $estatusChecklist = null;
-    $stmtCh = $conn->prepare("SELECT id_checklist, fecha, estatus FROM checklist
-                              WHERE id_vehiculo = ?
-                              ORDER BY fecha DESC, id_checklist DESC LIMIT 1");
-    $stmtCh->bind_param("i", $id_vehiculo);
-    $stmtCh->execute();
-    $rsCh = $stmtCh->get_result();
-    if ($rowCh = $rsCh->fetch_assoc()) {
-        $idChecklist      = intval($rowCh['id_checklist']);
-        $fechaChecklist   = $rowCh['fecha'];
-        $estatusChecklist = $rowCh['estatus'];
-    }
-    $stmtCh->close();
-
-    // Subáreas a evaluar: cada una se considera OK si TODOS sus registros tienen buen_estado = 'Si'
+    // Subáreas a evaluar: cada una se considera OK si TODOS sus registros están en buen estado.
+    //
+    // Esta lista tiene que ser EXACTAMENTE la de los pasos físicos del formulario
+    // ($pasos en checkVehiculo.php). Antes evaluaba 'limpieza', que el formulario ya
+    // no captura: ningún checklist podía llenarla, así que salía en gris siempre y el
+    // panel nunca llegaba a 10/10 aunque el checklist estuviera completo. A la vez
+    // faltaba 'graficas', que sí se captura y no se veía por ningún lado.
     $subareas = [
         'asientos'          => 'checklist_asientos',
         'espejos_ventanas'  => 'checklist_espejos_ventanas',
         'estereos_aire'     => 'checklist_estereos_aire',
         'faros'             => 'checklist_faros',
         'golpes_exterior'   => 'checklist_golpes_exterior',
+        'graficas'          => 'checklist_graficas',
         'limpiaparabrisas'  => 'checklist_limpiaparabrisas',
-        'limpieza'          => 'checklist_limpieza',
         'llantas'           => 'checklist_llantas',
         'placas'            => 'checklist_placas',
         'puertas_llave'     => 'checklist_puertas_llave'
     ];
+
+    // 1) Checklist a mostrar: el más reciente QUE TENGA AL MENOS UNA RESPUESTA.
+    // Antes se tomaba el más reciente a secas, y eso vaciaba el panel en dos casos
+    // reales: al empezar un checklist nuevo (el borrador aún sin responder tapaba al
+    // anterior y todas las subáreas salían en gris hasta terminarlo), y con cabeceras
+    // sin filas de subárea. El estado conocido del vehículo no cambia porque alguien
+    // abra el formulario. Si ninguno tiene respuestas, se usa el más reciente.
+    //
+    // Se arma como un EXISTS por tabla unidos con OR, y NO como un UNION de todas.
+    // Las tablas de subárea no comparten colación (checklist_graficas difiere del
+    // resto), y un UNION entre ellas revienta con "Illegal mix of collations". Cada
+    // EXISTS mira una sola tabla, así que no hay comparación entre colaciones.
+    $condicionesConDatos = implode(' OR ', array_map(
+        function ($t) {
+            return "EXISTS (SELECT 1 FROM $t s
+                            WHERE s.id_checklist = c.id_checklist
+                              AND (TRIM(s.buen_estado) <> '' OR TRIM(COALESCE(s.foto, '')) <> ''))";
+        },
+        array_values($subareas)
+    ));
+
+    $idChecklist = 0;
+    $fechaChecklist = null;
+    $estatusChecklist = null;
+
+    foreach (['con_datos', 'cualquiera'] as $intento) {
+        $filtro = $intento === 'con_datos' ? "AND ($condicionesConDatos)" : '';
+        $stmtCh = $conn->prepare("SELECT c.id_checklist, c.fecha, c.estatus FROM checklist c
+                                  WHERE c.id_vehiculo = ? $filtro
+                                  ORDER BY c.fecha DESC, c.id_checklist DESC LIMIT 1");
+        if (!$stmtCh) { continue; }
+        $stmtCh->bind_param("i", $id_vehiculo);
+        $stmtCh->execute();
+        $rowCh = $stmtCh->get_result()->fetch_assoc();
+        $stmtCh->close();
+        if ($rowCh) {
+            $idChecklist      = intval($rowCh['id_checklist']);
+            $fechaChecklist   = $rowCh['fecha'];
+            $estatusChecklist = $rowCh['estatus'];
+            break;
+        }
+    }
 
     $detalleSubareas = [];
     foreach ($subareas as $key => $tabla) {
@@ -120,9 +151,17 @@ if ($accion === 'obtenerValidacionesVehiculo') {
             //
             // Las filas sin responder no cuentan como 'mal': se ignoran, y si no queda
             // ninguna respondida la subárea es 'no_revisado'.
+            // La foto cuenta como evidencia de revisión, igual que en el checklist:
+            // ahí una sección se da por hecha cuando tiene foto (es lo único que valida
+            // 'Finalizar'), así que el semáforo usa el mismo criterio. Una sección con
+            // foto y sin defecto marcado se toma como buena: se revisó y no se reportó
+            // imperfecto. Sin foto y sin respuesta sigue siendo 'no_revisado'.
             $sqlSub = "SELECT
-                          SUM(CASE WHEN TRIM(buen_estado) <> '' THEN 1 ELSE 0 END) AS respondidas,
-                          SUM(CASE WHEN buen_estado = '1' OR UPPER(buen_estado) = 'SI' THEN 1 ELSE 0 END) AS ok
+                          SUM(CASE WHEN TRIM(buen_estado) <> ''
+                                     OR TRIM(COALESCE(foto, '')) <> '' THEN 1 ELSE 0 END) AS respondidas,
+                          SUM(CASE WHEN buen_estado = '1' OR UPPER(buen_estado) = 'SI'
+                                     OR (TRIM(buen_estado) = '' AND TRIM(COALESCE(foto, '')) <> '')
+                                   THEN 1 ELSE 0 END) AS ok
                        FROM $tabla WHERE id_checklist = ?";
             $stmtSub = $conn->prepare($sqlSub);
             if ($stmtSub) {

@@ -20,6 +20,11 @@ if (empty($_COOKIE['noEmpleado'])) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="css/mess-ds.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <!-- Responsive de DataTables (2.5.0): en móvil esconde las columnas que no caben
+         y las muestra en una fila desplegable. Sin esto la tabla se salía de la
+         pantalla. Se sirve desde css/lib y js/lib, no por CDN, para que no dependa
+         de internet. -->
+    <link rel="stylesheet" href="css/lib/responsive.dataTables.min.css">
 </head>
 <body id="page-top">
 <div id="wrapper">
@@ -91,6 +96,7 @@ if (empty($_COOKIE['noEmpleado'])) {
 <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
 
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="js/lib/dataTables.responsive.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -110,8 +116,24 @@ $(document).ready(function () {
         searching: true,
         info: true,
         autoWidth: false,
+        responsive: true,
         order: [[7, 'desc']],
-        columnDefs: [{ orderable: false, targets: [9] }],
+        // El orden de prioridad decide qué columnas sobreviven en pantalla chica.
+        // Lo que importa desde el celular es cuándo se cargó, cuánto queda y poder
+        // actuar; el vehículo ya viene del selector de arriba y el usuario casi
+        // siempre es uno mismo, así que esos dos son los primeros en esconderse.
+        columnDefs: [
+            { orderable: false, targets: [9] },
+            { responsivePriority: 1,  targets: [7, 9] },   // Fecha Carga, Acciones
+            { responsivePriority: 2,  targets: 4 },        // Saldo
+            { responsivePriority: 3,  targets: 2 },        // Monto
+            { responsivePriority: 5,  targets: 3 },        // Pagos
+            { responsivePriority: 6,  targets: 5 },        // Km Actual
+            { responsivePriority: 7,  targets: 6 },        // Km Consumidos
+            { responsivePriority: 8,  targets: 8 },        // Fecha Registro
+            { responsivePriority: 9,  targets: 1 },        // Usuario
+            { responsivePriority: 10, targets: 0 }         // Vehículo
+        ],
         language: {
             lengthMenu: "Mostrar _MENU_ registros",
             zeroRecords: "No se encontraron resultados",

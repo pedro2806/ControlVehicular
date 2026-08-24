@@ -29,6 +29,20 @@ $gasActual = isset($_POST['gasActual']) ? $_POST['gasActual'] : null;
 $otRelacionada = isset($_POST['otRelacionada']) ? $_POST['otRelacionada'] : null;
 $tipoServicio = isset($_POST['tipoServicio']) ? $_POST['tipoServicio'] : null;
 $placa = isset($_POST['placa']) ? $_POST['placa'] : null;
+// El inicio de préstamo no manda 'placa', y sin ella las fotos del check-in se
+// guardaban fuera de la carpeta del vehículo (img_control_vehicular//Actividades).
+// Se resuelve desde la BD, que además no depende de lo que mande el cliente.
+if (($placa === null || trim($placa) === '') && intval($id_vehiculo) > 0) {
+    $stmtPlaca = $conn->prepare("SELECT placa FROM inventario WHERE id_vehiculo = ? LIMIT 1");
+    if ($stmtPlaca) {
+        $idVehPlaca = intval($id_vehiculo);
+        $stmtPlaca->bind_param("i", $idVehPlaca);
+        $stmtPlaca->execute();
+        $rowPlaca = $stmtPlaca->get_result()->fetch_assoc();
+        $stmtPlaca->close();
+        if ($rowPlaca && $rowPlaca['placa'] !== '') { $placa = $rowPlaca['placa']; }
+    }
+}
 $coordenadas = isset($_POST['coordenadas']) ? $_POST['coordenadas'] : null;
 $ruta_destino_inicio = '';
 $finalizarPrestamo = isset($_POST['finalizarPrestamo']) ? $_POST['finalizarPrestamo'] : 'No';
@@ -133,6 +147,39 @@ if ($accion == 'tomaKm'){
 }
 
 if($accion == 'CapturaCheckIn'){
+    // La foto del odómetro es OBLIGATORIA en el primer registro de KM de la semana.
+    // Misma regla y misma condición que 'checkInQR' en acciones_qr.php: el inicio de
+    // préstamo es el otro camino que llega a actividad_vehiculo, y sin esto se
+    // saltaba la regla. Se resuelve en el servidor, no con un flag del cliente.
+    $stmtSem = $conn->prepare("
+        SELECT 1 FROM actividad_vehiculo
+        WHERE id_vehiculo = ? AND km_actual > 0
+          AND YEARWEEK(fecha_actividad, 1) = YEARWEEK(CURDATE(), 1)
+        LIMIT 1
+    ");
+    if ($stmtSem) {
+        $idVehSem = intval($id_vehiculo);
+        $stmtSem->bind_param("i", $idVehSem);
+        $stmtSem->execute();
+        $hayKMEstaSemana = (bool) $stmtSem->get_result()->fetch_assoc();
+        $stmtSem->close();
+
+        $traeFoto = false;
+        if (isset($_FILES['imgCheckin']['error'])) {
+            foreach ((array) $_FILES['imgCheckin']['error'] as $errFoto) {
+                if ($errFoto === UPLOAD_ERR_OK) { $traeFoto = true; break; }
+            }
+        }
+
+        if (!$hayKMEstaSemana && !$traeFoto) {
+            echo json_encode([
+                'status'  => 'error',
+                'message' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.'
+            ]);
+            exit;
+        }
+    }
+
     // Insertar los datos en la base de datos
     $sql = "INSERT INTO actividad_vehiculo (id_prestamo, id_vehiculo, id_usuario, km_actual, foto_url, fecha_actividad, tipo_actividad, notas, patron, gasolina_actual, ot, detalle_tipo_uso, coordenadas, ruta, costoOv)
             VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio', '$coordenadas', '$ruta', '$costoOv')";

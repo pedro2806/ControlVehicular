@@ -168,7 +168,25 @@
                 dataType: "json",
                 success: function (respuesta) {
                     var select = $("#id_vehiculo");
-                    Array.isArray(respuesta) && respuesta.forEach(function (vehiculo) {
+                    // El endpoint responde {error:"..."} cuando no hay sesión válida.
+                    // Sin esto el select se quedaba en "Cargando vehículos..." para
+                    // siempre y no se decía por qué.
+                    if (respuesta && respuesta.error) {
+                        select.prop('disabled', false)
+                              .select2({ placeholder: 'Sin vehículos disponibles', width: '100%', allowClear: true });
+                        Swal.fire({ icon: "warning", title: "No se pudieron cargar los vehículos",
+                                    text: respuesta.error, confirmButtonText: "Aceptar" });
+                        return;
+                    }
+                    if (!Array.isArray(respuesta)) {
+                        select.prop('disabled', false)
+                              .select2({ placeholder: 'Sin vehículos disponibles', width: '100%', allowClear: true });
+                        Swal.fire({ icon: "error", title: "Error",
+                                    text: "El servidor devolvió una respuesta inesperada al cargar los vehículos.",
+                                    confirmButtonText: "Aceptar" });
+                        return;
+                    }
+                    respuesta.forEach(function (vehiculo) {
                         var color = vehiculo.tipo === 'AREA' ? 'background-color:#ffeeba;color:#212529;'
                                   : vehiculo.tipo === 'EXTERNO' ? 'background-color:rgb(186,201,255);color:#212529;' : '';
                         select.append(`<option value="${vehiculo.id_vehiculo}" style="${color}">${vehiculo.modelo} - ${vehiculo.placa} - Usr: ${vehiculo.usuario}</option>`);

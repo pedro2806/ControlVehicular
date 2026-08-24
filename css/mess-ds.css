@@ -320,11 +320,51 @@ body.theme-dark .sidebar {
 .sidebar #sidebarToggle:focus  { outline: none; }
 .sidebar.toggled #sidebarToggle::after { content: '\f105'; }
 
+/* Botón de cerrar dentro del sidebar (solo móvil).
+   En móvil el sidebar es position:fixed con z-index 1000 y la topbar tiene 999,
+   así que el sidebar abierto tapa a #sidebarToggleTop. Como además el toggle
+   circular del pie es d-none en móvil, sin este botón el menú abierto no se
+   puede cerrar: hay que dejarle al usuario una salida visible. */
+.sidebar-cerrar-wrap {
+    position: absolute;
+    top: .75rem;
+    right: .5rem;
+    z-index: 1;
+}
+#sidebarCerrarMovil {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, .2);
+    color: rgba(255, 255, 255, .9);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+#sidebarCerrarMovil:hover { background-color: rgba(255, 255, 255, .32); }
+#sidebarCerrarMovil:focus { outline: none; }
+
+/* Backdrop del menú en móvil: oscurece el contenido y da una segunda salida
+   (tocar fuera). Se inyecta desde mess-ds.js para no tocar cada vista. */
+.sidebar-backdrop { display: none; }
+
 /* Mobile: el sidebar se colapsa fuera de pantalla en lugar de width:0 */
 @media (max-width: 767.98px) {
     .sidebar { position: fixed; left: 0; top: 0; height: 100vh; overflow-y: auto; }
     .sidebar.toggled { transform: translateX(-100%); width: 14rem !important; overflow: visible; }
     #content-wrapper { margin-left: 0; }
+
+    body.sidebar-abierto .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .5);
+        z-index: 999;
+    }
+    /* Evita que el fondo haga scroll detrás del menú abierto */
+    body.sidebar-abierto { overflow: hidden; }
 }
 
 

@@ -478,7 +478,27 @@ if ($opcion == 'cargarBorrador') {
     $resBorrador = mysqli_query($conn, "SELECT id_checklist, motivo FROM checklist WHERE id_vehiculo='$id_coche_borrador' AND estatus='borrador' ORDER BY fecha DESC LIMIT 1");
 
     if (!$resBorrador || mysqli_num_rows($resBorrador) == 0) {
-        echo json_encode(['found' => false]);
+        // No hay borrador, pero puede existir un checklist YA COMPLETO. Antes se
+        // devolvía 'found:false' a secas y el cliente abría un formulario en blanco
+        // sin avisar: quien acababa de terminar un checklist y volvía a entrar creía
+        // que se había perdido. Se informa para que el usuario decida.
+        $resp = ['found' => false];
+        $stmtComp = $conn->prepare("SELECT id_checklist, fecha FROM checklist
+                                    WHERE id_vehiculo = ? AND estatus = 'completo'
+                                    ORDER BY fecha DESC, id_checklist DESC LIMIT 1");
+        if ($stmtComp) {
+            $idCocheComp = intval($id_coche_borrador);
+            $stmtComp->bind_param("i", $idCocheComp);
+            $stmtComp->execute();
+            if ($rowComp = $stmtComp->get_result()->fetch_assoc()) {
+                $resp['completo'] = [
+                    'id_checklist' => intval($rowComp['id_checklist']),
+                    'fecha'        => $rowComp['fecha']
+                ];
+            }
+            $stmtComp->close();
+        }
+        echo json_encode($resp);
         exit;
     }
 

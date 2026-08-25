@@ -120,29 +120,32 @@ if ($accion == 'tomaKm'){
     // Subconsultas escalares independientes: SIEMPRE devuelve 1 fila (con NULL donde
     // no haya datos). Antes usaba INNER JOIN actividad_vehiculo + carga_gasolina, que
     // devolvía 0 filas (y error) si el vehículo aún no tenía actividad NI cargas.
-    //   kmMax           = último odómetro registrado en actividad
     //   gasolina_actual = nivel de gasolina de la última actividad
     //   saldo           = saldo de la última carga de gasolina (si hay)
-    $sql = "SELECT
-                (SELECT av.km_actual FROM actividad_vehiculo av
-                 WHERE av.id_vehiculo = $IDvehiculoAsignado
-                 ORDER BY av.km_actual DESC LIMIT 1) AS kmMax,
-                (SELECT av.gasolina_actual FROM actividad_vehiculo av
-                 WHERE av.id_vehiculo = $IDvehiculoAsignado
-                 ORDER BY av.id_actividad DESC LIMIT 1) AS gasolina_actual,
-                (SELECT cg.saldo FROM carga_gasolina cg
-                 WHERE cg.id_vehiculo = $IDvehiculoAsignado
-                 ORDER BY cg.id DESC LIMIT 1) AS saldo";
+    $stmt = $conn->prepare(
+        "SELECT
+            (SELECT av.gasolina_actual FROM actividad_vehiculo av
+             WHERE av.id_vehiculo = ?
+             ORDER BY av.id_actividad DESC LIMIT 1) AS gasolina_actual,
+            (SELECT cg.saldo FROM carga_gasolina cg
+             WHERE cg.id_vehiculo = ?
+             ORDER BY cg.id DESC LIMIT 1) AS saldo"
+    );
+    $stmt->bind_param("ii", $IDvehiculoAsignado, $IDvehiculoAsignado);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: ['gasolina_actual' => null, 'saldo' => null];
+    $stmt->close();
 
-    $result = $conn->query($sql);
+    // kmMax sale del helper compartido (includes/api_bootstrap.php), que mira las TRES
+    // fuentes de odómetro y devuelve la lectura más reciente. Antes esta consulta solo
+    // veía actividad_vehiculo y con MAX(): los vehículos que solo tienen cargas de
+    // gasolina salían vacíos, y el veh 4 mostraba un check-in de 2025 en vez de la
+    // carga de 2026. Se envía como '' cuando no hay lecturas, para que el input quede
+    // en blanco (captura manual) y no con un 0.
+    $ultimoKM = obtenerUltimoKM($conn, $IDvehiculoAsignado);
+    $row['kmMax'] = $ultimoKM > 0 ? $ultimoKM : null;
 
-    $vehiculos = [];
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $vehiculos[] = $row;
-        }
-    }
-    echo json_encode($vehiculos);
+    echo json_encode([$row]);
     exit;
 }
 

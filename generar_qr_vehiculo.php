@@ -105,6 +105,10 @@ $esProduccion = stripos($_SERVER['HTTP_HOST'] ?? '', 'messbook.com.mx') !== fals
                                                 <input type="checkbox" id="chkTodos" title="Seleccionar todos">
                                             </th>
                                             <th>Placa</th>
+                                            <!-- Usuario va justo después de la placa: al
+                                                 generar etiquetas lo que se busca es de
+                                                 quién es el auto, no su color. -->
+                                            <th>Usuario</th>
                                             <th>Modelo</th>
                                             <th>Marca</th>
                                             <th>Color</th>
@@ -168,7 +172,10 @@ $esProduccion = stripos($_SERVER['HTTP_HOST'] ?? '', 'messbook.com.mx') !== fals
                 info: true,
                 autoWidth: false,
                 order: [[1, 'asc']],
-                columnDefs: [{ orderable: false, targets: [0, 6] }],
+                // targets 0 y 7: el checkbox y Acciones. El 7 era 6 antes de insertar la
+                // columna Usuario; al mover una columna hay que recorrer estos índices o
+                // se vuelve ordenable la columna de botones.
+                columnDefs: [{ orderable: false, targets: [0, 7] }],
                 language: {
                     decimal: ",",
                     thousands: ".",
@@ -242,9 +249,15 @@ $esProduccion = stripos($_SERVER['HTTP_HOST'] ?? '', 'messbook.com.mx') !== fals
                         var acciones = '<div class="d-flex justify-content-center">'
                             + '<button class="btn btn-outline-success btn-sm btn-agregar" data-id="' + v.id + '" title="Agregar al lote">'
                             + '<i class="fas fa-plus me-1"></i> Agregar</button></div>';
+                        // El orden tiene que ir a la par del <thead>: aquí no hay nada que
+                        // ate el dato a su encabezado.
+                        // Se prefiere 'asignado' (viene del JOIN a usuarios) y se cae a
+                        // 'usuario' (el texto guardado en inventario) cuando el JOIN no
+                        // resolvió, que pasa con los id_usuario huérfanos.
                         tabla.row.add([
                             chk,
                             escapeHtml(v.placa),
+                            escapeHtml(v.asignado || v.usuario || 'S/A'),
                             escapeHtml(v.modelo),
                             escapeHtml(v.marca),
                             escapeHtml(v.color),

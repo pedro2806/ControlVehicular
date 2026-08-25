@@ -289,20 +289,14 @@ function obtenerPlacaVehiculo($conn, $id_vehiculo) {
 }
 
 // Ultimo KM registrado para el vehiculo (cualquier usuario).
-// Combina kilometrajes y actividad_vehiculo para no perder lecturas que
-// hayan quedado solo en una de las tablas.
+//
+// Delega en el helper compartido de includes/api_bootstrap.php. Antes esta función
+// tenía su propia consulta, que miraba solo kilometrajes + actividad_vehiculo (le
+// faltaba carga_gasolina) y tomaba MAX(km) en vez de la lectura más reciente: un
+// dedazo alto dejaba el vehículo bloqueado para siempre en las validaciones de abajo.
+// Se conserva el nombre para no tocar las cuatro llamadas de este archivo.
 function obtenerUltimoKMVehiculo(mysqli $conn, int $id_vehiculo): int {
-    $sql = "SELECT MAX(km) AS ultimo FROM (
-                SELECT km FROM kilometrajes WHERE id_vehiculo = ? AND km > 0
-                UNION ALL
-                SELECT km_actual AS km FROM actividad_vehiculo WHERE id_vehiculo = ? AND km_actual > 0
-            ) t";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ii", $id_vehiculo, $id_vehiculo);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    return intval($row['ultimo'] ?? 0);
+    return obtenerUltimoKM($conn, $id_vehiculo);
 }
 
 // Endpoint: ultimo KM registrado para el vehiculo

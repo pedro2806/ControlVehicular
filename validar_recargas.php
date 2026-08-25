@@ -75,6 +75,23 @@ if (!$tieneAcceso) {
 
     <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
 
+    <!-- Detalle de una solicitud: las cargas de gasolina que consumieron el crédito,
+         desde la renovación aprobada anterior hasta esta solicitud. Se llena por AJAX
+         al abrirlo, no al pintar las tarjetas. -->
+    <div class="modal fade" id="modalDetalles" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title mb-0">Cargas de este vehículo</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="detallesCuerpo">
+                    <div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
     var solicitudes = [], puedeResolver = false, estatusActivo = 'PENDIENTE';
 
@@ -118,6 +135,13 @@ if (!$tieneAcceso) {
                     + '<i class="fas fa-xmark me-1"></i>Rechazar</button>'
                     + '</div>';
             }
+            // El detalle se ofrece para TODAS las solicitudes, no solo las pendientes:
+            // sobre una ya resuelta también sirve para revisar en qué se fue el crédito.
+            acciones +=
+                '<div class="d-grid mt-2">'
+                + '<button class="btn btn-outline-secondary btn-sm btn-detalles" data-id="' + s.id + '">'
+                + '<i class="fas fa-list-ul me-1"></i>Ver detalles</button>'
+                + '</div>';
 
             var resuelta = '';
             if (s.estatus !== 'PENDIENTE') {
@@ -137,6 +161,8 @@ if (!$tieneAcceso) {
                 + '   ' + badgeEstatus(s.estatus)
                 + '  </div>'
                 + '  <table class="table table-sm mb-0 small">'
+                + '   <tr><td class="text-muted">Tarjeta</td><td class="text-end fw-semibold">'
+                +      (s.efecticard ? esc(s.efecticard) : '<span class="text-muted fw-normal">Sin tarjeta registrada</span>') + '</td></tr>'
                 + '   <tr><td class="text-muted">Solicitó</td><td class="text-end fw-semibold">' + esc(s.solicitante || 'S/R') + '</td></tr>'
                 + '   <tr><td class="text-muted">Fecha</td><td class="text-end">' + fmtFecha(s.fecha) + '</td></tr>'
                 + '   <tr><td class="text-muted">Saldo al solicitar</td><td class="text-end fw-semibold">$' + Number(s.saldo_solicitud || 0).toLocaleString('es-MX', {minimumFractionDigits: 2}) + '</td></tr>'
@@ -148,6 +174,98 @@ if (!$tieneAcceso) {
                 + '</div>'
             );
         });
+    }
+
+    function money(v) {
+        return '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function pintarDetalles(d) {
+        var s = d.solicitud || {};
+        var vehiculo = [s.marca, s.modelo].filter(Boolean).join(' ');
+
+        // Placa, modelo y tarjeta van en el CUERPO y no en el encabezado azul del modal:
+        // ahí el texto secundario quedaba gris sobre azul y casi no se leía. Aquí van en
+        // el color de texto normal, que además se adapta al tema oscuro.
+        var identificacion =
+            '<div class="mb-3">'
+            + '<div class="h5 fw-bold mb-0">' + esc(s.placa || 'S/P') + '</div>'
+            + '<div>' + esc(vehiculo)
+            +   ' · ' + (s.efecticard
+                    ? 'Tarjeta ' + esc(s.efecticard)
+                    : '<span class="text-muted">Sin tarjeta registrada</span>')
+            + '</div>'
+            + '</div>';
+
+        // Se dice de dónde a dónde va la ventana: sin eso el usuario no sabe si está
+        // viendo todo el historial del vehículo o solo el tramo del crédito.
+        var rango = d.desde
+            ? 'Desde la renovación del <b>' + fmtFecha(d.desde) + '</b> hasta esta solicitud del <b>' + fmtFecha(d.hasta) + '</b>.'
+            : 'Es el primer crédito registrado del vehículo: se muestran todas las cargas hasta el <b>' + fmtFecha(d.hasta) + '</b>.';
+
+        var cargas = Array.isArray(d.cargas) ? d.cargas : [];
+
+        if (!cargas.length) {
+            $('#detallesCuerpo').html(
+                identificacion
+                + '<p class="small text-muted">' + rango + '</p>'
+                + '<div class="text-center text-muted py-4">'
+                + '<i class="fas fa-gas-pump fa-2x mb-2 d-block"></i>'
+                + 'No se registraron cargas en este periodo.</div>');
+            return;
+        }
+
+        var filas = '';
+        cargas.forEach(function (c) {
+            // Se muestra 'pagos' (lo gastado) y no 'monto': monto es el saldo previo a la
+            // carga, o sea el saldo de la fila anterior repetido. Así la columna suma
+            // exactamente el "Total gastado" de arriba y el usuario puede comprobarlo.
+            //
+            // OJO: el orden de estos <td> tiene que ir a la par del <thead> de abajo,
+            // incluidas las clases d-none/d-sm-table-cell de cada columna. Como aquí no
+            // hay nada que ate el dato a su encabezado, mover una columna en un solo
+            // lado deja los valores debajo del título equivocado.
+            // Orden: Registro | Km | Recorridos | Gastado | Saldo | Carga
+            filas +=
+                '<tr>'
+                + '<td class="small text-nowrap">' + fmtFecha(c.fecha_registro) + '</td>'
+                + '<td class="text-end small text-nowrap d-none d-sm-table-cell">'
+                +   (c.km_actual ? Number(c.km_actual).toLocaleString('es-MX') + ' km' : '') + '</td>'
+                // null en la primera carga del vehículo: no hay lectura anterior contra
+                // la cual medir, y un 0 se leería como "no se movió".
+                + '<td class="text-end small text-nowrap d-none d-sm-table-cell">'
+                +   (c.km_recorridos !== null && c.km_recorridos !== undefined
+                        ? Number(c.km_recorridos).toLocaleString('es-MX') + ' km'
+                        : '<span class="text-muted">—</span>') + '</td>'
+                + '<td class="text-end small text-nowrap">' + money(c.pagos) + '</td>'
+                + '<td class="text-end small text-nowrap">' + money(c.saldo) + '</td>'
+                + '<td class="small text-nowrap d-none d-sm-table-cell">' + fmtFecha(c.fecha_carga) + '</td>'
+                + '</tr>';
+        });
+
+        $('#detallesCuerpo').html(
+            identificacion
+            + '<p class="small text-muted">' + rango + '</p>'
+            + '<div class="d-flex flex-wrap gap-3 mb-3">'
+            +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Cargas</div>'
+            +     '<div class="fw-bold">' + cargas.length + '</div></div>'
+            +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Total gastado</div>'
+            +     '<div class="fw-bold">' + money(d.total_gastado) + '</div></div>'
+            +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Saldo al solicitar</div>'
+            +     '<div class="fw-bold">' + money(s.saldo_solicitud) + '</div></div>'
+            + '</div>'
+            + '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">'
+            // Encabezados centrados; las celdas conservan su alineación (cifras a la
+            // derecha, fechas a la izquierda), que es lo que hace comparables las columnas.
+            +   '<thead class="table-light"><tr>'
+            +     '<th class="text-center">Registro</th>'
+            +     '<th class="text-center d-none d-sm-table-cell">Km</th>'
+            +     '<th class="text-center d-none d-sm-table-cell">Recorridos</th>'
+            +     '<th class="text-center">Gastado</th>'
+            +     '<th class="text-center">Saldo</th>'
+            +     '<th class="text-center d-none d-sm-table-cell">Carga</th>'
+            +   '</tr></thead><tbody>' + filas + '</tbody></table></div>'
+        );
     }
 
     function contar() {
@@ -186,6 +304,29 @@ if (!$tieneAcceso) {
             $(this).addClass('active');
             estatusActivo = $(this).data('estatus');
             pintar();
+        });
+
+        // Delegado: las tarjetas se vuelven a pintar al cambiar de pestaña y al resolver.
+        $(document).on('click', '.btn-detalles', function () {
+            var id = $(this).data('id');
+            // El título del modal es fijo; la identificación del vehículo la pinta
+            // pintarDetalles() dentro del cuerpo, así que basta con limpiar el cuerpo.
+            $('#detallesCuerpo').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalles')).show();
+
+            $.ajax({
+                url: 'acciones_gas.php', method: 'POST', dataType: 'json',
+                data: { accion: 'historialCargasSolicitud', id_solicitud: id }
+            }).done(function (resp) {
+                if (!resp || resp.status !== 'success') {
+                    $('#detallesCuerpo').html('<div class="alert alert-danger mb-0">'
+                        + esc((resp && resp.message) ? resp.message : 'No se pudo cargar el detalle.') + '</div>');
+                    return;
+                }
+                pintarDetalles(resp);
+            }).fail(function () {
+                $('#detallesCuerpo').html('<div class="alert alert-danger mb-0">No se pudo cargar el detalle.</div>');
+            });
         });
 
         $(document).on('click', '.btn-resolver', function () {

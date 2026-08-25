@@ -46,6 +46,53 @@ function tieneAccesoEspecial($conn, $noEmpleado, $opcion) {
     return accesoEspecial($conn, $noEmpleado, $opcion)['tiene'];
 }
 
+/**
+ * Última lectura de odómetro del vehículo, mirando TODAS las fuentes.
+ *
+ * El kilometraje se captura en tres lados distintos y antes cada consumidor miraba un
+ * subconjunto diferente: el modal de gasolina solo veía actividad_vehiculo, el del QR
+ * veía kilometrajes + actividad_vehiculo, y el de gas solo carga_gasolina. Resultado:
+ * el mismo vehículo mostraba kilometrajes distintos según por dónde entraras, y en los
+ * vehículos que solo tienen cargas de gasolina el campo salía vacío.
+ *
+ * Devuelve la lectura MÁS RECIENTE, no la mayor. Con MAX un dedazo de captura (hay un
+ * 1681614 entre lecturas de ~169000) se quedaba pegado para siempre y además bloqueaba
+ * la validación de "el km no puede ser menor al último".
+ *
+ * kilometrajes hoy está vacía; se incluye para el día que se empiece a poblar.
+ *
+ * @return int 0 si el vehículo no tiene ninguna lectura.
+ */
+function obtenerUltimoKM($conn, $id_vehiculo) {
+    $id = intval($id_vehiculo);
+    if ($id <= 0) return 0;
+
+    // fecha_carga y no fecha_registro para carga_gasolina: la captura en lote deja
+    // varias cargas registradas el mismo minuto, y la fecha de carga es cuándo se leyó
+    // de verdad el odómetro.
+    $stmt = $conn->prepare(
+        "SELECT km FROM (
+             SELECT km_actual AS km, fecha_actividad AS f
+               FROM actividad_vehiculo WHERE id_vehiculo = ? AND km_actual > 0
+             UNION ALL
+             SELECT km_actual AS km, fecha_carga AS f
+               FROM carga_gasolina    WHERE id_vehiculo = ? AND km_actual > 0
+             UNION ALL
+             SELECT km AS km, fecha AS f
+               FROM kilometrajes      WHERE id_vehiculo = ? AND km > 0
+         ) t
+         ORDER BY t.f DESC, t.km DESC
+         LIMIT 1"
+    );
+    if (!$stmt) { error_log("obtenerUltimoKM: prepare falló - " . $conn->error); return 0; }
+    $stmt->bind_param("iii", $id, $id, $id);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return intval($row['km'] ?? 0);
+}
+
 $tieneVehiculo = false;
 if (!empty($_COOKIE['noEmpleadoL'])) {
     $connCV = new mysqli("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");

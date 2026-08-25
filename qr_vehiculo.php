@@ -259,6 +259,10 @@ if (empty($_COOKIE['noEmpleado'])) {
         var vehiculoQR = { id: 0, placa: '', modelo: '' };
         var checkinEstado = { tieneCheckinActivo: false };
         var ultimoKMVehiculo = 0;
+        // Coordenadas de la anomalía que se está capturando. Se llena al ABRIR el modal
+        // (shown.bs.modal) para que el GPS resuelva mientras el usuario escribe, y se
+        // limpia al cerrarlo para no heredarla al siguiente reporte.
+        var coordsAnomalia = '';
 
         $(document).ready(function () {
             if ($(window).width() < 768) {
@@ -385,12 +389,41 @@ if (empty($_COOKIE['noEmpleado'])) {
                 tick();
             })();
 
+            // La ubicación se pide al ABRIR el modal, no al guardar.
+            //
+            // Antes se pedía justo al presionar "Registrar", que es el peor momento: el
+            // usuario ya terminó y solo espera, y el envío quedaba detenido hasta que el
+            // GPS contestara o se agotaran 8 segundos. El resultado eran reportes lentos
+            // y, aun así, más de la mitad guardados sin coordenadas.
+            //
+            // Pidiéndola aquí, el GPS resuelve mientras se escribe la descripción y se
+            // adjunta la foto: al guardar la coordenada normalmente ya está lista.
+            document.getElementById('modalAnomalia').addEventListener('shown.bs.modal', function () {
+                coordsAnomalia = '';
+                if (!navigator.geolocation) return;
+                navigator.geolocation.getCurrentPosition(
+                    function (pos) {
+                        coordsAnomalia = pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+                    },
+                    function (err) {
+                        console.warn('Anomalía sin coordenadas:', err && err.message);
+                    },
+                    // Sin alta precisión: para ubicar una anomalía sobra la precisión de
+                    // calle, y forzar GPS fino es lo que tardaba. maximumAge alto para
+                    // reaprovechar el fix que obtenerCoordenadas() de encabezado.php ya
+                    // consiguió al cargar la página.
+                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+                );
+            });
+
             // Reset del modal al cerrarse (dismiss sin enviar)
             document.getElementById('modalAnomalia').addEventListener('hidden.bs.modal', function () {
                 $('#fotoPreviewImg').hide().attr('src', '');
                 $('#fotoPlaceholder').show();
                 $('#anomaliaDescripcion').val('');
                 $('#anomaliaFoto').val('');
+                // Se limpia para que la siguiente anomalía no herede la ubicación de esta.
+                coordsAnomalia = '';
             });
         });
 
@@ -581,33 +614,17 @@ if (empty($_COOKIE['noEmpleado'])) {
 
             $('#btnGuardarAnomalia').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
 
-            // La ubicación se intenta obtener pero NO es obligatoria: si el GPS falla o
-            // tarda, la anomalía se registra igual sin coordenadas. A diferencia del
-            // check-in, aquí bloquear al usuario no aporta nada.
-            function obtenerCoordsOpcional() {
-                return new Promise(function (resolve) {
-                    if (!navigator.geolocation) { resolve(''); return; }
-                    navigator.geolocation.getCurrentPosition(
-                        function (pos) {
-                            resolve(pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6));
-                        },
-                        function (err) {
-                            console.warn('Anomalía sin coordenadas:', err && err.message);
-                            resolve('');
-                        },
-                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-                    );
-                });
-            }
-
-            Promise.all([comprimirImagen(foto), obtenerCoordsOpcional()]).then(function (res) {
-            var fotoComprimida = res[0];
+            // Aquí ya NO se espera al GPS: la coordenada se pidió al abrir el modal
+            // (shown.bs.modal) y para este momento normalmente ya está en coordsAnomalia.
+            // Si no llegó, se manda vacía: la ubicación NO es obligatoria y reportar la
+            // anomalía importa más que ubicarla.
+            comprimirImagen(foto).then(function (fotoComprimida) {
             var formData = new FormData();
             formData.append('accion', 'registrarAnomalia');
             formData.append('id_vehiculo', idVehiculo);
             formData.append('descripcion', descripcion);
             formData.append('foto', fotoComprimida, 'foto.jpg');
-            formData.append('coordenadas', res[1] || '');
+            formData.append('coordenadas', coordsAnomalia || '');
 
             $.ajax({
                 url: 'acciones_anomalias.php',

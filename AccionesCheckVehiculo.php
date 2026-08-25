@@ -14,29 +14,49 @@ if ($opcion == "llenaTVehiculosAsignados") {
         $tieneAccesoTotal = $stmtAcc->get_result()->num_rows > 0;
     }
 
+    // El JOIN a usuarios empareja con la fila de MAYOR id y no con id_usuario a secas:
+    // usuarios.id_usuario NO es único (hay ids repetidos), así que un LEFT JOIN directo
+    // puede DUPLICAR vehículos en la lista. Hoy no duplica con los datos actuales, pero
+    // basta con que un vehículo apunte a un id_usuario repetido para que aparezca dos
+    // veces en la tabla del QR.
+    $joinUsuario = "LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = i.id_usuario)";
+    $campos = "i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio,
+               i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca,
+               u.nombre as asignado, '' as tipo, '' as referencia";
+
     if ($tieneAccesoTotal) {
-    $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, c.estatus as estatusChecklist
-        FROM inventario i
-        LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
-        LEFT JOIN checklist c ON c.id_checklist = (
-            SELECT id_checklist FROM checklist
-            WHERE id_vehiculo = i.id_vehiculo
-            ORDER BY fecha DESC, id_checklist DESC
-            LIMIT 1
-        )
-        WHERE i.estatus = 'Activo'";
-    } else {
-        $sql = "SELECT i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio, i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca, u.nombre as asignado, '' as tipo, '' as referencia, '' as estatusChecklist
+        $sql = "SELECT $campos, c.estatus as estatusChecklist
                 FROM inventario i
-                LEFT JOIN usuarios u ON i.id_usuario = u.id_usuario
-                WHERE i.id_usuario = '$id_usuario' OR i.id_us_asignado = '$id_usuario'";
+                $joinUsuario
+                LEFT JOIN checklist c ON c.id_checklist = (
+                    SELECT id_checklist FROM checklist
+                    WHERE id_vehiculo = i.id_vehiculo
+                    ORDER BY fecha DESC, id_checklist DESC
+                    LIMIT 1
+                )
+                WHERE i.estatus = 'Activo'";
+        $stmtLista = $conn->prepare($sql);
+    } else {
+        // Sentencia preparada: antes el id_usuario de la cookie se concatenaba entre
+        // comillas directo al SQL. Esa cookie la escribe el cliente, así que era una
+        // inyección — la misma que ya se cerró en acciones_siniestro.php.
+        $sql = "SELECT $campos, '' as estatusChecklist
+                FROM inventario i
+                $joinUsuario
+                WHERE i.id_usuario = ? OR i.id_us_asignado = ?";
+        $stmtLista = $conn->prepare($sql);
+        if ($stmtLista) {
+            $idUsr = intval($id_usuario);
+            $stmtLista->bind_param("ii", $idUsr, $idUsr);
+        }
     }
 
-    $res2 = mysqli_query($conn, $sql);
-    if (!$res2) { die(json_encode(array("error" => mysqli_error($conn)))); }
+    if (!$stmtLista) { die(json_encode(array("error" => $conn->error))); }
+    $stmtLista->execute();
+    $res2 = $stmtLista->get_result();
 
     $registros = array();
-    while ($row2 = mysqli_fetch_assoc($res2)) {
+    while ($row2 = $res2->fetch_assoc()) {
         $registros[] = array(
             'id' => $row2["id_vehiculo"],
             'idCoche' => $row2["id_vehiculo"],

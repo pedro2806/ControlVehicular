@@ -104,8 +104,10 @@ if ($accion == "consultarPrestamos") {
             (SELECT MAX(fecha_actividad) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo AND tipo_actividad = 'FINALIZACION') AS fecha_fin_prestamo,"
             : "prest.fecha_inc_prestamo, prest.fecha_fin_prestamo,";
 
-        $camposExtra = $esPendiente ? "" : ", prest.notas_jefe, prest.id_usuario, prest.fecha_entrega,
-                        (SELECT MAX(km_actual) FROM actividad_vehiculo WHERE id_vehiculo = prest.id_vehiculo) AS km";
+        // El km ya no sale de la consulta: se resuelve después con obtenerUltimoKM(), que
+        // mira las tres fuentes de odómetro. MySQL no admite una tabla derivada
+        // correlacionada dentro del SELECT, así que no se puede hacer aquí en SQL.
+        $camposExtra = $esPendiente ? "" : ", prest.notas_jefe, prest.id_usuario, prest.fecha_entrega";
 
         $propiedadCol = ($esJefe || $verTodosPrestamos)
             ? ", CASE WHEN inv.id_usuario = $id_usuario THEN 'mio' ELSE 'otro' END AS propiedad_vehiculo"
@@ -135,6 +137,23 @@ if ($accion == "consultarPrestamos") {
         $result = $conn->query($sqlConsulta);
         $prestamos = [];
         if ($result) { while ($row = $result->fetch_assoc()) { $prestamos[] = $row; } }
+
+        // Km por vehículo, con el helper compartido. Antes era un MAX(km_actual) sobre
+        // actividad_vehiculo dentro de la consulta: ignoraba las cargas de gasolina y un
+        // dedazo alto se quedaba pegado. Se cachea por vehículo porque un mismo auto
+        // puede aparecer en varios préstamos de la lista.
+        if (!$esPendiente) {
+            $kmPorVehiculo = [];
+            foreach ($prestamos as &$p) {
+                $idv = intval($p['id_vehiculo'] ?? 0);
+                if (!array_key_exists($idv, $kmPorVehiculo)) {
+                    $kmPorVehiculo[$idv] = obtenerUltimoKM($conn, $idv);
+                }
+                $p['km'] = $kmPorVehiculo[$idv] ?: null;
+            }
+            unset($p);
+        }
+
         echo json_encode($prestamos);
 }
 

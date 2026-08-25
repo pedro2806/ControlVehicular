@@ -289,7 +289,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $stmt->close();
         $nombre_sol = $row_u ? $row_u['nombre'] : 'Empleado #' . $noEmp;
 
-        $stmt2 = $conn->prepare("SELECT placa, modelo, marca FROM inventario WHERE id_vehiculo = ?");
+        $stmt2 = $conn->prepare("SELECT placa, modelo, marca, efecticard FROM inventario WHERE id_vehiculo = ?");
         $stmt2->bind_param("i", $id_vehiculo_req);
         $stmt2->execute();
         $row_v = $stmt2->get_result()->fetch_assoc();
@@ -297,6 +297,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $vehiculo_info = $row_v
             ? $row_v['placa'] . ' - ' . $row_v['modelo'] . ' ' . $row_v['marca']
             : 'Vehículo #' . $id_vehiculo_req;
+        // Número de tarjeta Efecticard: es el dato con el que cuentas de gastos
+        // identifica la tarjeta a reponer. No todos los vehículos lo tienen cargado,
+        // así que se avisa explícitamente en lugar de mandar una celda vacía.
+        $tarjeta_txt = ($row_v && !empty($row_v['efecticard']))
+            ? htmlspecialchars((string) $row_v['efecticard'])
+            : '<span style="color:#999">Sin tarjeta registrada</span>';
 
         // Km recorridos con el crédito que se está agotando. El ciclo arranca en la carga
         // donde el monto vuelve al crédito completo (4000, ver verPlaca en
@@ -306,21 +312,23 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // Se toma la ÚLTIMA lectura por fecha, no MAX(km_actual): hay dedazos en la
         // captura (por ejemplo un 1681614 entre lecturas de ~169000) y con MAX salía un
         // recorrido de más de un millón de kilómetros.
+        //
+        // km_ultimo sale del helper compartido, que además de carga_gasolina mira los
+        // check-ins: si el vehículo se usó después de la última carga, ese kilometraje es
+        // el bueno. km_inicio sí es propio de carga_gasolina, porque el ciclo se define
+        // por la carga en la que el monto vuelve al crédito completo.
         $stmtKm = $conn->prepare(
-            "SELECT
-                (SELECT km_actual FROM carga_gasolina
-                   WHERE id_vehiculo = ? ORDER BY fecha_carga DESC, id DESC LIMIT 1) AS km_ultimo,
-                (SELECT km_actual FROM carga_gasolina
-                   WHERE id_vehiculo = ? AND monto >= 4000
-                   ORDER BY fecha_carga DESC, id DESC LIMIT 1) AS km_inicio"
+            "SELECT km_actual FROM carga_gasolina
+              WHERE id_vehiculo = ? AND monto >= 4000
+              ORDER BY fecha_carga DESC, id DESC LIMIT 1"
         );
-        $stmtKm->bind_param("ii", $id_vehiculo_req, $id_vehiculo_req);
+        $stmtKm->bind_param("i", $id_vehiculo_req);
         $stmtKm->execute();
         $rowKm = $stmtKm->get_result()->fetch_assoc();
         $stmtKm->close();
 
-        $kmUltimo = isset($rowKm['km_ultimo']) ? intval($rowKm['km_ultimo']) : 0;
-        $kmInicio = isset($rowKm['km_inicio']) ? intval($rowKm['km_inicio']) : 0;
+        $kmUltimo = obtenerUltimoKM($conn, $id_vehiculo_req);
+        $kmInicio = isset($rowKm['km_actual']) ? intval($rowKm['km_actual']) : 0;
 
         // Tope de coherencia: un crédito de $4,000 rinde del orden de 1,500 km. Un
         // resultado muy por encima solo puede venir de una lectura mal capturada, y es
@@ -345,7 +353,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
 
         $destinatariosGas = isset($destinatariosGasPrueba) && $destinatariosGasPrueba
             ? $destinatariosGasPrueba
-            : ['cuentasdegastos@mess.com.mx'];
+            : ['sebastian.gutierrez@mess.com.mx'];
 
         $cuerpoGas = '
             <html><body style="font-family:Arial,sans-serif;color:#222">
@@ -362,18 +370,22 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                         <td style="padding:10px;border:1px solid #ccc">' . htmlspecialchars($vehiculo_info) . '</td>
                     </tr>
                     <tr>
+                        <td style="padding:10px;border:1px solid #ccc"><strong>No. de tarjeta Efecticard</strong></td>
+                        <td style="padding:10px;border:1px solid #ccc">' . $tarjeta_txt . '</td>
+                    </tr>
+                    <tr style="background:#f0f4ff">
                         <td style="padding:10px;border:1px solid #ccc"><strong>Saldo actual</strong></td>
                         <td style="padding:10px;border:1px solid #ccc">$' . number_format($saldo_actual, 2) . '</td>
                     </tr>
-                    <tr style="background:#f0f4ff">
+                    <tr>
                         <td style="padding:10px;border:1px solid #ccc"><strong>Km recorridos con este crédito</strong></td>
                         <td style="padding:10px;border:1px solid #ccc">' . $kmRecorridoTxt . '</td>
                     </tr>
-                    <tr>
+                    <tr style="background:#f0f4ff">
                         <td style="padding:10px;border:1px solid #ccc"><strong>Kilometraje actual</strong></td>
                         <td style="padding:10px;border:1px solid #ccc">' . $kmUltimoTxt . '</td>
                     </tr>
-                    <tr style="background:#f0f4ff">
+                    <tr>
                         <td style="padding:10px;border:1px solid #ccc"><strong>Fecha</strong></td>
                         <td style="padding:10px;border:1px solid #ccc">' . date('d/m/Y H:i') . '</td>
                     </tr>
@@ -432,7 +444,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $sql = "SELECT s.id, s.id_vehiculo, s.saldo_solicitud, s.km_actual, s.km_recorrido,
                        s.estatus, s.fecha, DATE(s.fecha) AS fecha_dia,
                        s.fecha_resuelto, s.notas_resolucion,
-                       inv.placa, inv.marca, inv.modelo,
+                       inv.placa, inv.marca, inv.modelo, inv.efecticard,
                        IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS solicitante,
                        ur.nombre AS resolvio
                 FROM solicitudes_gas s
@@ -539,26 +551,152 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
     }
 
     // Verificar si el vehículo tiene checklist completo antes de registrar gas
+    /**
+     * ¿El vehículo tiene su checklist al día para poder cargar gasolina?
+     *
+     * Se evalúa POR VEHÍCULO: el checklist más reciente del vehículo debe estar
+     * 'completo'. Es exactamente la misma regla con la que qr_vehiculo.php pinta su
+     * badge (ver obtenerDatosVehiculo en acciones_qr.php), y esa consistencia es el
+     * punto: antes aquí se filtraba además por el id_usuario que estaba capturando, así
+     * que en un préstamo el que maneja —que no llenó el checklist— veía "Checklist
+     * pendiente" al mismo tiempo que la tarjeta del QR le decía "Completo".
+     */
     if ($accion == 'verificarChecklistGas') {
         $id_vehiculo_chk = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
-        $id_usuario_chk  = $_COOKIE['id_usuario'] ?? $_COOKIE['id_usuarioL'] ?? null;
 
-        if (!$id_vehiculo_chk || !$id_usuario_chk) {
+        if (!$id_vehiculo_chk) {
             echo json_encode(['tiene' => false]);
             exit;
         }
 
         $stmt = $conn->prepare(
-            "SELECT 1 FROM checklist
-             WHERE id_vehiculo = ? AND id_usuario = ? AND estatus = 'completo'
+            "SELECT estatus FROM checklist
+             WHERE id_vehiculo = ?
+             ORDER BY fecha DESC, id_checklist DESC
              LIMIT 1"
         );
-        $stmt->bind_param("ii", $id_vehiculo_chk, $id_usuario_chk);
+        $stmt->bind_param("i", $id_vehiculo_chk);
         $stmt->execute();
-        $tiene = (bool) $stmt->get_result()->fetch_assoc();
+        $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
-        echo json_encode(['tiene' => $tiene]);
+        $tiene = $row && $row['estatus'] === 'completo';
+
+        // Se devuelve también el estatus para que el front pueda decir POR QUÉ está
+        // bloqueado (sin checklist vs. con un borrador a medias) en vez de un genérico.
+        echo json_encode(['tiene' => $tiene, 'estatus' => $row['estatus'] ?? null]);
+        exit;
+    }
+
+    /**
+     * Cargas de gasolina que consumieron el crédito de una solicitud.
+     *
+     * La ventana va desde la ÚLTIMA renovación aprobada anterior a esta solicitud hasta
+     * la fecha de la solicitud misma. Es lo que hay que revisar para decidir: en qué se
+     * gastó el crédito que se está pidiendo reponer. Si no hay una renovación previa
+     * (primer crédito del vehículo), se listan todas las cargas hasta la solicitud.
+     *
+     * La ventana se mide sobre fecha_carga, no sobre fecha_registro: la pregunta es en
+     * qué se gastó el crédito, y eso ocurre el día que se cargó combustible, no el día
+     * que alguien capturó el ticket. Capturar en lote (cuatro cargas de julio y agosto
+     * registradas el mismo minuto) es común, y con fecha_registro esas cargas caían
+     * fuera de su propio crédito.
+     */
+    if ($accion == 'historialCargasSolicitud') {
+        $noEmpHist = $_COOKIE['noEmpleado'] ?? 0;
+        if (!tieneAccesoEspecial($conn, $noEmpHist, 'verSolicitudesGas')) {
+            echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a esta vista.']);
+            exit;
+        }
+
+        $idSolHist = isset($_POST['id_solicitud']) ? intval($_POST['id_solicitud']) : 0;
+        if ($idSolHist <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Solicitud inválida.']);
+            exit;
+        }
+
+        $stmtS = $conn->prepare(
+            "SELECT s.id, s.id_vehiculo, s.fecha, s.saldo_solicitud, s.estatus,
+                    inv.placa, inv.marca, inv.modelo, inv.efecticard
+             FROM solicitudes_gas s
+             LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
+             WHERE s.id = ? LIMIT 1"
+        );
+        $stmtS->bind_param("i", $idSolHist);
+        $stmtS->execute();
+        $sol = $stmtS->get_result()->fetch_assoc();
+        $stmtS->close();
+
+        if (!$sol) {
+            echo json_encode(['status' => 'error', 'message' => 'No se encontró la solicitud.']);
+            exit;
+        }
+
+        // Renovación anterior: la última APROBADA del mismo vehículo antes de esta.
+        $stmtP = $conn->prepare(
+            "SELECT id, fecha, fecha_resuelto FROM solicitudes_gas
+             WHERE id_vehiculo = ? AND estatus = 'APROBADA' AND fecha < ? AND id <> ?
+             ORDER BY fecha DESC, id DESC LIMIT 1"
+        );
+        $stmtP->bind_param("isi", $sol['id_vehiculo'], $sol['fecha'], $sol['id']);
+        $stmtP->execute();
+        $previa = $stmtP->get_result()->fetch_assoc();
+        $stmtP->close();
+
+        // Sin renovación previa se abre la ventana desde el inicio de los tiempos, para
+        // que el primer crédito del vehículo también muestre sus cargas.
+        $desde = $previa ? $previa['fecha'] : '1970-01-01 00:00:00';
+
+        $stmtC = $conn->prepare(
+            "SELECT cg.id, cg.monto, cg.pagos, cg.saldo, cg.km_actual,
+                    cg.fecha_carga, cg.fecha_registro,
+                    -- Km recorridos desde la carga anterior del mismo vehículo. Mismo
+                    -- cálculo que la columna 'Km Consumidos' de obtenerHistorialGas, para
+                    -- que las dos vistas no den cifras distintas. La carga anterior se
+                    -- busca por id y no por fecha: la captura en lote deja varias cargas
+                    -- con la misma fecha_registro y el id es el único orden estable.
+                    -- En la primera carga del vehículo no hay contra qué comparar y queda
+                    -- NULL, que la vista pinta con un guion en vez de un 0 engañoso.
+                    -- Un resultado NEGATIVO también se descarta: significa que el odómetro
+                    -- de alguna de las dos capturas está mal (hay lecturas con un dígito
+                    -- de más, como 1,681,614 km, que darían cifras absurdas). Es el mismo
+                    -- criterio con el que solicitudes_gas.km_recorrido se deja en null.
+                    (SELECT CASE WHEN cg.km_actual - prev.km_actual >= 0
+                                 THEN cg.km_actual - prev.km_actual END
+                     FROM carga_gasolina prev
+                     WHERE prev.id_vehiculo = cg.id_vehiculo AND prev.id < cg.id
+                     ORDER BY prev.id DESC LIMIT 1) AS km_recorridos,
+                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
+             FROM carga_gasolina cg
+             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
+             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+             WHERE cg.id_vehiculo = ? AND cg.fecha_carga > ? AND cg.fecha_carga <= ?
+             ORDER BY cg.fecha_carga DESC, cg.id DESC"
+        );
+        $stmtC->bind_param("iss", $sol['id_vehiculo'], $desde, $sol['fecha']);
+        $stmtC->execute();
+        $resC = $stmtC->get_result();
+        $cargas = [];
+        // Se suma 'pagos', NO 'monto'. En carga_gasolina 'monto' es el saldo que había
+        // ANTES de la carga (el monto de cada fila es el saldo de la anterior, y siempre
+        // se cumple monto - pagos = saldo), así que sumarlo daba una cifra sin sentido:
+        // el acumulado de saldos corrientes, muy por encima de lo realmente gastado.
+        $totalGastado = 0.0;
+        while ($row = $resC->fetch_assoc()) {
+            $cargas[] = $row;
+            $totalGastado += floatval($row['pagos']);
+        }
+        $stmtC->close();
+
+        echo json_encode([
+            'status'       => 'success',
+            'solicitud'    => $sol,
+            'renovacion_previa' => $previa ? ['id' => $previa['id'], 'fecha' => $previa['fecha']] : null,
+            'desde'        => $previa ? $previa['fecha'] : null,
+            'hasta'        => $sol['fecha'],
+            'total_gastado' => $totalGastado,
+            'cargas'       => $cargas
+        ]);
         exit;
     }
 ?>

@@ -84,6 +84,36 @@ if (empty($_COOKIE['noEmpleado'])) {
                     </div>
                 </div>
 
+                <!-- Seguimiento de lo que YO pedí. Antes, quien solicitaba una reposición
+                     no tenía forma de saber en qué quedó: el estado solo existía en la
+                     pantalla de quien autoriza, que casi nadie puede abrir.
+                     La card se oculta cuando el usuario nunca ha solicitado nada. -->
+                <div class="card shadow mb-4" id="cardMisSolicitudes" style="display:none;">
+                    <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 fw-bold text-dark">
+                            <i class="fas fa-clipboard-list me-1"></i> Mis solicitudes de recarga
+                        </h6>
+                        <span class="badge bg-secondary" id="badgeMisSolicitudes"></span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0" id="tablaMisSolicitudes">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">Fecha</th>
+                                        <th class="text-center">Vehículo</th>
+                                        <th class="text-center">Estado</th>
+                                        <th class="text-center d-none d-md-table-cell">Saldo al pedir</th>
+                                        <th class="text-center">Abonado</th>
+                                        <th class="text-center d-none d-lg-table-cell">Resolución</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
             </div><!-- /.container-fluid -->
         </div><!-- /#content -->
 
@@ -162,7 +192,90 @@ $(document).ready(function () {
     cargarSelectVehiculos(preseleccionarVehiculo);
 
     $('#filtroVehiculo').on('change', cargarHistorialVehiculo);
+
+    cargarMisSolicitudes();
 });
+
+/** Badge del estado de una solicitud. Mismos colores que validar_recargas.php. */
+function badgeSolicitud(e) {
+    if (e === 'PENDIENTE') return '<span class="badge bg-warning text-dark">Pendiente</span>';
+    // Parcialidad en azul, no en amarillo: ya recibió dinero, pero sigue abierta.
+    if (e === 'PARCIAL')   return '<span class="badge bg-info text-dark">Parcialidad</span>';
+    if (e === 'APROBADA')  return '<span class="badge bg-success">Aprobada</span>';
+    return '<span class="badge bg-danger">Rechazada</span>';
+}
+
+/**
+ * Solicitudes que hizo el usuario, para que pueda seguirlas sin depender de la pantalla
+ * de autorización (que requiere un acceso especial que casi nadie tiene).
+ */
+function cargarMisSolicitudes() {
+    $.ajax({
+        url: 'acciones_gas.php',
+        method: 'POST',
+        dataType: 'json',
+        data: { accion: 'misSolicitudesGas' },
+        success: function (resp) {
+            if (!resp || resp.status !== 'success' || !Array.isArray(resp.solicitudes)) return;
+
+            var lista = resp.solicitudes;
+            // Sin solicitudes la card no aparece: no tiene caso una tabla vacía en una
+            // pantalla que ya trae otra.
+            if (!lista.length) { $('#cardMisSolicitudes').hide(); return; }
+
+            var credito = Number(resp.credito || 4000);
+            var abiertas = lista.filter(function (s) {
+                return s.estatus === 'PENDIENTE' || s.estatus === 'PARCIAL';
+            }).length;
+
+            $('#badgeMisSolicitudes').text(
+                lista.length + (lista.length === 1 ? ' solicitud' : ' solicitudes')
+                + (abiertas ? ' · ' + abiertas + ' sin cerrar' : '')
+            );
+
+            var $tb = $('#tablaMisSolicitudes tbody').empty();
+            lista.forEach(function (s) {
+                var abonado = Number(s.abonado_acumulado || 0);
+                var falta = Math.max(0, credito - Number(s.saldo_solicitud || 0) - abonado);
+
+                // Solo interesa lo abonado cuando hubo abono; y el "faltan" solo mientras
+                // siga abierta, porque en una cerrada ya no hay nada que esperar.
+                var celdaAbonado = '<span class="text-muted">—</span>';
+                if (abonado > 0) {
+                    celdaAbonado = '$' + abonado.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                    if (s.estatus === 'PARCIAL' && falta > 0) {
+                        celdaAbonado += '<div class="small text-muted">faltan $'
+                            + falta.toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>';
+                    }
+                }
+
+                var resolucion = '<span class="text-muted">—</span>';
+                if (s.fecha_resuelto) {
+                    resolucion = '<div class="small">' + escHtml(s.resolvio || 'S/R') + '</div>'
+                        + '<div class="small text-muted">' + escHtml(s.fecha_resuelto) + '</div>'
+                        + (s.notas_resolucion
+                            ? '<div class="small fst-italic">' + escHtml(s.notas_resolucion) + '</div>'
+                            : '');
+                }
+
+                $tb.append(
+                    '<tr' + (s.estatus === 'PARCIAL' ? ' class="table-info"' : '') + '>'
+                    + '<td class="small text-nowrap">' + escHtml(s.fecha) + '</td>'
+                    + '<td class="small">' + escHtml(s.placa || 'S/P')
+                    +   '<div class="text-muted d-lg-none">' + escHtml([s.marca, s.modelo].filter(Boolean).join(' ')) + '</div></td>'
+                    + '<td class="text-center">' + badgeSolicitud(s.estatus) + '</td>'
+                    + '<td class="text-end small text-nowrap d-none d-md-table-cell">$'
+                    +   Number(s.saldo_solicitud || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>'
+                    + '<td class="text-end small text-nowrap">' + celdaAbonado + '</td>'
+                    + '<td class="small d-none d-lg-table-cell">' + resolucion + '</td>'
+                    + '</tr>'
+                );
+            });
+
+            $('#cardMisSolicitudes').show();
+        }
+    });
+}
 
 // Llena el select con consultarInventario (asignados / todos), como mantenimiento
 function cargarSelectVehiculos(callback) {
@@ -329,6 +442,9 @@ function solicitarReposicion(id_vehiculo, saldo, placa) {
                     timer: 2500,
                     showConfirmButton: false
                 });
+                // Se refresca el seguimiento para que la solicitud recién hecha aparezca
+                // de inmediato; si no, habría que recargar la página para verla.
+                if (resp.status === 'success') cargarMisSolicitudes();
             },
             error: function () {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });
@@ -362,6 +478,9 @@ function solicitarReposicionVehiculo() {
                     timer: 2500,
                     showConfirmButton: false
                 });
+                // Se refresca el seguimiento para que la solicitud recién hecha aparezca
+                // de inmediato; si no, habría que recargar la página para verla.
+                if (resp.status === 'success') cargarMisSolicitudes();
             },
             error: function () {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });

@@ -1,32 +1,10 @@
 <?php
-session_start();
-require_once __DIR__ . '/includes/sesion_cookies.php';
-include 'conn.php';
-if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
-    echo '<script>window.location.assign("index")</script>';
-    exit;
-}
-
-// Guard de la vista. El endpoint valida por su cuenta (acciones_kilometraje.php,
-// accion 'consultarCheckins'); esto solo evita mostrar la página vacía a quien no
-// tiene el acceso.
+// Vista pura: sin conn.php y sin consultas. La sesión la valida menu.php y el permiso
+// (verTodosVehiculo) lo niega acciones_kilometraje.php en la acción 'consultarCheckins';
+// si no lo tiene, el primer AJAX responde con el error y esta pantalla redirige.
 //
-// El permiso es verTodosVehiculo: ver los check-in de toda la flota implica ver toda
-// la flota, así que no se creó un permiso aparte que pudiera darse sin el otro.
-$stmtAcc = $conn->prepare(
-    "SELECT 1 FROM mess_rrhh.accesos_especiales
-     WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verTodosVehiculo' AND estatus = 1
-     LIMIT 1"
-);
-$noEmpVista = intval($_COOKIE['noEmpleado']);
-$stmtAcc->bind_param("i", $noEmpVista);
-$stmtAcc->execute();
-$tieneAcceso = (bool) $stmtAcc->get_result()->fetch_assoc();
-$stmtAcc->close();
-if (!$tieneAcceso) {
-    echo '<script>window.location.assign("inicio")</script>';
-    exit;
-}
+// El permiso es verTodosVehiculo y no uno propio: ver los check-in de toda la flota
+// implica ver toda la flota, así que no tiene sentido uno que pueda darse sin el otro.
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -255,6 +233,15 @@ if (!$tieneAcceso) {
             success: function (resp) {
                 if (!resp || resp.status !== 'success') {
                     $('#tablaCheckins tbody').empty();
+                    // El permiso lo decide el servidor. Si no lo tiene, no se le deja una
+                    // pantalla vacía sin explicación: se avisa y se le manda a inicio.
+                    if (resp && /acceso/i.test(resp.message || '')) {
+                        Swal.fire({
+                            icon: 'warning', title: 'Sin acceso', text: resp.message,
+                            confirmButtonText: 'Entendido'
+                        }).then(function () { window.location.assign('inicio'); });
+                        return;
+                    }
                     Swal.fire({ icon: 'error', title: 'Error', text: (resp && resp.message) ? resp.message : 'No se pudieron cargar los check-ins.' });
                     return;
                 }

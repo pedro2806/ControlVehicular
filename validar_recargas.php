@@ -1,28 +1,7 @@
 <?php
-session_start();
-require_once __DIR__ . '/includes/sesion_cookies.php';
-include 'conn.php';
-if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
-    echo '<script>window.location.assign("index")</script>';
-    exit;
-}
-
-// Guard de la vista. El endpoint valida por su cuenta; esto solo evita mostrar la
-// página a quien no tiene el acceso de consulta.
-$stmtAcc = $conn->prepare(
-    "SELECT 1 FROM mess_rrhh.accesos_especiales
-     WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'verSolicitudesGas' AND estatus = 1
-     LIMIT 1"
-);
-$noEmpVista = intval($_COOKIE['noEmpleado']);
-$stmtAcc->bind_param("i", $noEmpVista);
-$stmtAcc->execute();
-$tieneAcceso = (bool) $stmtAcc->get_result()->fetch_assoc();
-$stmtAcc->close();
-if (!$tieneAcceso) {
-    echo '<script>window.location.assign("inicio")</script>';
-    exit;
-}
+// Vista pura: sin conn.php y sin consultas. La sesión la valida menu.php y el permiso
+// (verSolicitudesGas) lo resuelve acciones_gas.php en cada llamada; si no lo tiene, el
+// primer AJAX responde con el error y esta pantalla redirige.
 ?>
 <!DOCTYPE html>
 <html lang="es">

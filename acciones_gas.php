@@ -649,6 +649,56 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         exit;
     }
 
+    /**
+     * Solicitudes que hizo el usuario logueado, para que pueda seguirlas.
+     *
+     * A diferencia de consultarSolicitudesGas, esta NO pide acceso especial: cualquiera
+     * puede ver lo que él mismo pidió. Antes, quien solicitaba una reposición no tenía
+     * forma de saber si se la habían aprobado, rechazado o abonado a medias — el estado
+     * solo existía en la pantalla de quien autoriza.
+     *
+     * El filtro va contra s.id_usuario, o sea SUS solicitudes, no las de sus vehículos:
+     * un vehículo prestado lo pide quien lo trae, y es esa persona la que da seguimiento.
+     */
+    if ($accion == 'misSolicitudesGas') {
+        $idUsrSol = intval($id_usuario);
+        if ($idUsrSol <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Sesión no válida.']);
+            exit;
+        }
+
+        $stmt = $conn->prepare(
+            "SELECT s.id, s.id_vehiculo, s.saldo_solicitud, s.km_actual, s.km_recorrido,
+                    s.estatus, s.fecha, s.fecha_resuelto, s.notas_resolucion,
+                    inv.placa, inv.marca, inv.modelo, inv.efecticard,
+                    ur.nombre AS resolvio,
+                    (SELECT IFNULL(SUM(ct.monto_abonado), 0)
+                       FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado
+             FROM solicitudes_gas s
+             LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
+             LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
+             WHERE s.id_usuario = ?
+             ORDER BY FIELD(s.estatus,'PENDIENTE','PARCIAL','APROBADA','RECHAZADA'), s.fecha DESC"
+        );
+        if (!$stmt) {
+            echo json_encode(['status' => 'error', 'message' => 'Error al preparar la consulta.']);
+            exit;
+        }
+        $stmt->bind_param("i", $idUsrSol);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $mias = [];
+        while ($row = $res->fetch_assoc()) { $mias[] = $row; }
+        $stmt->close();
+
+        echo json_encode([
+            'status'      => 'success',
+            'credito'     => CREDITO_TARJETA,
+            'solicitudes' => $mias
+        ]);
+        exit;
+    }
+
     /** Aprobar o rechazar una solicitud. Solo con autorizaRecargaGas. */
     if ($accion == 'resolverSolicitudGas') {
         $noEmpRes = $_COOKIE['noEmpleado'] ?? 0;

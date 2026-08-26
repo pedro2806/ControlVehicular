@@ -27,7 +27,10 @@
     // sin el otro, que no tiene sentido.
     $puedeVerCheckins   = !empty($accesos['verTodosVehiculo']);
     $puedeVerRecargas   = !empty($accesos['verSolicitudesGas']);
-    $muestraAdmin       = $puedeVerQR || $puedeCargarReportes;
+    // Alta, edición y baja de vehículos. Permiso propio: ver toda la flota no implica
+    // poder modificarla.
+    $puedeAdminVehiculos = !empty($accesos['administrarVehiculos']);
+    $muestraAdmin       = $puedeVerQR || $puedeCargarReportes || $puedeAdminVehiculos;
 
     // Página activa para resaltar el item del menú
     $paginaActual = basename($_SERVER['PHP_SELF'], '.php');
@@ -112,6 +115,15 @@
         <a class="nav-link py-2" href="validar_recargas">
             <i class="fas fa-fw fa-credit-card"></i>
             <span>Recargas de Gas</span>
+        </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if ($puedeAdminVehiculos): ?>
+    <li class="nav-item<?= menuActivo('vehiculos', $paginaActual) ?>">
+        <a class="nav-link py-2" href="vehiculos">
+            <i class="fas fa-fw fa-car"></i>
+            <span>Vehículos</span>
         </a>
     </li>
     <?php endif; ?>

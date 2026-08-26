@@ -25,13 +25,32 @@ if ($opcion == "llenaTVehiculosAsignados") {
                u.nombre as asignado, '' as tipo, '' as referencia";
 
     if ($tieneAccesoTotal) {
+        // El checklist que cuenta es el más reciente QUE TENGA DATOS, no el más reciente
+        // a secas. Una cabecera sin filas de subárea marcaba el vehículo en verde como si
+        // estuviera revisado: pasaba con checklists cuyas secciones se borraron y con
+        // cabeceras creadas a mano. Es el mismo criterio que usa el semáforo del QR
+        // (obtenerValidacionesVehiculo en acciones_qr.php).
+        //
+        // Se arma con un EXISTS por tabla unidos con OR, NO con un UNION: las tablas de
+        // subárea no comparten colación (checklist_graficas difiere) y un UNION entre
+        // ellas revienta con "Illegal mix of collations".
+        $tablasConDatos = [
+            'checklist_asientos', 'checklist_espejos_ventanas', 'checklist_estereos_aire',
+            'checklist_faros', 'checklist_golpes_exterior', 'checklist_graficas',
+            'checklist_limpiaparabrisas', 'checklist_llantas', 'checklist_placas',
+            'checklist_puertas_llave'
+        ];
+        $tieneDatos = implode(' OR ', array_map(function ($t) {
+            return "EXISTS (SELECT 1 FROM $t s WHERE s.id_checklist = ch.id_checklist)";
+        }, $tablasConDatos));
+
         $sql = "SELECT $campos, c.estatus as estatusChecklist
                 FROM inventario i
                 $joinUsuario
                 LEFT JOIN checklist c ON c.id_checklist = (
-                    SELECT id_checklist FROM checklist
-                    WHERE id_vehiculo = i.id_vehiculo
-                    ORDER BY fecha DESC, id_checklist DESC
+                    SELECT ch.id_checklist FROM checklist ch
+                    WHERE ch.id_vehiculo = i.id_vehiculo AND ($tieneDatos)
+                    ORDER BY ch.fecha DESC, ch.id_checklist DESC
                     LIMIT 1
                 )
                 WHERE i.estatus = 'Activo'";

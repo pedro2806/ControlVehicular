@@ -14,15 +14,50 @@
  * NO se usa el criterio viejo de `monto >= 4000`: hay tarjetas que nunca se llenan al tope
  * (en la BD local había ciclos arrancando en 748.77 y 1493.92) y ese criterio las ignora.
  *
- * Uso:  php reportes/backfill_ciclos_tarjeta.php [--dry-run]
+ * Uso por consola:   php reportes/backfill_ciclos_tarjeta.php [--dry-run]
+ * Uso por navegador: /ControlVehicular/reportes/backfill_ciclos_tarjeta.php[?dry-run]
+ *                    (requiere sesion con administrarVehiculos o cargarReportes)
  */
 
 require_once __DIR__ . '/../conn.php';
 mysqli_set_charset($conn, 'utf8mb4');
 
-$dryRun = in_array('--dry-run', $argv ?? [], true);
 $esCli  = (php_sapi_name() === 'cli');
-if (!$esCli) { header('Content-Type: text/plain; charset=utf-8'); }
+// --dry-run por CLI, ?dry-run por navegador: sin esto no se podia previsualizar desde
+// el navegador, que es como se corre en los servidores sin acceso a consola.
+$dryRun = $esCli
+    ? in_array('--dry-run', $argv ?? [], true)
+    : isset($_GET['dry-run']);
+
+if (!$esCli) {
+    header('Content-Type: text/plain; charset=utf-8');
+
+    // Por CLI no se pide nada: llegar ahi ya implica acceso al servidor. Por navegador
+    // SI, porque este script arranca borrando ciclos_tarjeta y sin esto bastaria conocer
+    // la URL para dispararlo desde fuera.
+    require_once __DIR__ . '/../includes/sesion_cookies.php';
+
+    $noEmp = intval($_COOKIE['noEmpleado'] ?? 0);
+    $permitido = false;
+    if ($noEmp > 0) {
+        $st = $conn->prepare(
+            "SELECT 1 FROM mess_rrhh.accesos_especiales
+              WHERE noEmpleado = ? AND sistema = 'ctrlVehicular'
+                AND opcion IN ('administrarVehiculos','cargarReportes') AND estatus = 1
+              LIMIT 1"
+        );
+        if ($st) {
+            $st->bind_param("i", $noEmp);
+            $st->execute();
+            $permitido = (bool) $st->get_result()->fetch_assoc();
+            $st->close();
+        }
+    }
+    if (!$permitido) {
+        http_response_code(403);
+        exit("Sin acceso. Este script solo lo puede correr quien tenga administrarVehiculos o cargarReportes.\n");
+    }
+}
 
 // Verificación previa: sin el esquema no tiene caso seguir.
 if (!$conn->query("SHOW TABLES LIKE 'ciclos_tarjeta'")->num_rows) {
@@ -32,8 +67,41 @@ if (!$conn->query("SHOW COLUMNS FROM carga_gasolina LIKE 'id_ciclo'")->num_rows)
     exit("FALTA la columna carga_gasolina.id_ciclo. Aplica primero el SQL del esquema.\n");
 }
 
+/*
+ * CANDADO: este script borra TODOS los ciclos y los vuelve a deducir de las cargas,
+ * pero solo sabe reconstruir los origenes INICIAL y DETECTADO.
+ *
+ * Un ciclo de origen APROBACION guarda de que solicitud vino y cuanto se abono, y eso
+ * NO esta en carga_gasolina: no hay forma de deducirlo. Volver a correr el backfill con
+ * aprobaciones ya registradas las destruiria, y con ellas el vinculo id_solicitud del
+ * que sale el "abonado / falta" de las parcialidades.
+ *
+ * Por eso es una migracion de UNA SOLA VEZ: se corre al desplegar, antes de que se
+ * apruebe la primera recarga. Despues se niega.
+ */
+$aprobaciones = $conn->query(
+    "SELECT COUNT(*) n FROM ciclos_tarjeta WHERE origen = 'APROBACION'"
+)->fetch_assoc()['n'];
+
+if ($aprobaciones > 0 && !$dryRun) {
+    exit(
+        "DETENIDO: ya hay $aprobaciones ciclo(s) creado(s) por una aprobacion.\n\n" .
+        "Este script los borraria y NO puede reconstruirlos: de que solicitud vinieron y\n" .
+        "cuanto se abono no esta en las cargas de gasolina. Se perderia el seguimiento de\n" .
+        "las parcialidades (cuanto se abono y cuanto falta).\n\n" .
+        "El backfill es para correrse UNA sola vez, al desplegar. Si de verdad necesitas\n" .
+        "reconstruir, respalda primero:\n" .
+        "  CREATE TABLE ciclos_tarjeta_respaldo AS SELECT * FROM ciclos_tarjeta;\n"
+    );
+}
+
 if ($dryRun) {
-    echo "== SIMULACIÓN (--dry-run): no se escribe nada ==\n\n";
+    echo "== SIMULACIÓN (--dry-run): no se escribe nada ==\n";
+    if ($aprobaciones > 0) {
+        echo "\n!! AVISO: hay $aprobaciones ciclo(s) de origen APROBACION.\n" .
+             "   Fuera de simulacion este script se detendria para no borrarlos.\n";
+    }
+    echo "\n";
 } else {
     $conn->query("DELETE FROM ciclos_tarjeta");
     $conn->query("UPDATE carga_gasolina SET id_ciclo = NULL");

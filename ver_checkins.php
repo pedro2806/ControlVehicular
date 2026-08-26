@@ -273,6 +273,17 @@ if (!$tieneAcceso) {
     }
 
     $(document).ready(function () {
+        // Filtros por URL: permite llegar aquí desde otra pantalla ya filtrado.
+        // Lo usa el detalle de una solicitud de recarga para mostrar los check-ins del
+        // vehículo durante ese ciclo de tarjeta.  ver_checkins?v=93&desde=...&hasta=...
+        var params = new URLSearchParams(window.location.search);
+        var vURL = parseInt(params.get('v'), 10) || 0;
+        // Solo se aceptan fechas con formato ISO: lo que llega por URL es dato de fuera y
+        // un valor cualquiera dejaría el input de fecha en blanco sin explicación.
+        var esFecha = function (s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || ''); };
+        if (esFecha(params.get('desde'))) $('#fDesde').val(params.get('desde'));
+        if (esFecha(params.get('hasta'))) $('#fHasta').val(params.get('hasta'));
+
         // Lista de vehículos para el filtro. Se reutiliza la acción que ya existe.
         $.ajax({
             url: 'AccionesCheckVehiculo.php',
@@ -284,10 +295,21 @@ if (!$tieneAcceso) {
                 data.forEach(function (v) {
                     $('#fVehiculo').append('<option value="' + v.id + '">' + esc(v.placa + ' - ' + (v.modelo || '')) + '</option>');
                 });
+                // El vehículo se preselecciona AQUÍ y no antes: el <select> se llena por
+                // AJAX, así que ponerle un valor antes de que existan las opciones no
+                // hace nada. Se recarga para aplicar el filtro.
+                if (vURL) {
+                    if ($('#fVehiculo option[value="' + vURL + '"]').length) {
+                        $('#fVehiculo').val(vURL);
+                    }
+                    cargar();
+                }
             }
         });
 
-        cargar();
+        // Con ?v= la carga la dispara el callback de arriba, ya con el vehículo puesto;
+        // hacerla también aquí solo traería la lista completa para descartarla enseguida.
+        if (!vURL) cargar();
         $('#btnBuscar').on('click', cargar);
         $('#fTexto').on('input', pintar);
 

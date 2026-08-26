@@ -24,7 +24,66 @@ function prepararModalGas() {
         $('#monto, #kmActualGas, #saldo').val('');
     }
     $('#pagos').val('');
+    // Cliente y OT se limpian siempre: son de la carga que se está capturando, no del
+    // vehículo, así que arrastrarlos de una captura a la siguiente sería un error.
+    $('#clienteGas, #idClienteGas, #otGas').val('');
+    $('#listaClientesGas').empty();
 }
+
+/**
+ * Autocompletado de clientes del modal de gasolina.
+ *
+ * Se busca en el servidor porque son 8,376 clientes: mandarlos todos al navegador para
+ * filtrarlos ahí pesaría de más, sobre todo en celular. El <datalist> se repuebla en cada
+ * búsqueda y el id real vive en un hidden, porque un datalist solo devuelve el texto.
+ */
+function buscarClientesGas() {
+    var q = $('#clienteGas').val().trim();
+
+    // El id guardado deja de ser válido en cuanto el texto cambia: si no se limpia, editar
+    // el nombre después de elegir dejaría guardado el cliente anterior.
+    $('#idClienteGas').val('');
+
+    if (q.length < 2) { $('#listaClientesGas').empty(); return; }
+
+    $.ajax({
+        url: 'acciones_gas.php',
+        method: 'POST',
+        dataType: 'json',
+        data: { accion: 'buscarClientes', q: q },
+        success: function (lista) {
+            var $dl = $('#listaClientesGas').empty();
+            if (!Array.isArray(lista)) return;
+            lista.forEach(function (c) {
+                // El value del option es lo que el navegador escribe en el input, así que
+                // debe ser el texto que luego se busca para recuperar el id.
+                var etiqueta = c.CLIENTE + (c.CIUDAD ? ' — ' + c.CIUDAD : '');
+                $dl.append($('<option>').attr('value', etiqueta).attr('data-id', c.IDCLTE));
+            });
+            // Si lo tecleado ya coincide exactamente con una opción (el usuario la eligió
+            // de la lista), se resuelve el id de una vez.
+            resolverIdClienteGas();
+        }
+    });
+}
+
+/** Empareja el texto del input con una opción del datalist para sacar su IDCLTE. */
+function resolverIdClienteGas() {
+    var txt = $('#clienteGas').val().trim();
+    var op = $('#listaClientesGas option').filter(function () { return this.value === txt; }).first();
+    $('#idClienteGas').val(op.length ? op.attr('data-id') : '');
+}
+
+$(function () {
+    var temporizador = null;
+    // Debounce: sin esto se dispara una consulta por tecla contra una tabla de 8,376 filas.
+    $(document).on('input', '#clienteGas', function () {
+        clearTimeout(temporizador);
+        temporizador = setTimeout(buscarClientesGas, 250);
+    });
+    // 'change' en un input con datalist se dispara al elegir de la lista.
+    $(document).on('change', '#clienteGas', resolverIdClienteGas);
+});
 
 /**
  * Impide capturar decimales en el kilometraje.
@@ -136,12 +195,18 @@ function _enviarRegistroGas(id_vehiculo) {
     var saldo       = $('#saldo').val();
     var fecha_carga = $('#fechaCarga').val();
     var km_actual   = $('#kmActualGas').val();
+    // Cliente y OT/OV son opcionales: si el usuario escribió en el campo de cliente pero
+    // no eligió uno de la lista, el hidden queda vacío y se manda sin cliente en vez de
+    // guardar un id inventado.
+    var id_cliente  = $('#idClienteGas').val() || '';
+    var ot          = $('#otGas').val() || '';
 
     $.ajax({
         url: 'acciones_gas.php',
         method: 'POST',
         dataType: 'json',
-        data: { accion: 'registraGas', id_vehiculo: id_vehiculo, monto: monto, pagos: pagos, saldo: saldo, fecha_carga: fecha_carga, km_actual: km_actual },
+        data: { accion: 'registraGas', id_vehiculo: id_vehiculo, monto: monto, pagos: pagos, saldo: saldo,
+                fecha_carga: fecha_carga, km_actual: km_actual, id_cliente: id_cliente, ot: ot },
         success: function (resp) {
             // jQuery entra aquí con cualquier HTTP 200, incluso cuando el servidor
             // respondió {"status":"error"}. Sin esta comprobación el modal se cerraba

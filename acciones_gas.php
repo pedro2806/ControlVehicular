@@ -75,6 +75,159 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         return ['todas' => false, 'ids' => $ids];
     }
 
+    /* =========================== CICLOS DE TARJETA ===========================
+     *
+     * Un ciclo es el periodo de vida de un crédito: desde que se abona dinero a la
+     * tarjeta hasta que se abona el siguiente. Cada abono abre un ciclo nuevo, también
+     * los parciales.
+     *
+     * Antes esto se adivinaba de dos formas, las dos frágiles: el correo de solicitud
+     * buscaba la última carga con `monto >= 4000`, y el detalle de la solicitud tomaba
+     * una ventana de fechas entre solicitudes aprobadas. Ninguna de las dos aguanta una
+     * recarga parcial, y la de los 4000 además ignora las tarjetas que nunca se llenan
+     * (en la BD hay ciclos que arrancan en 748.77 y en 1493.92).
+     *
+     * Recordar que en carga_gasolina `monto` es el saldo ANTES de la carga: por eso un
+     * abono se detecta cuando el monto de una carga supera el saldo que dejó la anterior.
+     */
+
+    /**
+     * Crédito estándar de una tarjeta de gasolina.
+     *
+     * Es el tope al que se repone. Sirve para decidir si una recarga dejó la solicitud
+     * satisfecha o solo a medias. El mismo número está en verPlaca() (js/global/vehiculos.js)
+     * y en el diálogo de aprobación de validar_recargas.php: si cambia, cambiarlo en los tres.
+     */
+    const CREDITO_TARJETA = 4000;
+
+    /**
+     * Lo que se lleva abonado a una solicitud, sumando todas sus recargas.
+     *
+     * Una solicitud puede recibir varios abonos parciales antes de quedar cubierta, y cada
+     * abono abre su propio ciclo, así que el acumulado sale de ahí.
+     */
+    function abonadoDeSolicitud($conn, $idSolicitud) {
+        $stmt = $conn->prepare("SELECT IFNULL(SUM(monto_abonado), 0) AS total
+                                FROM ciclos_tarjeta WHERE id_solicitud = ?");
+        if (!$stmt) return 0.0;
+        $stmt->bind_param("i", $idSolicitud);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return (float) ($row['total'] ?? 0);
+    }
+
+    /** Ciclo abierto del vehículo, o null si no tiene. */
+    function cicloAbiertoTarjeta($conn, $id_vehiculo) {
+        $stmt = $conn->prepare(
+            "SELECT id_ciclo, saldo_inicial, fecha_inicio FROM ciclos_tarjeta
+             WHERE id_vehiculo = ? AND estatus = 'ABIERTO'
+             ORDER BY fecha_inicio DESC, id_ciclo DESC LIMIT 1"
+        );
+        if (!$stmt) return null;
+        $stmt->bind_param("i", $id_vehiculo);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+
+    /**
+     * Cierra el ciclo abierto (si hay) y abre uno nuevo. Devuelve el id del nuevo.
+     *
+     * $origen: 'APROBACION' cuando lo dispara una recarga autorizada, 'DETECTADO' cuando
+     * se dedujo de una carga cuyo monto subió, 'INICIAL' para el primer ciclo.
+     */
+    function abrirCicloTarjeta($conn, $id_vehiculo, $fecha, $saldoInicial, $montoAbonado, $origen, $idSolicitud = null, $idUsuario = null) {
+        $abierto = cicloAbiertoTarjeta($conn, $id_vehiculo);
+        if ($abierto) {
+            $cerrar = $conn->prepare("UPDATE ciclos_tarjeta SET fecha_fin = ?, estatus = 'CERRADO' WHERE id_ciclo = ?");
+            $cerrar->bind_param("si", $fecha, $abierto['id_ciclo']);
+            $cerrar->execute();
+            $cerrar->close();
+        }
+
+        $stmt = $conn->prepare(
+            "INSERT INTO ciclos_tarjeta
+                (id_vehiculo, fecha_inicio, saldo_inicial, monto_abonado, id_solicitud, id_usuario, origen, estatus)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'ABIERTO')"
+        );
+        if (!$stmt) return 0;
+        $stmt->bind_param("isddiis", $id_vehiculo, $fecha, $saldoInicial, $montoAbonado, $idSolicitud, $idUsuario, $origen);
+        $stmt->execute();
+        $id = $conn->insert_id;
+        $stmt->close();
+        return intval($id);
+    }
+
+    /**
+     * Ciclo al que pertenece una carga que se está registrando.
+     *
+     * Red de seguridad: si el monto capturado es mayor al saldo con el que venía el ciclo
+     * abierto, hubo un abono que nadie registró (una recarga hecha fuera del sistema), así
+     * que se abre un ciclo DETECTADO. Sin esto, las cargas posteriores a una recarga
+     * manual se irían a engrosar el ciclo anterior y el "total gastado" saldría inflado.
+     */
+    function resolverCicloParaCarga($conn, $id_vehiculo, $monto, $fecha, $idUsuario) {
+        $abierto = cicloAbiertoTarjeta($conn, $id_vehiculo);
+
+        if (!$abierto) {
+            return abrirCicloTarjeta($conn, $id_vehiculo, $fecha, $monto, null, 'INICIAL', null, $idUsuario);
+        }
+
+        // Saldo con el que quedó la última carga del ciclo; si aún no tiene cargas, el
+        // saldo inicial del propio ciclo.
+        $stmt = $conn->prepare(
+            "SELECT saldo FROM carga_gasolina WHERE id_ciclo = ?
+             ORDER BY fecha_carga DESC, id DESC LIMIT 1"
+        );
+        $stmt->bind_param("i", $abierto['id_ciclo']);
+        $stmt->execute();
+        $ult = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $saldoPrevio = $ult ? (float) $ult['saldo'] : (float) $abierto['saldo_inicial'];
+
+        // El 0.01 es tolerancia de redondeo de DECIMAL(10,2), no un umbral de negocio.
+        if ((float) $monto - $saldoPrevio > 0.01) {
+            return abrirCicloTarjeta($conn, $id_vehiculo, $fecha,
+                (float) $monto, round((float) $monto - $saldoPrevio, 2), 'DETECTADO', null, $idUsuario);
+        }
+
+        return intval($abierto['id_ciclo']);
+    }
+
+    /**
+     * Busca clientes por nombre para el autocompletado del modal de gasolina.
+     *
+     * La tabla tiene 8,376 clientes, así que no se mandan todos al navegador ni cabe un
+     * <select>: se busca desde 2 letras y se devuelve un máximo de 20. Se ordena poniendo
+     * primero los que EMPIEZAN con lo tecleado, que es lo que la gente espera.
+     */
+    if ($accion == 'buscarClientes') {
+        $q = trim($_POST['q'] ?? '');
+        if (mb_strlen($q) < 2) { echo json_encode([]); exit; }
+
+        $like = '%' . $q . '%';
+        $prefijo = $q . '%';
+        $stmt = $conn->prepare(
+            "SELECT IDCLTE, CLIENTE, CIUDAD FROM clientes
+             WHERE CLIENTE LIKE ?
+             ORDER BY CASE WHEN CLIENTE LIKE ? THEN 0 ELSE 1 END, CLIENTE
+             LIMIT 20"
+        );
+        if (!$stmt) { echo json_encode([]); exit; }
+        $stmt->bind_param("ss", $like, $prefijo);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $out = [];
+        while ($row = $res->fetch_assoc()) { $out[] = $row; }
+        $stmt->close();
+
+        echo json_encode($out);
+        exit;
+    }
+
     //FUNCION PARA REGISTRAR CARGA
     if ($accion == 'registraGas'){
         // Validación y normalización en servidor. Antes se concatenaba todo directo al
@@ -122,16 +275,39 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $pagosNum = is_numeric($pagos) ? (float)$pagos : 0;
         $saldoNum = is_numeric($saldo) ? (float)$saldo : ($montoNum - $pagosNum);
 
+        // Ciclo de tarjeta al que pertenece esta carga. Si el monto viene por encima del
+        // saldo del ciclo abierto, resolverCicloParaCarga() abre uno nuevo solo.
+        $idCiclo = resolverCicloParaCarga($conn, $idVeh, $montoNum, $fechaLimpia . ' 00:00:00', $idUsr);
+
+        // A qué fue el viaje. Los dos son opcionales: no toda carga de gasolina va ligada
+        // a una visita. id_cliente se guarda como NULL (no 0) cuando no se eligió, para
+        // que el LEFT JOIN a clientes no intente emparejar un id inexistente.
+        $idCliente = isset($_POST['id_cliente']) && intval($_POST['id_cliente']) > 0
+            ? intval($_POST['id_cliente']) : null;
+        $otCarga = trim($_POST['ot'] ?? '');
+        if ($otCarga === '') { $otCarga = null; }
+
+        // Si capturaron un OT/OV pero no eligieron cliente, se resuelve solo, igual que
+        // hace el check-in del QR: resolverCliente() busca el número primero en la tabla
+        // OT y luego en OV. Se reutiliza la función de calcular_ruta.php en vez de
+        // duplicar la consulta, para que las dos vías den el mismo cliente.
+        // El archivo solo declara funciones y constantes al incluirse (su parte
+        // ejecutable está detrás de un guard de "me están corriendo directo").
+        if ($idCliente === null && $otCarga !== null) {
+            require_once __DIR__ . '/calcular_ruta.php';
+            $idCliente = resolverCliente($conn, $otCarga);
+        }
+
         $stmt = $conn->prepare(
             "INSERT INTO carga_gasolina
-                (id_usuario, id_vehiculo, monto, pagos, saldo, km_actual, fecha_carga, fecha_registro)
-             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())"
+                (id_usuario, id_vehiculo, id_ciclo, monto, pagos, saldo, km_actual, id_cliente, ot, fecha_carga, fecha_registro)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
         if (!$stmt) {
             echo json_encode(["status" => "error", "message" => "Error al preparar el registro: " . $conn->error]);
             exit;
         }
-        $stmt->bind_param("iidddis", $idUsr, $idVeh, $montoNum, $pagosNum, $saldoNum, $km, $fechaLimpia);
+        $stmt->bind_param("iiidddiiss", $idUsr, $idVeh, $idCiclo, $montoNum, $pagosNum, $saldoNum, $km, $idCliente, $otCarga, $fechaLimpia);
         $ok = $stmt->execute();
         $err = $stmt->error;
         $stmt->close();
@@ -214,11 +390,13 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                          WHERE prev.id_vehiculo = cg.id_vehiculo AND prev.id < cg.id
                          ORDER BY prev.id DESC LIMIT 1),
                         cg.km_actual
-                    )) AS km_consumidos
+                    )) AS km_consumidos,
+                    cli.CLIENTE AS cliente
                  FROM carga_gasolina cg
                  INNER JOIN inventario inv ON inv.id_vehiculo = cg.id_vehiculo
                  LEFT JOIN usuarios u ON u.id_usuario = cg.id_usuario
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+                 LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
                  WHERE cg.id_vehiculo = ?
                  ORDER BY cg.id DESC";
 
@@ -446,7 +624,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                        s.fecha_resuelto, s.notas_resolucion,
                        inv.placa, inv.marca, inv.modelo, inv.efecticard,
                        IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS solicitante,
-                       ur.nombre AS resolvio
+                       ur.nombre AS resolvio,
+                       -- Lo que se lleva abonado a esta solicitud. Con una parcialidad la
+                       -- tarjeta ya recibió dinero, así que el saldo real es
+                       -- saldo_solicitud + esto, y es contra ese que se calcula el resto.
+                       (SELECT IFNULL(SUM(ct.monto_abonado), 0)
+                          FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado
                 FROM solicitudes_gas s
                 LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
                 LEFT JOIN usuarios u  ON u.id  = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
@@ -477,21 +660,61 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $idSol      = intval($_POST['id_solicitud'] ?? 0);
         $resolucion = strtoupper(trim($_POST['resolucion'] ?? ''));
         $notas      = trim($_POST['notas'] ?? '');
+        // Cuánto se abonó realmente a la tarjeta. Puede diferir de lo solicitado (recarga
+        // parcial), y es lo que define el saldo con el que arranca el ciclo nuevo.
+        $montoRecarga = isset($_POST['monto_recarga']) && is_numeric($_POST['monto_recarga'])
+            ? round((float) $_POST['monto_recarga'], 2) : 0;
 
         if ($idSol <= 0 || !in_array($resolucion, ['APROBADA', 'RECHAZADA'], true)) {
             echo json_encode(['status' => 'error', 'message' => 'Datos incompletos.']);
             exit;
         }
 
-        // Solo se resuelve lo que sigue pendiente: evita que dos personas la cambien dos
-        // veces, o que se reabra algo ya resuelto.
+        // Las notas son obligatorias en las dos resoluciones: si se aprueba hay que poder
+        // reconstruir con qué criterio, y si se rechaza el solicitante necesita el motivo.
+        if ($notas === '') {
+            echo json_encode(['status' => 'error', 'message' => 'Las notas son obligatorias para resolver la solicitud.']);
+            exit;
+        }
+
+        if ($resolucion === 'APROBADA' && $montoRecarga <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Captura el monto que se abonó a la tarjeta.']);
+            exit;
+        }
+
+        // Una recarga PARCIAL no cierra la solicitud: se queda abierta con estatus
+        // 'PARCIAL' para no perder de vista que falta abonar el resto. Solo se marca
+        // APROBADA cuando la tarjeta alcanza el crédito completo.
+        //
+        // El saldo efectivo es el que tenía al solicitar MÁS lo que ya se le abonó en
+        // resoluciones anteriores; sin eso, el segundo abono volvería a compararse contra
+        // el saldo original y nunca cerraría.
+        $estatusFinal = $resolucion;
+        $saldoEfectivo = 0.0;
+        if ($resolucion === 'APROBADA') {
+            $qs = $conn->prepare("SELECT saldo_solicitud FROM solicitudes_gas WHERE id = ? LIMIT 1");
+            $qs->bind_param("i", $idSol);
+            $qs->execute();
+            $rs = $qs->get_result()->fetch_assoc();
+            $qs->close();
+
+            $saldoEfectivo = (float) ($rs['saldo_solicitud'] ?? 0) + abonadoDeSolicitud($conn, $idSol);
+            // Tolerancia de centavo: DECIMAL(10,2) y sumas de floats no dan exacto.
+            if ($saldoEfectivo + $montoRecarga < CREDITO_TARJETA - 0.01) {
+                $estatusFinal = 'PARCIAL';
+            }
+        }
+
+        // Se resuelve lo que sigue abierto: PENDIENTE o PARCIAL (esta última justamente
+        // para poder abonarle el resto). Evita que dos personas la cambien dos veces o
+        // que se reabra algo ya cerrado.
         $idResuelve = intval($_COOKIE['id_usuario'] ?? 0);
         $stmt = $conn->prepare(
             "UPDATE solicitudes_gas
                 SET estatus = ?, id_resuelve = ?, fecha_resuelto = NOW(), notas_resolucion = ?
-              WHERE id = ? AND estatus = 'PENDIENTE'"
+              WHERE id = ? AND estatus IN ('PENDIENTE', 'PARCIAL')"
         );
-        $stmt->bind_param("sisi", $resolucion, $idResuelve, $notas, $idSol);
+        $stmt->bind_param("sisi", $estatusFinal, $idResuelve, $notas, $idSol);
         $stmt->execute();
         $cambio = $stmt->affected_rows > 0;
         $stmt->close();
@@ -499,6 +722,29 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         if (!$cambio) {
             echo json_encode(['status' => 'error', 'message' => 'La solicitud ya fue resuelta o no existe.']);
             exit;
+        }
+
+        // Aprobar es lo que abre un ciclo de tarjeta nuevo: es el momento en que entra
+        // dinero. El saldo inicial es lo que le quedaba más lo abonado, no el abono
+        // solo — así una recarga parcial arranca con el saldo real de la tarjeta.
+        $idCicloNuevo = 0;
+        if ($resolucion === 'APROBADA') {
+            $qv = $conn->prepare("SELECT id_vehiculo, saldo_solicitud FROM solicitudes_gas WHERE id = ? LIMIT 1");
+            $qv->bind_param("i", $idSol);
+            $qv->execute();
+            $sv = $qv->get_result()->fetch_assoc();
+            $qv->close();
+
+            if ($sv) {
+                // $saldoEfectivo ya trae el saldo original MÁS los abonos previos de esta
+                // misma solicitud: en el segundo abono de una parcialidad, partir otra vez
+                // de saldo_solicitud daría un saldo inicial más bajo que el real.
+                $saldoInicial = round($saldoEfectivo + $montoRecarga, 2);
+                $idCicloNuevo = abrirCicloTarjeta(
+                    $conn, intval($sv['id_vehiculo']), date('Y-m-d H:i:s'),
+                    $saldoInicial, $montoRecarga, 'APROBACION', $idSol, $idResuelve
+                );
+            }
         }
 
         // El aviso al solicitante no debe tumbar la resolución: si el correo falla, la
@@ -528,6 +774,15 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                     . ($aprobada ? 'aprobada' : 'rechazada') . '</b>.</h3>'
                     . '<table style="margin:0 auto; font-size:15px; line-height:1.6">'
                     . '<tr><td align="right"><b>Vehículo:</b></td><td align="left">' . $esc($vehiculo) . '</td></tr>'
+                    // El monto abonado solo aplica cuando se aprobó. Es el dato que el
+                    // solicitante necesita para saber con cuánto quedó su tarjeta, sobre
+                    // todo cuando la recarga fue parcial y no por lo que pidió.
+                    . ($aprobada
+                        ? '<tr><td align="right"><b>Monto abonado:</b></td><td align="left">$'
+                          . number_format($montoRecarga, 2) . '</td></tr>'
+                          . '<tr><td align="right"><b>Saldo de la tarjeta:</b></td><td align="left">$'
+                          . number_format((float) $d['saldo_solicitud'] + $montoRecarga, 2) . '</td></tr>'
+                        : '')
                     . ($notas !== '' ? '<tr><td align="right"><b>Notas:</b></td><td align="left">' . $esc($notas) . '</td></tr>' : '')
                     . '</table>';
 
@@ -591,16 +846,15 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
     /**
      * Cargas de gasolina que consumieron el crédito de una solicitud.
      *
-     * La ventana va desde la ÚLTIMA renovación aprobada anterior a esta solicitud hasta
-     * la fecha de la solicitud misma. Es lo que hay que revisar para decidir: en qué se
-     * gastó el crédito que se está pidiendo reponer. Si no hay una renovación previa
-     * (primer crédito del vehículo), se listan todas las cargas hasta la solicitud.
+     * Se resuelven por CICLO DE TARJETA, no por una ventana de fechas.
      *
-     * La ventana se mide sobre fecha_carga, no sobre fecha_registro: la pregunta es en
-     * qué se gastó el crédito, y eso ocurre el día que se cargó combustible, no el día
-     * que alguien capturó el ticket. Capturar en lote (cuatro cargas de julio y agosto
-     * registradas el mismo minuto) es común, y con fecha_registro esas cargas caían
-     * fuera de su propio crédito.
+     * Antes esto tomaba el rango entre la última solicitud aprobada y esta. Funcionaba
+     * mientras cada crédito naciera de una solicitud, pero se rompía justo en el caso
+     * que reportaron: una recarga parcial hecha fuera del flujo no movía la ventana, así
+     * que sus cargas se sumaban al crédito anterior y el total gastado salía inflado.
+     *
+     * Ahora cada carga trae su id_ciclo y basta con pedir el ciclo que estaba vigente
+     * cuando se hizo la solicitud.
      */
     if ($accion == 'historialCargasSolicitud') {
         $noEmpHist = $_COOKIE['noEmpleado'] ?? 0;
@@ -617,9 +871,16 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
 
         $stmtS = $conn->prepare(
             "SELECT s.id, s.id_vehiculo, s.fecha, s.saldo_solicitud, s.estatus,
-                    inv.placa, inv.marca, inv.modelo, inv.efecticard
+                    inv.placa, inv.marca, inv.modelo, inv.efecticard,
+                    -- Usuario del VEHÍCULO (su dueño/asignado), que no es necesariamente
+                    -- quien pidió la recarga. Se prefiere el nombre de RRHH y se cae al
+                    -- texto que guarda inventario cuando el id_usuario quedó huérfano.
+                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''),
+                           NULLIF(TRIM(inv.usuario), '')) AS usuario_vehiculo
              FROM solicitudes_gas s
              LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
+             LEFT JOIN usuarios uv ON uv.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = inv.id_usuario)
+             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = uv.noEmpleado
              WHERE s.id = ? LIMIT 1"
         );
         $stmtS->bind_param("i", $idSolHist);
@@ -632,24 +893,34 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             exit;
         }
 
-        // Renovación anterior: la última APROBADA del mismo vehículo antes de esta.
-        $stmtP = $conn->prepare(
-            "SELECT id, fecha, fecha_resuelto FROM solicitudes_gas
-             WHERE id_vehiculo = ? AND estatus = 'APROBADA' AND fecha < ? AND id <> ?
-             ORDER BY fecha DESC, id DESC LIMIT 1"
+        // Ciclo vigente al momento de la solicitud: empezó antes y todavía no había sido
+        // reemplazado por el siguiente.
+        $stmtCi = $conn->prepare(
+            "SELECT id_ciclo, fecha_inicio, fecha_fin, saldo_inicial, monto_abonado, origen, estatus
+             FROM ciclos_tarjeta
+             WHERE id_vehiculo = ? AND fecha_inicio <= ?
+               AND (fecha_fin IS NULL OR fecha_fin > ?)
+             ORDER BY fecha_inicio DESC, id_ciclo DESC LIMIT 1"
         );
-        $stmtP->bind_param("isi", $sol['id_vehiculo'], $sol['fecha'], $sol['id']);
-        $stmtP->execute();
-        $previa = $stmtP->get_result()->fetch_assoc();
-        $stmtP->close();
-
-        // Sin renovación previa se abre la ventana desde el inicio de los tiempos, para
-        // que el primer crédito del vehículo también muestre sus cargas.
-        $desde = $previa ? $previa['fecha'] : '1970-01-01 00:00:00';
+        $stmtCi->bind_param("iss", $sol['id_vehiculo'], $sol['fecha'], $sol['fecha']);
+        $stmtCi->execute();
+        $ciclo = $stmtCi->get_result()->fetch_assoc();
+        $stmtCi->close();
 
         $stmtC = $conn->prepare(
             "SELECT cg.id, cg.monto, cg.pagos, cg.saldo, cg.km_actual,
-                    cg.fecha_carga, cg.fecha_registro,
+                    cg.fecha_carga, cg.fecha_registro, cg.ot,
+                    -- Datos del destino. `PARQUE-IND` lleva guion en el nombre, así que
+                    -- necesita backticks o MySQL lo lee como una resta.
+                    cli.CLIENTE AS cliente,
+                    cli.CLIENTE_CORTO AS cliente_corto,
+                    -- El catálogo usa marcadores para 'sin parque': 77 clientes traen
+                    -- '-- y otros solo guiones. Se normalizan a NULL aquí para que la
+                    -- vista no tenga que conocer esos valores y no pinte basura.
+                    CASE WHEN TRIM(REPLACE(REPLACE(IFNULL(cli.`PARQUE-IND`, ''), '-', ''), '''', '')) = ''
+                         THEN NULL ELSE cli.`PARQUE-IND` END AS parque_industrial,
+                    cli.CIUDAD AS ciudad,
+                    cli.ESTADO AS estado,
                     -- Km recorridos desde la carga anterior del mismo vehículo. Mismo
                     -- cálculo que la columna 'Km Consumidos' de obtenerHistorialGas, para
                     -- que las dos vistas no den cifras distintas. La carga anterior se
@@ -670,10 +941,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
              FROM carga_gasolina cg
              LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
              LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
-             WHERE cg.id_vehiculo = ? AND cg.fecha_carga > ? AND cg.fecha_carga <= ?
+             LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
+             WHERE cg.id_ciclo = ?
              ORDER BY cg.fecha_carga DESC, cg.id DESC"
         );
-        $stmtC->bind_param("iss", $sol['id_vehiculo'], $desde, $sol['fecha']);
+        $idCicloCons = $ciclo ? intval($ciclo['id_ciclo']) : 0;
+        $stmtC->bind_param("i", $idCicloCons);
         $stmtC->execute();
         $resC = $stmtC->get_result();
         $cargas = [];
@@ -682,20 +955,37 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // se cumple monto - pagos = saldo), así que sumarlo daba una cifra sin sentido:
         // el acumulado de saldos corrientes, muy por encima de lo realmente gastado.
         $totalGastado = 0.0;
+        $kmMin = null; $kmMax = null;
         while ($row = $resC->fetch_assoc()) {
             $cargas[] = $row;
             $totalGastado += floatval($row['pagos']);
+            // Km recorridos del ciclo completo: de la lectura más baja a la más alta de
+            // sus cargas. Es más robusto que sumar los deltas, porque los deltas que se
+            // descartan por odómetro incoherente dejarían huecos en la suma.
+            $km = intval($row['km_actual']);
+            if ($km > 0) {
+                if ($kmMin === null || $km < $kmMin) $kmMin = $km;
+                if ($kmMax === null || $km > $kmMax) $kmMax = $km;
+            }
         }
         $stmtC->close();
 
+        // Solo se reporta si es coherente: un crédito de $4,000 rinde del orden de 1,500
+        // km, así que una cifra desbordada delata una lectura mal capturada.
+        $kmCiclo = null;
+        if ($kmMin !== null && $kmMax !== null && $kmMax > $kmMin && ($kmMax - $kmMin) <= 10000) {
+            $kmCiclo = $kmMax - $kmMin;
+        }
+
         echo json_encode([
-            'status'       => 'success',
-            'solicitud'    => $sol,
-            'renovacion_previa' => $previa ? ['id' => $previa['id'], 'fecha' => $previa['fecha']] : null,
-            'desde'        => $previa ? $previa['fecha'] : null,
-            'hasta'        => $sol['fecha'],
+            'status'        => 'success',
+            'solicitud'     => $sol,
+            'ciclo'         => $ciclo ?: null,
+            'desde'         => $ciclo['fecha_inicio'] ?? null,
+            'hasta'         => $ciclo['fecha_fin'] ?? $sol['fecha'],
             'total_gastado' => $totalGastado,
-            'cargas'       => $cargas
+            'km_ciclo'      => $kmCiclo,
+            'cargas'        => $cargas
         ]);
         exit;
     }

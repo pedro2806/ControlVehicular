@@ -69,6 +69,10 @@ if (empty($_COOKIE['noEmpleado'])) {
                                         <th>Saldo</th>
                                         <th>Km Actual</th>
                                         <th>Km Consumidos</th>
+                                        <!-- Cliente y OT/OV juntos: son opcionales y muchas cargas
+                                             no traen ninguno, así que dos columnas casi vacías no
+                                             se justifican. -->
+                                        <th>Destino</th>
                                         <th>Fecha Carga</th>
                                         <th>Fecha Registro</th>
                                         <th>Acciones</th>
@@ -117,20 +121,27 @@ $(document).ready(function () {
         info: true,
         autoWidth: false,
         responsive: true,
-        order: [[7, 'desc']],
+        order: [[8, 'desc']],
         // El orden de prioridad decide qué columnas sobreviven en pantalla chica.
         // Lo que importa desde el celular es cuándo se cargó, cuánto queda y poder
         // actuar; el vehículo ya viene del selector de arriba y el usuario casi
         // siempre es uno mismo, así que esos dos son los primeros en esconderse.
+        //
+        // OJO: estos índices se corrieron al insertar "Destino" en la posición 7. Si se
+        // agrega o mueve otra columna hay que recorrerlos de nuevo, o el orden por
+        // defecto y la columna no ordenable apuntan a la equivocada.
+        // 0 Vehículo · 1 Usuario · 2 Monto · 3 Pagos · 4 Saldo · 5 Km Actual
+        // 6 Km Consumidos · 7 Destino · 8 Fecha Carga · 9 Fecha Registro · 10 Acciones
         columnDefs: [
-            { orderable: false, targets: [9] },
-            { responsivePriority: 1,  targets: [7, 9] },   // Fecha Carga, Acciones
+            { orderable: false, targets: [10] },
+            { responsivePriority: 1,  targets: [8, 10] },  // Fecha Carga, Acciones
             { responsivePriority: 2,  targets: 4 },        // Saldo
             { responsivePriority: 3,  targets: 2 },        // Monto
+            { responsivePriority: 4,  targets: 7 },        // Destino
             { responsivePriority: 5,  targets: 3 },        // Pagos
             { responsivePriority: 6,  targets: 5 },        // Km Actual
             { responsivePriority: 7,  targets: 6 },        // Km Consumidos
-            { responsivePriority: 8,  targets: 8 },        // Fecha Registro
+            { responsivePriority: 8,  targets: 9 },        // Fecha Registro
             { responsivePriority: 9,  targets: 1 },        // Usuario
             { responsivePriority: 10, targets: 0 }         // Vehículo
         ],
@@ -258,6 +269,14 @@ function cargarHistorialVehiculo() {
                         + '<i class="fas fa-redo me-1"></i>Renovar</button>'
                     : '';
 
+                // Cliente y OT/OV en una sola celda. Cuando no hay ninguno se pone un guion
+                // en vez de dejarla vacía, para que se lea como "sin dato" y no como error.
+                var destino = '';
+                if (r.cliente) destino += escHtml(r.cliente);
+                if (r.ot) destino += (destino ? '<div class="text-muted small">' : '<span class="text-muted small">')
+                                   + 'OT/OV: ' + escHtml(r.ot) + (destino ? '</div>' : '</span>');
+                if (!destino) destino = '<span class="text-muted">—</span>';
+
                 tabla.row.add([
                     escHtml(r.Vehiculo),
                     escHtml(usuario),
@@ -266,6 +285,7 @@ function cargarHistorialVehiculo() {
                     badgeSaldo,
                     (parseInt(r.km_actual) || 0).toLocaleString() + ' km',
                     kmBadge,
+                    destino,
                     r.fecha_carga || '—',
                     r.fecha_registro || '—',
                     btnRepos

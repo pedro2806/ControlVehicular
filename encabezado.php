@@ -336,6 +336,27 @@
                                        min="0" step="1" inputmode="numeric" required>
                             </div>
                         </div>
+
+                        <!-- A qué fue el viaje. Los dos son OPCIONALES: no toda carga va ligada
+                             a una visita, y volverlos obligatorios frenaría el registro. -->
+                        <div class="mb-2 row g-2">
+                            <div class="col-12 col-md-8">
+                                <label for="clienteGas" class="form-label">Cliente <span class="text-muted small fw-normal">(opcional)</span></label>
+                                <!-- Autocompletado por AJAX: son 8,376 clientes, así que no caben
+                                     ni en un <select> ni en un datalist estático. El id real viaja
+                                     en el hidden; el texto visible es solo para buscar. -->
+                                <input type="text" class="form-control" id="clienteGas" name="clienteGas"
+                                       list="listaClientesGas" autocomplete="off"
+                                       placeholder="Escribe 2 letras para buscar...">
+                                <datalist id="listaClientesGas"></datalist>
+                                <input type="hidden" id="idClienteGas" name="idClienteGas" value="">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label for="otGas" class="form-label">OT / OV <span class="text-muted small fw-normal">(opcional)</span></label>
+                                <input type="text" class="form-control" id="otGas" name="otGas"
+                                       maxlength="50" placeholder="Número de OT u OV">
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">

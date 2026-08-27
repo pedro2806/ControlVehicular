@@ -160,7 +160,12 @@
                 success: function (respuesta) {
                     var select = $("#vehiculo_select");
                     Array.isArray(respuesta) && respuesta.forEach(function (v) {
-                        select.append(`<option value="${v.id_vehiculo}" data-placa="${v.placa}">${v.placa} - ${v.modelo} ${v.marca}</option>`);
+                        // etiquetaVehiculo agrega el nombre del usuario. Aquí no se llama
+                        // a hacerSelectBuscable: este select ya usa select2, que trae su
+                        // propio buscador, y poner dos sería confuso.
+                        select.append($('<option>').val(v.id_vehiculo)
+                            .attr('data-placa', v.placa)
+                            .text(etiquetaVehiculo(v)));
                     });
                     select.prop('disabled', false)
                           .select2({ placeholder: 'Buscar vehículo...', width: '100%', allowClear: true });

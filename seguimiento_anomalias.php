@@ -183,8 +183,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         lista.forEach(function (a) {
             if (!a.id_vehiculo || vistos[a.id_vehiculo]) return;
             vistos[a.id_vehiculo] = true;
-            $sel.append($('<option>').val(a.id_vehiculo).text((a.placa || 'S/P') + ' - ' + (a.modelo || '')));
+            $sel.append($('<option>').val(a.id_vehiculo).text(etiquetaVehiculo(a)));
         });
+        // Al final, cuando ya estan todas las opciones cargadas.
+        hacerSelectBuscable('fVehiculo', 'Buscar placa, modelo o usuario...');
     }
 
     function renderFeed(items) {

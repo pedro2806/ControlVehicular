@@ -14,9 +14,13 @@ function cargarVehiculos(selectVehiculo) {
                     $('#PidPrestamo').val(vehiculo.id_vehiculo + ',' + vehiculo.id_prestamo);
                     select.append('<option value="' + vehiculo.id_vehiculo + '" style="background-color: #ffeeba;" selected>PRESTAMO - ' + vehiculo.placa + '-' + vehiculo.modelo + '-  ' + vehiculo.estatus + '</option>');
                 } else {
-                    select.append('<option value="' + vehiculo.id_vehiculo + '">' + vehiculo.placa + '-' + vehiculo.modelo + '</option>');
+                    select.append($('<option>').val(vehiculo.id_vehiculo).text(etiquetaVehiculo(vehiculo)));
                 }
             });
+            // Estos son los vehículos PROPIOS del usuario, casi siempre uno o dos, así
+            // que el umbral interno de hacerSelectBuscable normalmente no lo activa.
+            // Se llama igual para el caso de quien trae muchos asignados.
+            hacerSelectBuscable(selectVehiculo, 'Buscar placa, modelo o usuario...');
             verPlaca('vehiculoAsignado', 'kmActual');
         },
         error: function () {
@@ -233,4 +237,99 @@ function evaluarDocs(v) {
         });
     }
     return { ok: ok, total: total };
+}
+/* ===================== SELECT DE VEHÍCULOS CON BUSCADOR =====================
+ *
+ * La flota son 107 vehículos y los <select> nativos obligaban a bajar la lista a mano.
+ * Esto le agrega un campo de búsqueda arriba, filtrando por placa, modelo, marca Y
+ * nombre del usuario asignado.
+ *
+ * NO usa ninguna librería. select2 solo está en dos pantallas y por CDN, y aquí lo que
+ * se necesita es filtrar una lista corta: no vale traer una dependencia para eso.
+ *
+ * Se conserva el <select> nativo a propósito, en vez de sustituirlo por un componente:
+ * todo el código existente lee estos selects con .val() y escucha su 'change', y así
+ * sigue funcionando sin tocarlo. Al filtrar se reconstruyen los <option> en lugar de
+ * esconderlos, porque ocultar un <option> con CSS no funciona en todos los navegadores.
+ */
+
+/**
+ * @param {string} idSelect  id del <select>, sin '#'
+ * @param {string} [placeholder]
+ */
+function hacerSelectBuscable(idSelect, placeholder) {
+    var $sel = $('#' + idSelect);
+    if (!$sel.length || $sel.data('buscable')) return;   // idempotente
+
+    // Con pocas opciones el buscador estorba más de lo que ayuda: en el modal de
+    // check-in la lista son los vehículos propios del usuario, casi siempre uno o dos.
+    // El umbral deja llamar a esta función en TODOS los selects sin pensarlo.
+    var MINIMO_PARA_BUSCADOR = 8;
+    if ($sel.find('option').length < MINIMO_PARA_BUSCADOR) return;
+
+    $sel.data('buscable', true);
+
+    var $caja = $('<input type="text" class="form-control mb-1" autocomplete="off">')
+        .attr('placeholder', placeholder || 'Buscar placa, modelo o usuario...')
+        .attr('id', idSelect + 'Buscador');
+
+    // Hereda el tamaño del select para no romper el ritmo visual de los filtros.
+    if ($sel.hasClass('form-select-sm')) $caja.addClass('form-control-sm');
+    $sel.before($caja);
+
+    function opciones() {
+        // La lista original se guarda una sola vez; de ahí se reconstruye en cada filtro.
+        var guardadas = $sel.data('opcionesOriginales');
+        if (!guardadas) {
+            guardadas = $sel.find('option').map(function () {
+                return { valor: this.value, texto: this.text, estilo: this.getAttribute('style') || '' };
+            }).get();
+            $sel.data('opcionesOriginales', guardadas);
+        }
+        return guardadas;
+    }
+
+    function filtrar() {
+        var q = $caja.val().trim().toLowerCase();
+        var seleccionado = $sel.val();
+        var lista = opciones();
+
+        var visibles = q === '' ? lista : lista.filter(function (o) {
+            // El valor vacío es el "Seleccione un vehículo": siempre se conserva para
+            // que el select no quede sin opción neutra.
+            return o.valor === '' || o.texto.toLowerCase().indexOf(q) !== -1;
+        });
+
+        $sel.empty();
+        visibles.forEach(function (o) {
+            var $op = $('<option>').val(o.valor).text(o.texto);
+            if (o.estilo) $op.attr('style', o.estilo);
+            $sel.append($op);
+        });
+
+        // Se respeta lo que ya estaba elegido si sobrevivió al filtro; si no, no se
+        // fuerza nada, para no cambiar la selección a espaldas del usuario.
+        if (seleccionado !== null && $sel.find('option[value="' + seleccionado + '"]').length) {
+            $sel.val(seleccionado);
+        }
+    }
+
+    $caja.on('input', filtrar);
+}
+
+/**
+ * Etiqueta de un vehículo para los selects: placa - modelo marca · usuario.
+ *
+ * El nombre del usuario se incluye porque es como la gente identifica los autos
+ * ("el de Amram"), y además lo vuelve buscable desde el campo de arriba.
+ */
+function etiquetaVehiculo(v) {
+    var partes = [v.placa || 'S/P'];
+    var mm = [v.modelo, v.marca].filter(Boolean).join(' ').trim();
+    if (mm) partes.push(mm);
+
+    // Se aceptan las varias formas en que los endpoints nombran al usuario.
+    var usuario = v.nombre_usuario || v.asignado || v.usuario || '';
+    var etiqueta = partes.join(' - ');
+    return usuario ? etiqueta + ' · ' + usuario : etiqueta;
 }

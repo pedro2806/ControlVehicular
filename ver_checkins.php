@@ -280,8 +280,14 @@
             success: function (data) {
                 if (!Array.isArray(data)) return;
                 data.forEach(function (v) {
-                    $('#fVehiculo').append('<option value="' + v.id + '">' + esc(v.placa + ' - ' + (v.modelo || '')) + '</option>');
+                    // etiquetaVehiculo (js/global/vehiculos.js) agrega el nombre del
+                    // usuario, que es como la gente identifica los autos y además lo
+                    // vuelve buscable desde el campo de arriba.
+                    $('#fVehiculo').append($('<option>').val(v.id).text(etiquetaVehiculo(v)));
                 });
+                // Después de llenarlo: el buscador guarda la lista de opciones y hay
+                // que hacerlo cuando ya están todas.
+                hacerSelectBuscable('fVehiculo', 'Buscar placa, modelo o usuario...');
                 // El vehículo se preselecciona AQUÍ y no antes: el <select> se llena por
                 // AJAX, así que ponerle un valor antes de que existan las opciones no
                 // hace nada. Se recarga para aplicar el filtro.

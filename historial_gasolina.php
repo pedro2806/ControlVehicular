@@ -289,9 +289,14 @@ function cargarSelectVehiculos(callback) {
             sel.empty().append('<option value="">Selecciona un vehículo</option>');
             if (Array.isArray(data)) {
                 data.forEach(function (v) {
-                    sel.append('<option value="' + v.id_vehiculo + '" data-placa="' + escHtml(v.placa) + '">'
-                        + escHtml(v.placa) + ' - ' + escHtml(v.modelo) + ' ' + escHtml(v.marca) + '</option>');
+                    // etiquetaVehiculo (js/global/vehiculos.js) agrega el nombre del
+                    // usuario, que es como la gente identifica los autos.
+                    sel.append($('<option>').val(v.id_vehiculo)
+                        .attr('data-placa', v.placa)
+                        .text(etiquetaVehiculo(v)));
                 });
+                // Al final, cuando ya están todas: el buscador guarda la lista completa.
+                hacerSelectBuscable('filtroVehiculo', 'Buscar placa, modelo o usuario...');
             }
             if (typeof callback === 'function') callback();
         },

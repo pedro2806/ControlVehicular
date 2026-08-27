@@ -258,8 +258,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 var id = s.id_vehiculo;
                 if (!id || vistos[id]) return;
                 vistos[id] = true;
-                $sel.append($('<option>').val(id).text((s.placa || 'S/P') + ' - ' + (s.modelo || '')));
+                $sel.append($('<option>').val(id).text(etiquetaVehiculo(s)));
             });
+            // Al final, cuando ya estan todas las opciones cargadas.
+            hacerSelectBuscable('fVehiculo', 'Buscar placa, modelo o usuario...');
         }
 
         function verDetalle(id_siniestro) {

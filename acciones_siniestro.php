@@ -128,7 +128,7 @@ if ($accion == "consultarInventario") {
     }
 
     if ($infAdicional === 'TODAS') {
-        $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio FROM inventario ORDER BY placa";
+        $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio, usuario FROM inventario ORDER BY placa";
     } else {
         $areas = [];
         $deptos = [];
@@ -143,11 +143,11 @@ if ($accion == "consultarInventario") {
             }
         }
 
-        $sqlConsultaVehiculos = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+        $sqlConsultaVehiculos = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
                                 WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
                                 UNION
-                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM prestamos p
                                 INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
                                 WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
@@ -155,7 +155,7 @@ if ($accion == "consultarInventario") {
         if (!empty($areas)) {
             $areasEsc = implode("','", $areas);
             $sqlConsultaVehiculos .= " UNION
-                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
                                 WHERE inv.area IN ('$areasEsc')";
         }
@@ -163,7 +163,7 @@ if ($accion == "consultarInventario") {
         if (!empty($deptos)) {
             $deptosEsc = implode(',', $deptos);
             $sqlConsultaVehiculos .= " UNION
-                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio
+                                SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
                                 INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario
                                 WHERE us.departamento IN ($deptosEsc)";

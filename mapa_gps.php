@@ -118,12 +118,15 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 data.forEach(v => {
                     const option = document.createElement('option');
                     option.value = v.id;
-                    option.textContent = `${v.marca} ${v.modelo} (${v.placa})`;
+                    // etiquetaVehiculo (js/global/vehiculos.js) unifica el formato con el
+                    // resto de los selects y agrega el nombre del usuario.
+                    option.textContent = etiquetaVehiculo(v);
                     if (urlParams.get('vehiculo') === v.id) {
                         option.selected = true;
                     }
                     vehiculoSelect.appendChild(option);
                 });
+                hacerSelectBuscable('vehiculo', 'Buscar placa, modelo o usuario...');
             })
             .catch(err => {
                 console.error('Error cargando vehículos:', err);

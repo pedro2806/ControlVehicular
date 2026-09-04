@@ -525,6 +525,33 @@ function upsertChecklistSeccion($conn, $tabla, $id_checklist, $campos, $fotoKey,
     return false;
 }
 
+/**
+ * Literal SQL para una columna de checklist_documentacion.
+ *
+ * Esa tabla tiene dos columnas que NO son de texto, a diferencia de las secciones físicas
+ * (donde si_no es varchar): `si_no` es int NOT NULL y `vencimiento` es date. Mandarles
+ * cadena vacía —lo que devuelve getPostOrSR() cuando el usuario no respondió— falla en
+ * cualquier MySQL con STRICT_TRANS_TABLES, que es lo normal en producción:
+ * "Incorrect integer value: '' for column 'si_no'".
+ *
+ * En local no se veía porque ahí sql_mode viene vacío y MySQL convertía '' a 0 en
+ * silencio (de ahí salieron los ceros que ya hay en la tabla). Y desde PHP 8.1 mysqli
+ * lanza excepción ante un error de SQL en vez de devolver false, así que el fallo llegaba
+ * al navegador como HTTP 500 sin cuerpo: el famoso "No se pudo completar la solicitud".
+ */
+function valorSqlDocumentacion($col, $val, $esc) {
+    if ($col === 'si_no') {
+        // La columna es NOT NULL, así que "sin responder" no se puede guardar como NULL.
+        // Se usa 0, que es exactamente lo que MySQL venía escribiendo al convertir ''.
+        return ($val === '' || $val === null) ? '0' : (string) intval($val);
+    }
+    if ($col === 'vencimiento') {
+        // Fecha vacía = sin capturar. NULL, nunca '' ni '0000-00-00'.
+        return ($val === '' || $val === null || $val === '0000-00-00') ? 'NULL' : "'" . $esc($val) . "'";
+    }
+    return "'" . $esc($val) . "'";
+}
+
 function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campos, $fotoKey, $placa, $fotoTipo, $subdir) {
     global $FOTOS_FALLIDAS;
 
@@ -552,13 +579,13 @@ function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campo
     $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$idChk' AND t_documento='$tDoc'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sets = [];
-        foreach ($campos as $col => $val) { $sets[] = "$col='" . $esc($val) . "'"; }
+        foreach ($campos as $col => $val) { $sets[] = "$col=" . valorSqlDocumentacion($col, $val, $esc); }
         if (!$conservarFoto) $sets[] = "foto=$fotoSql";
         $sql = "UPDATE checklist_documentacion SET " . implode(', ', $sets) . " WHERE id_checklist='$idChk' AND t_documento='$tDoc'";
     } else {
         $allCols = ['id_checklist', 't_documento'];
         $allVals = ["'$idChk'", "'$tDoc'"];
-        foreach ($campos as $col => $val) { $allCols[] = $col; $allVals[] = "'" . $esc($val) . "'"; }
+        foreach ($campos as $col => $val) { $allCols[] = $col; $allVals[] = valorSqlDocumentacion($col, $val, $esc); }
         $allCols[] = 'foto';
         $allVals[] = $fotoSql;
         if (!array_key_exists('entregado', $campos))  { $allCols[] = 'entregado';  $allVals[] = "'S/R'"; }
@@ -663,7 +690,22 @@ if ($opcion == 'guardarCheckIn') {
             }
         }
     } else {
-        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus) VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
+        // id_vehiculo, id_usuario e id_revisor son columnas int: van como número, no
+        // entrecomilladas. Si la cookie de usuario viniera vacía se mandaba '' a un int y,
+        // con STRICT_TRANS_TABLES, eso es un error de MySQL (y desde PHP 8.1 una excepción
+        // que tumba la petición). id_usuario admite NULL; id_vehiculo no, así que sin
+        // vehículo no tiene caso intentar el INSERT.
+        $idVehInsert = intval($id_coche);
+        if ($idVehInsert <= 0) {
+            die(json_encode(["error" => "No se pudo identificar el vehículo del checklist."]));
+        }
+        $idUsuarioInsert = ($id_usuario === null || $id_usuario === '') ? 'NULL' : intval($id_usuario);
+        $idRevisorInsert = ($id_revisor === null || $id_revisor === '') ? 'NULL' : intval($id_revisor);
+        $motivoEsc  = mysqli_real_escape_string($conn, (string) $motivo);
+        $estatusEsc = mysqli_real_escape_string($conn, (string) $estatus);
+
+        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
+                VALUES ($idVehInsert, NOW(), $idUsuarioInsert, $idRevisorInsert, '$motivoEsc', '$estatusEsc')";
         $resultadoChecklist = mysqli_query($conn, $sql);
         if (!$resultadoChecklist) { die(json_encode(array("error" => "Failed to insert checklist: " . mysqli_error($conn)))); }
         $id_checklist = mysqli_insert_id($conn);

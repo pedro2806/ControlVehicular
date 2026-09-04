@@ -139,7 +139,11 @@ while ($v = $vehiculos->fetch_assoc()) {
         $esNuevo = ($saldoPrevio === null) || ($monto - $saldoPrevio > 0.01);
 
         if ($esNuevo) {
-            $fecha = $c['fecha_carga'] . ' 00:00:00';
+            // fecha_carga pasó de DATE a DATETIME. Antes había que pegarle la hora para que
+            // ciclos_tarjeta.fecha_inicio (DATETIME) la aceptara; ahora ya la trae, y
+            // concatenarla produciría "2026-09-04 13:20:00 00:00:00", una fecha inválida.
+            // Se normaliza por si quedara alguna fila con formato viejo.
+            $fecha = date('Y-m-d H:i:s', strtotime($c['fecha_carga']));
 
             if ($cicloActual && !$dryRun) {
                 $cerrar->bind_param("si", $fecha, $cicloActual);

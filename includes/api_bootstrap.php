@@ -115,12 +115,28 @@ function obtenerUltimoKM($conn, $id_vehiculo) {
     // fecha_carga y no fecha_registro para carga_gasolina: la captura en lote deja
     // varias cargas registradas el mismo minuto, y la fecha de carga es cuándo se leyó
     // de verdad el odómetro.
+    //
+    // fecha_carga ya es DATETIME, así que las cargas NUEVAS se ordenan por su hora real.
+    // Pero las que existían antes de la migración quedaron todas en 00:00:00, porque esa
+    // hora nunca se guardó (el formulario la capturaba y el servidor la recortaba). Para
+    // ésas, cualquier check-in del mismo día les ganaba aunque hubiera ocurrido antes:
+    // se registraban dos cargas seguidas (km 1000 y luego 1010) y la siguiente captura
+    // seguía proponiendo 1000, el km del check-in de esa mañana.
+    //
+    // El CASE cubre los dos mundos y por eso se conserva tras la migración:
+    //   fila vieja  -> fecha_carga es medianoche, así que DATE(fecha_registro) coincide
+    //                  con ella y se usa fecha_registro, que sí trae hora
+    //   fila nueva  -> fecha_carga trae hora propia, no coincide con la medianoche que
+    //                  resulta de DATE(fecha_registro), y se usa fecha_carga: la buena
+    //   carga vieja en lote -> fecha_registro es de otro día, se queda fecha_carga
     $stmt = $conn->prepare(
         "SELECT km FROM (
              SELECT km_actual AS km, fecha_actividad AS f
                FROM actividad_vehiculo WHERE id_vehiculo = ? AND km_actual > 0
              UNION ALL
-             SELECT km_actual AS km, fecha_carga AS f
+             SELECT km_actual AS km,
+                    CASE WHEN DATE(fecha_registro) = fecha_carga THEN fecha_registro
+                         ELSE CAST(fecha_carga AS DATETIME) END AS f
                FROM carga_gasolina    WHERE id_vehiculo = ? AND km_actual > 0
              UNION ALL
              SELECT km AS km, fecha AS f

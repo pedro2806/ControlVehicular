@@ -345,6 +345,21 @@ function preseleccionarVehiculo() {
     });
 }
 
+/**
+ * 'YYYY-MM-DD HH:MM:SS' -> 'DD/MM/YYYY HH:MM'. Mismo criterio que fmtFecha() de
+ * validar_recargas.php: se arma por partes para no depender de cómo interprete
+ * new Date() una fecha de MySQL sin zona horaria.
+ *
+ * Las dos columnas se imprimían crudas. Daba igual mientras fecha_carga era DATE, pero
+ * ahora es DATETIME y saldría "2026-09-04 13:20:00" en la tabla.
+ */
+function fmtFechaGas(f) {
+    if (!f) return '—';
+    var p = String(f).split(/[- :]/);
+    if (p.length < 3) return String(f);
+    return p[2] + '/' + p[1] + '/' + p[0] + (p[3] ? ' ' + p[3] + ':' + (p[4] || '00') : '');
+}
+
 function cargarHistorialVehiculo() {
     idVehSel = parseInt($('#filtroVehiculo').val()) || 0;
     placaSel = $('#filtroVehiculo option:selected').data('placa') || '';
@@ -446,8 +461,8 @@ function cargarHistorialVehiculo() {
                     (parseInt(r.km_actual) || 0).toLocaleString() + ' km',
                     kmBadge,
                     destino,
-                    r.fecha_carga || '—',
-                    r.fecha_registro || '—',
+                    fmtFechaGas(r.fecha_carga),
+                    fmtFechaGas(r.fecha_registro),
                     btnRepos
                 ]);
             });

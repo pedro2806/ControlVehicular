@@ -88,6 +88,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     </div>
                     <div name="DivBtnVehiculosAsignados" id="DivBtnVehiculosAsignados" style="display: none;">
                         <input type="hidden" id="id_coche" name="id_coche">
+                        <!-- La placa se muestra en el <h5 id="placa"> de abajo, pero los
+                             recolectores de FormData solo recorren inputs/select/textarea/label:
+                             desde que ese dato pasó de <label> a <h5> (commit a6e584b) dejó de
+                             viajar al servidor y TODAS las fotos se guardaban en
+                             img_control_vehicular//checklist/... sin placa ni en la carpeta ni
+                             en el nombre del archivo. Este hidden lo repone; lo llena
+                             SeleccionaVehiculo(). -->
+                        <input type="hidden" id="placaCheck" name="placa">
                         <input type="hidden" name="ruta_foto_Asientos">
                         <input type="hidden" name="ruta_foto_Espejos">
                         <input type="hidden" name="ruta_foto_AireAcondicionado">
@@ -95,6 +103,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <input type="hidden" name="ruta_foto_Exterior">
                         <input type="hidden" name="ruta_foto_Graficas">
                         <input type="hidden" name="ruta_foto_Limpiaparabrisas">
+                        <!-- Estos tres existían antes de la reestructura y se perdieron, pero
+                             cargarDatosBorrador() sigue llamando a setRuta() para ellos: sin el
+                             input, el selector no encontraba nada y la ruta guardada del
+                             borrador no se restauraba (fallo mudo). -->
+                        <input type="hidden" name="ruta_foto_Limpieza">
+                        <input type="hidden" name="ruta_foto_Refrendo">
+                        <input type="hidden" name="ruta_foto_Seguro">
                         <input type="hidden" name="ruta_foto_Llantas">
                         <input type="hidden" name="ruta_foto_Placas">
                         <input type="hidden" name="ruta_foto_PuertasLlave">
@@ -131,10 +146,11 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         </div>
                         <div class="d-flex justify-content-end mb-3">
                             <!-- Aquí había un segundo par de botones (btnguardarCheck2 /
-                                 btnGuardarAvance2) que repetía los del pie del asistente, con
-                                 etiquetas distintas para la misma acción ("Registrar avance"
-                                 arriba, "Guardar avance" abajo). Se dejan solo los del pie,
-                                 que es donde está la navegación entre pasos. -->
+                                 btnGuardarAvance2) que repetía los de la navegación del
+                                 asistente, con etiquetas distintas para la misma acción
+                                 ("Registrar avance" aquí, "Guardar avance" allá). Se dejó un
+                                 solo grupo, el de la navegación entre pasos, que ahora vive
+                                 arriba del carrusel (justo debajo de los puntitos de avance). -->
                             <button type="button" class="btn btn-primary btn-sm mr-1" onclick="MostrarDivVehiculosAsignados()"><i class="fas fa-exchange-alt mr-1"></i>Cambiar de vehículo</button>
                         </div>
                         <input type="hidden" id="marca" name="marca">
@@ -202,6 +218,24 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                 <?php endforeach; ?>
                             </div>
                             <small class="text-muted" id="pasoInfo">Paso 1 de <?= $totalPasos ?></small>
+                        </div>
+
+                        <!-- Botones ARRIBA, entre los pasos y la tarjeta del paso actual. Estaban
+                             al pie, después de todo el carrusel: en celular había que bajar hasta
+                             el final de cada paso para avanzar o guardar. Es el mismo y único
+                             grupo de botones, solo cambió de lugar (no se duplicó: el comentario
+                             de más arriba explica por qué se eliminó el segundo par que existía). -->
+                        <div class="d-flex justify-content-between align-items-center mt-2 mb-3">
+                            <button type="button" id="btnRegresar" class="btn btn-secondary btn-sm" onclick="irAPaso(pasoActual - 1)" style="display:none;">
+                                <i class="fas fa-arrow-left mr-1"></i> Regresar
+                            </button>
+                            <div class="ml-auto">
+                                <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm mr-1" onclick="guardarAvance()">Guardar avance</button>
+                                <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm mr-1" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
+                                <button type="button" id="btnSiguiente" class="btn btn-primary btn-sm" onclick="irAPaso(pasoActual + 1)">
+                                    Siguiente <i class="fas fa-arrow-right ml-1"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="chk-viewport">
@@ -300,18 +334,6 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
-                            <button type="button" id="btnRegresar" class="btn btn-secondary btn-sm" onclick="irAPaso(pasoActual - 1)" style="display:none;">
-                                <i class="fas fa-arrow-left mr-1"></i> Regresar
-                            </button>
-                            <div class="ml-auto">
-                                <button type="button" id="btnGuardarAvance" name="btnGuardarAvance" class="btn btn-warning btn-sm mr-1" onclick="guardarAvance()">Guardar avance</button>
-                                <button type="button" id="btnguardarCheck" name="btnguardarCheck" class="btn btn-success btn-sm mr-1" onclick="guardarCheckIn()" style="display:none;">Guardar</button>
-                                <button type="button" id="btnSiguiente" class="btn btn-primary btn-sm" onclick="irAPaso(pasoActual + 1)">
-                                    Siguiente <i class="fas fa-arrow-right ml-1"></i>
-                                </button>
-                            </div>
-                        </div>
                         </div>
                     </div>
                 <!-- /.container-fluid -->
@@ -427,6 +449,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
     function SeleccionaVehiculo(Registro) {
         $('#id_coche').val(Registro.idCoche);
         $('#placa').text(Registro.placa);
+        // El <h5> es solo para verlo; lo que viaja al servidor es este hidden.
+        $('#placaCheck').val(Registro.placa || '');
         $('#marca').val(Registro.marca);
         $('#modelo').val(Registro.modelo);
         $('#modeloMarca').text([Registro.marca, Registro.modelo].filter(Boolean).join(' '));
@@ -460,6 +484,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 Swal.fire('Error', 'Selecciona un vehículo primero.', 'error');
                 return;
             }
+
+            // Mismas dos esperas que en guardarAvance. Aquí el guardado NO se descarta si
+            // hay otro en vuelo (es el final del checklist): se encola detrás.
+            var pendientes = esperarCompresiones();
+            if (pendientes) {
+                pendientes.then(function () { guardarCheckIn(); });
+                return;
+            }
+            if (guardadoEnVuelo) {
+                guardadoEnVuelo.always(function () { guardarCheckIn(); });
+                return;
+            }
+
             let formData = new FormData();
 
             // Recolectar valores de inputs de texto, date, hidden, y otros
@@ -499,10 +536,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 formData.append($(this).attr('name'), $(this).val());
             });
 
-            // Recolectar archivos tipo file
+            // Recolectar archivos tipo file, saltando los que ya viajaron.
+            //
+            // Antes se mandaban TODAS las fotos de la sesión en esta última petición (hasta
+            // 15). Con fotos de celular eso son decenas de MB en un solo POST: se excedía
+            // post_max_size (8M), PHP descartaba $_POST y $_FILES enteros, el endpoint
+            // respondía vacío y jQuery mostraba el modal "No se pudo completar la
+            // solicitud" sin más explicación. Es el mismo criterio que ya usaba
+            // guardarAvance: el servidor conserva la ruta de las fotos que no vuelven a
+            // viajar.
+            var enviadasAhora = [];
             $('input[type="file"]').each(function () {
-                if ($(this)[0].files.length > 0) {
-                    formData.append($(this).attr('name'), $(this)[0].files[0]);
+                var nombre = $(this).attr('name');
+                if ($(this)[0].files.length > 0 && !fotosEnviadas.has(nombre)) {
+                    formData.append(nombre, $(this)[0].files[0]);
+                    enviadasAhora.push(nombre);
                 }
             });
 
@@ -514,10 +562,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             if (idChecklistActual > 0) formData.append('id_checklist', idChecklistActual);
             if (forzarChecklistNuevo)  formData.append('nuevo', '1');
 
-            // Deshabilitar botones para evitar múltiples envíos
+            // Deshabilitar botones para evitar múltiples envíos. btnSiguiente entra en la
+            // lista porque en el último paso es el que llama a finalizar: quedaba activo y
+            // cada pulsación extra creaba otro checklist completo (en la BD hay tres del
+            // mismo vehículo con 23 y 48 segundos de diferencia).
             $('#btnguardarCheck').prop('disabled', true);
-            
+
             $('#btnGuardarAvance').prop('disabled', true);
+            $('#btnSiguiente').prop('disabled', true);
             
             
             // Mostrar mensaje de procesamiento
@@ -532,28 +584,51 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
 
             // Enviar datos mediante AJAX
-            $.ajax({
+            guardadoEnVuelo = $.ajax({
                 url: 'AccionesCheckVehiculo.php',
                 method: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 dataType: 'json',
+                complete: function () { guardadoEnVuelo = null; },
                 success: function(response) {
                     Swal.close();
+
+                    // El id se guarda también aquí (antes solo lo hacía guardarAvance): si
+                    // el usuario vuelve a pulsar finalizar, se escribe en ESTE checklist en
+                    // vez de crear otro.
+                    if (response.id_checklist) {
+                        idChecklistActual = parseInt(response.id_checklist, 10) || 0;
+                        forzarChecklistNuevo = false;
+                    }
+                    var fallidas = response.fotos_fallidas || {};
+                    enviadasAhora.forEach(function (n) {
+                        if (!fallidas[n]) fotosEnviadas.add(n);
+                    });
+
                     if (response.success) {
+                        // Con fotos sin guardar no se sale de la pantalla: si redirigiera,
+                        // el usuario se iría creyendo que quedó completo y ya no tendría
+                        // dónde volver a tomarlas.
+                        if (Object.keys(fallidas).length) {
+                            avisarFotosFallidas(response);
+                            $('#btnguardarCheck, #btnGuardarAvance, #btnSiguiente').prop('disabled', false);
+                            verificarCompletitud();
+                            return;
+                        }
                         Swal.fire("Éxito", "El check-in se guardó correctamente.", "success");
                         window.location.assign("verifica_checkinVehiculo");
                     } else {
-                        Swal.fire("Error", "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
-                        $('#btnguardarCheck, #btnGuardarAvance').prop('disabled', false);
+                        Swal.fire("Error", response.error || "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
+                        $('#btnguardarCheck, #btnGuardarAvance, #btnSiguiente').prop('disabled', false);
                         verificarCompletitud();
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     Swal.close();
                     Swal.fire("Error", "No se pudo completar la solicitud. Por favor, inténtalo más tarde.", "error");
-                    $('#btnguardarCheck, #btnGuardarAvance').prop('disabled', false);
+                    $('#btnguardarCheck, #btnGuardarAvance, #btnSiguiente').prop('disabled', false);
                     verificarCompletitud();
                 }
             });
@@ -568,6 +643,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
          *        en cada paso sería insoportable. Solo avisa si algo falla.
          */
         function guardarAvance(silencioso) {
+            // Si hay fotos comprimiéndose se espera: mandarlas a medias significaba
+            // subir la imagen original de 3-8 MB, que el servidor rechaza en silencio.
+            var pendientes = esperarCompresiones();
+            if (pendientes) {
+                pendientes.then(function () { guardarAvance(silencioso); });
+                return;
+            }
+
+            // Un guardado a la vez. El avance que llegue mientras hay otro en vuelo se
+            // deja en cola (uno solo: el último estado de la pantalla es el que importa)
+            // en lugar de salir en paralelo y acabar creando un segundo checklist.
+            if (guardadoEnVuelo) { avanceEnCola = true; return; }
+
             let formData = new FormData();
 
             $('input[type="text"], input[type="date"], input[type="input"], input[type="hidden"]').each(function () {
@@ -632,16 +720,27 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 });
             }
 
-            $.ajax({
+            guardadoEnVuelo = $.ajax({
                 url: 'AccionesCheckVehiculo.php',
                 method: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 dataType: 'json',
+                complete: function () {
+                    guardadoEnVuelo = null;
+                    // Se atiende el avance que quedó en cola mientras este iba en camino.
+                    if (avanceEnCola) { avanceEnCola = false; guardarAvance(true); }
+                },
                 success: function(response) {
                     if (!silencioso) Swal.close();
                     $('#btnGuardarAvance').prop('disabled', false);
+
+                    // Los datos pudieron guardarse y alguna foto no (rechazada por peso o
+                    // por fallo al escribirla). Se avisa siempre, incluso en el guardado
+                    // automático: es justo el caso que se reportó como "la pantalla decía
+                    // completo pero la ruta de la imagen no estaba en la BD".
+                    avisarFotosFallidas(response);
 
                     if (response.success) {
                         // A partir de aquí ya se sabe en qué checklist se trabaja: los
@@ -655,7 +754,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         // Ya están en el servidor: no volver a subirlas en los siguientes
                         // guardados. Si el usuario cambia la imagen, el listener de change
                         // quita la marca y vuelve a viajar.
-                        enviadasAhora.forEach(function (n) { fotosEnviadas.add(n); });
+                        // Las que el servidor rechazó NO se marcan: deben reintentarse en
+                        // el siguiente guardado en vez de darse por subidas.
+                        var fallidas = response.fotos_fallidas || {};
+                        enviadasAhora.forEach(function (n) {
+                            if (!fallidas[n]) fotosEnviadas.add(n);
+                        });
                         // En silencioso no se confirma nada: el usuario ya está en el
                         // siguiente apartado y un modal ahí solo estorbaría.
                         if (!silencioso) {
@@ -665,8 +769,10 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         }
                     } else {
                         // El error sí se avisa siempre: si no se guardó, el usuario tiene
-                        // que enterarse aunque el guardado fuera automático.
-                        Swal.fire("Error", "Hubo un problema al guardar el avance.", "error");
+                        // que enterarse aunque el guardado fuera automático. Y se muestra
+                        // el motivo que manda el servidor (response.error), que antes se
+                        // descartaba: sin él no había forma de saber qué apartado falló.
+                        Swal.fire("Error", response.error || "Hubo un problema al guardar el avance.", "error");
                         verificarCompletitud();
                     }
                 },
@@ -676,6 +782,29 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     $('#btnGuardarAvance').prop('disabled', false);
                     verificarCompletitud();
                 }
+            });
+        }
+
+        /**
+         * Avisa de las fotos que el servidor no pudo guardar.
+         *
+         * El guardado puede salir bien y aun así perderse una imagen (peso, escritura en
+         * disco). Cuando eso se callaba, el checklist se veía completo en pantalla y en la
+         * BD faltaban rutas: es el síntoma que se reportó desde producción.
+         */
+        function avisarFotosFallidas(response) {
+            var fallidas = (response && response.fotos_fallidas) || {};
+            var nombres = Object.keys(fallidas);
+            if (!nombres.length) return;
+
+            var detalle = nombres.map(function (k) {
+                return '<li><b>' + k.replace('foto_', '') + '</b>: ' + fallidas[k] + '</li>';
+            }).join('');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Hay fotos sin guardar',
+                html: 'Los datos sí se guardaron, pero estas fotos no:<ul class="text-start mt-2">' + detalle + '</ul>'
+                    + 'Vuelve a tomarlas antes de finalizar.'
             });
         }
 
@@ -724,6 +853,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
 
             // Ninguna foto de esta sesión sigue vigente para el checklist nuevo.
             fotosEnviadas.clear();
+            // Un avance encolado del vehículo anterior escribiría con los datos ya
+            // limpiados, así que se descarta al cambiar de checklist.
+            avanceEnCola = false;
 
             verificarCompletitud();
         }
@@ -1090,6 +1222,28 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         // crear un checklist nuevo en vez de continuar el borrador existente.
         var forzarChecklistNuevo = false;
 
+        // Compresiones de foto en curso. Comprimir es asíncrono y el guardado automático
+        // se dispara al cambiar de apartado, así que sin esto se podía mandar el FormData
+        // mientras la foto todavía se estaba comprimiendo y viajaba la original (o nada).
+        var compresionesPendientes = [];
+
+        /** Promesa de las compresiones en curso, o null si no hay ninguna. */
+        function esperarCompresiones() {
+            return compresionesPendientes.length ? Promise.all(compresionesPendientes.slice()) : null;
+        }
+
+        // Petición de guardado en vuelo (jqXHR) y avance en cola.
+        //
+        // Antes no había ningún control: irAPaso() dispara guardarAvance() en CADA cambio
+        // de apartado, los puntitos de progreso permiten saltar de golpe y el endpoint no
+        // usa sesión, así que dos peticiones corrían de verdad en paralelo. Mientras la
+        // primera estaba en vuelo, idChecklistActual seguía en 0, las dos entraban por el
+        // INSERT y se creaban DOS checklists para el mismo vehículo, con las fotos
+        // repartidas entre ambos. En la BD hay varios casos (veh 50 el 19/08 con tres
+        // checklists "completo" en 48 segundos).
+        var guardadoEnVuelo = null;
+        var avanceEnCola = false;
+
         function pasoTieneDatos(idx) {
             var slide = document.querySelectorAll('.chk-slide')[idx];
             if (!slide) return false;
@@ -1169,6 +1323,16 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // subirse y sustituya a la anterior en el servidor.
             fotosEnviadas.delete(input.name);
             var id = input.name.replace('foto_', '');
+
+            // El campo de ruta se limpia SIEMPRE al elegir foto nueva. Traía dos valores
+            // capaces de pisar la imagen recién subida en el guardado siguiente (que ya no
+            // manda el archivo, por fotosEnviadas):
+            //   '__BORRAR__' de quitarFoto()  -> el servidor la borraba
+            //   la ruta vieja de un borrador  -> el servidor volvía a la imagen anterior
+            // En los dos casos la pantalla seguía mostrando la foto nueva y la BD no.
+            var campoRuta = document.querySelector('input[name="ruta_foto_' + id + '"]');
+            if (campoRuta) campoRuta.value = '';
+
             var preview = document.getElementById('preview_foto_' + id);
             var captura = document.getElementById('captura_foto_' + id);
             var wrap = document.getElementById('wrap_foto_' + id);
@@ -1181,6 +1345,39 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 };
                 reader.readAsDataURL(file);
             }
+
+            // Se comprime AQUÍ, al elegirla, y se sustituye el archivo del input por el
+            // resultado. Así los guardados siguen siendo síncronos (no hay que esperar
+            // promesas al armar el FormData) y lo que viaja siempre es la versión ligera.
+            //
+            // Es el arreglo de fondo del bug reportado: una foto de celular pesa 3-8 MB y
+            // upload_max_filesize es 2 MB, así que PHP la descartaba, el servidor lo leía
+            // como "esta petición no traía foto", conservaba la columna y respondía OK.
+            // La pantalla decía "guardado" y la ruta nunca llegaba a la BD.
+            // Mismo patrón que ya usa qr_vehiculo.php.
+            if (typeof comprimirImagen === 'function' && typeof DataTransfer === 'function' && /^image\//.test(file.type)) {
+                var compresion = comprimirImagen(file, 1280, 0.7).then(function (blob) {
+                    // Si la compresión no da resultado o sale más pesada (imagen ya
+                    // pequeña), se deja la original: nunca empeorar lo que había.
+                    if (!blob || blob.size >= file.size) return;
+                    try {
+                        var dt = new DataTransfer();
+                        dt.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                        input.files = dt.files;
+                    } catch (e) {
+                        console.warn('No se pudo sustituir la foto por la comprimida:', e);
+                    }
+                }).catch(function (e) {
+                    console.warn('Falló la compresión de la foto:', e);
+                }).then(function () {
+                    // Sale de la lista pase lo que pase: si se quedara dentro, los
+                    // guardados esperarían para siempre una promesa ya resuelta.
+                    var i = compresionesPendientes.indexOf(compresion);
+                    if (i !== -1) compresionesPendientes.splice(i, 1);
+                });
+                compresionesPendientes.push(compresion);
+            }
+
             verificarCompletitud();
         });
 

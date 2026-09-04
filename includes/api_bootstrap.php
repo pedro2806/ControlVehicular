@@ -93,6 +93,54 @@ function obtenerUltimoKM($conn, $id_vehiculo) {
     return intval($row['km'] ?? 0);
 }
 
+/**
+ * Saldo vigente de la tarjeta de gasolina de un vehículo.
+ *
+ * El saldo NO se puede leer de la última fila de carga_gasolina: una reposición de
+ * crédito aprobada abre un ciclo nuevo en ciclos_tarjeta y NO inserta carga (no hubo
+ * carga física de combustible). Quien mire solo carga_gasolina sigue viendo el saldo
+ * agotado del ciclo anterior, que es justo lo que se reportó en pruebas: se aprueba la
+ * reposición y la pantalla —y el monto que se prellena en la siguiente carga— siguen
+ * mostrando el crédito viejo.
+ *
+ * Por eso el saldo sale del ciclo ABIERTO: la última carga de ESE ciclo, o su
+ * saldo_inicial si todavía no tiene cargas. Es la misma regla que ya aplicaba
+ * resolverCicloParaCarga() en acciones_gas.php para decidir a qué ciclo pertenece una
+ * carga nueva; aquí se centraliza para que lectura y escritura no diverjan.
+ *
+ * @return float|null null si el vehículo no tiene ningún ciclo abierto (nunca se le ha
+ *                    registrado crédito); quien llama decide el valor por defecto.
+ */
+function saldoActualTarjeta($conn, $id_vehiculo) {
+    $id = intval($id_vehiculo);
+    if ($id <= 0) return null;
+
+    $stmtCiclo = $conn->prepare(
+        "SELECT id_ciclo, saldo_inicial FROM ciclos_tarjeta
+         WHERE id_vehiculo = ? AND estatus = 'ABIERTO'
+         ORDER BY fecha_inicio DESC, id_ciclo DESC LIMIT 1"
+    );
+    if (!$stmtCiclo) { error_log("saldoActualTarjeta: prepare ciclo falló - " . $conn->error); return null; }
+    $stmtCiclo->bind_param("i", $id);
+    $stmtCiclo->execute();
+    $ciclo = $stmtCiclo->get_result()->fetch_assoc();
+    $stmtCiclo->close();
+
+    if (!$ciclo) return null;
+
+    $stmtCarga = $conn->prepare(
+        "SELECT saldo FROM carga_gasolina WHERE id_ciclo = ?
+         ORDER BY fecha_carga DESC, id DESC LIMIT 1"
+    );
+    if (!$stmtCarga) { error_log("saldoActualTarjeta: prepare carga falló - " . $conn->error); return (float) $ciclo['saldo_inicial']; }
+    $stmtCarga->bind_param("i", $ciclo['id_ciclo']);
+    $stmtCarga->execute();
+    $ultima = $stmtCarga->get_result()->fetch_assoc();
+    $stmtCarga->close();
+
+    return $ultima ? (float) $ultima['saldo'] : (float) $ciclo['saldo_inicial'];
+}
+
 $tieneVehiculo = false;
 if (!empty($_COOKIE['noEmpleadoL'])) {
     $connCV = new mysqli("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");

@@ -55,6 +55,15 @@ if (empty($_COOKIE['noEmpleado'])) {
                                     <option value="">Selecciona un vehículo</option>
                                 </select>
                             </div>
+                            <!-- Saldo VIGENTE de la tarjeta, que no es el de la última carga:
+                                 una reposición aprobada abre un ciclo nuevo sin registrar carga,
+                                 y hasta que no se cargue gasolina la tabla de abajo sigue
+                                 mostrando el saldo del ciclo anterior. Este badge es el único
+                                 lugar donde se ve el crédito con el que cuenta hoy la tarjeta. -->
+                            <div class="col-12 col-md-6 text-md-end" id="cajaSaldoTarjeta" style="display:none;">
+                                <label class="form-label small mb-1 d-block">Saldo actual de la tarjeta</label>
+                                <span class="badge fs-6" id="badgeSaldoTarjeta">—</span>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -351,8 +360,11 @@ function cargarHistorialVehiculo() {
         type: 'POST',
         data: { accion: 'obtenerHistorialGas', id_vehiculo: idVehSel },
         dataType: 'json',
-        success: function (data) {
-            if (!Array.isArray(data)) data = [];
+        success: function (resp) {
+            // El endpoint devuelve {registros, saldo_actual, solicitud_abierta}. Se valida
+            // el array aparte porque ante un error responde un objeto sin 'registros'.
+            var data = (resp && Array.isArray(resp.registros)) ? resp.registros : [];
+            var solicitudAbierta = !!(resp && resp.solicitud_abierta);
             tabla.clear();
 
             // La carga más reciente (mayor id) muestra el botón de reposición si es del usuario actual
@@ -361,7 +373,27 @@ function cargarHistorialVehiculo() {
             data.forEach(function (r) {
                 if (!latest || parseInt(r.id) > parseInt(latest.id)) latest = r;
             });
-            saldoSel = latest ? (parseFloat(latest.saldo) || 0) : 0;
+
+            // saldo_actual viene del ciclo de tarjeta abierto, no de la última carga: tras
+            // una reposición aprobada el ciclo nuevo ya tiene el crédito aunque todavía no
+            // exista una carga que lo refleje. Solo se cae al saldo de la última carga
+            // cuando el vehículo no tiene ningún ciclo (null).
+            var saldoTarjeta = (resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined)
+                ? parseFloat(resp.saldo_actual)
+                : (latest ? parseFloat(latest.saldo) : NaN);
+            if (isNaN(saldoTarjeta)) saldoTarjeta = 0;
+            saldoSel = saldoTarjeta;
+
+            if (data.length || (resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined)) {
+                $('#cajaSaldoTarjeta').show();
+                $('#badgeSaldoTarjeta')
+                    .text('$' + saldoTarjeta.toFixed(2))
+                    .attr('class', 'badge fs-6 ' + (saldoTarjeta <= 0
+                        ? 'bg-danger'
+                        : (saldoTarjeta < 500 ? 'bg-warning text-dark' : 'bg-success')));
+            } else {
+                $('#cajaSaldoTarjeta').hide();
+            }
 
             data.forEach(function (r) {
                 var saldo   = parseFloat(r.saldo) || 0;
@@ -380,12 +412,22 @@ function cargarHistorialVehiculo() {
 
                 var esUltimoPropio = latest && String(r.id) === String(latest.id)
                     && String(r.id_usuario) === String(currentUserId);
-                var btnRepos = esUltimoPropio
-                    ? '<button class="btn btn-outline-primary btn-sm" '
-                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldo.toFixed(2) + ',\'' + escHtml(placaSel) + '\')" '
+                // Con una solicitud ya en trámite el botón se deshabilita: en pruebas se
+                // mandaban varias seguidas porque al enviar la primera el botón se quedaba
+                // igual y parecía que no había pasado nada.
+                // El monto que viaja es saldoTarjeta (el del ciclo abierto), no el saldo
+                // histórico de la fila, que tras una reposición ya está desactualizado.
+                var btnRepos = '';
+                if (esUltimoPropio && solicitudAbierta) {
+                    btnRepos = '<button class="btn btn-outline-secondary btn-sm" disabled '
+                        + 'title="Ya hay una solicitud en trámite para este vehículo">'
+                        + '<i class="fas fa-hourglass-half me-1"></i>Solicitud enviada</button>';
+                } else if (esUltimoPropio) {
+                    btnRepos = '<button class="btn btn-outline-primary btn-sm" '
+                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldoTarjeta.toFixed(2) + ',\'' + escHtml(placaSel) + '\')" '
                         + 'title="Solicitar reposición de crédito">'
-                        + '<i class="fas fa-redo me-1"></i>Renovar</button>'
-                    : '';
+                        + '<i class="fas fa-redo me-1"></i>Reposición de crédito</button>';
+                }
 
                 // Cliente y OT/OV en una sola celda. Cuando no hay ninguno se pone un guion
                 // en vez de dejarla vacía, para que se lea como "sin dato" y no como error.
@@ -411,7 +453,7 @@ function cargarHistorialVehiculo() {
             });
 
             tabla.draw(false);
-            toggleBotones(data.length > 0);
+            toggleBotones(data.length > 0, solicitudAbierta);
         },
         error: function () {
             Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el historial.' });
@@ -419,8 +461,14 @@ function cargarHistorialVehiculo() {
     });
 }
 
-function toggleBotones(activo) {
-    $('#btnDescargar, #btnReposicion').prop('disabled', !activo);
+function toggleBotones(activo, solicitudAbierta) {
+    $('#btnDescargar').prop('disabled', !activo);
+    // El de reposición además se bloquea mientras haya una solicitud en trámite, igual
+    // que el botón de la fila. El servidor la rechaza de todos modos, pero el usuario
+    // debe ver por qué antes de mandarla.
+    $('#btnReposicion')
+        .prop('disabled', !activo || !!solicitudAbierta)
+        .attr('title', solicitudAbierta ? 'Ya hay una solicitud en trámite para este vehículo' : '');
 }
 
 function solicitarReposicion(id_vehiculo, saldo, placa) {
@@ -449,7 +497,13 @@ function solicitarReposicion(id_vehiculo, saldo, placa) {
                 });
                 // Se refresca el seguimiento para que la solicitud recién hecha aparezca
                 // de inmediato; si no, habría que recargar la página para verla.
-                if (resp.status === 'success') cargarMisSolicitudes();
+                // Y también el historial: ahí vive el botón de reposición, que tiene que
+                // pasar a "Solicitud enviada". Sin esto el botón se quedaba intacto y se
+                // podían mandar solicitudes repetidas sin darse cuenta.
+                if (resp.status === 'success') {
+                    cargarMisSolicitudes();
+                    cargarHistorialVehiculo();
+                }
             },
             error: function () {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });
@@ -485,7 +539,13 @@ function solicitarReposicionVehiculo() {
                 });
                 // Se refresca el seguimiento para que la solicitud recién hecha aparezca
                 // de inmediato; si no, habría que recargar la página para verla.
-                if (resp.status === 'success') cargarMisSolicitudes();
+                // Y también el historial: ahí vive el botón de reposición, que tiene que
+                // pasar a "Solicitud enviada". Sin esto el botón se quedaba intacto y se
+                // podían mandar solicitudes repetidas sin darse cuenta.
+                if (resp.status === 'success') {
+                    cargarMisSolicitudes();
+                    cargarHistorialVehiculo();
+                }
             },
             error: function () {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });

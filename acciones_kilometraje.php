@@ -117,24 +117,28 @@ if ($accion == 'tomaKm'){
 
     $IDvehiculoAsignado = intval($_POST['IDvehiculoAsignado'] ?? 0);
 
-    // Subconsultas escalares independientes: SIEMPRE devuelve 1 fila (con NULL donde
-    // no haya datos). Antes usaba INNER JOIN actividad_vehiculo + carga_gasolina, que
-    // devolvía 0 filas (y error) si el vehículo aún no tenía actividad NI cargas.
-    //   gasolina_actual = nivel de gasolina de la última actividad
-    //   saldo           = saldo de la última carga de gasolina (si hay)
+    // Subconsulta escalar: SIEMPRE devuelve 1 fila (con NULL donde no haya datos). Antes
+    // usaba INNER JOIN actividad_vehiculo + carga_gasolina, que devolvía 0 filas (y
+    // error) si el vehículo aún no tenía actividad NI cargas.
     $stmt = $conn->prepare(
         "SELECT
             (SELECT av.gasolina_actual FROM actividad_vehiculo av
              WHERE av.id_vehiculo = ?
-             ORDER BY av.id_actividad DESC LIMIT 1) AS gasolina_actual,
-            (SELECT cg.saldo FROM carga_gasolina cg
-             WHERE cg.id_vehiculo = ?
-             ORDER BY cg.id DESC LIMIT 1) AS saldo"
+             ORDER BY av.id_actividad DESC LIMIT 1) AS gasolina_actual"
     );
-    $stmt->bind_param("ii", $IDvehiculoAsignado, $IDvehiculoAsignado);
+    $stmt->bind_param("i", $IDvehiculoAsignado);
     $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc() ?: ['gasolina_actual' => null, 'saldo' => null];
+    $row = $stmt->get_result()->fetch_assoc() ?: ['gasolina_actual' => null];
     $stmt->close();
+
+    // El saldo ya NO sale de la última fila de carga_gasolina. Una reposición aprobada
+    // abre ciclo nuevo en ciclos_tarjeta sin insertar carga, así que esa consulta seguía
+    // devolviendo el saldo agotado del ciclo anterior: verPlaca() (js/global/vehiculos.js)
+    // prellenaba el monto con el crédito viejo y había que corregirlo a mano.
+    // saldoActualTarjeta() (includes/api_bootstrap.php) devuelve el saldo del ciclo
+    // abierto; null cuando el vehículo no tiene ciclo, y ahí verPlaca cae al crédito
+    // estándar como siempre.
+    $row['saldo'] = saldoActualTarjeta($conn, $IDvehiculoAsignado);
 
     // kmMax sale del helper compartido (includes/api_bootstrap.php), que mira las TRES
     // fuentes de odómetro y devuelve la lectura más reciente. Antes esta consulta solo

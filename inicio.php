@@ -80,13 +80,17 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                                     <i class="fas fa-file-pdf fa-2x text-danger"></i>
                                     <div class="flex-grow-1">
                                         <div class="fw-bold">Manual de usuario</div>
-                                        <div class="small text-muted">Guía de uso del sistema de Control Vehicular.</div>
+                                        <div class="small text-muted">Guía de uso de QRide.</div>
                                     </div>
-                                    <a href="img/Manual Control Vehicular.pdf" download
+                                    <!-- El nombre del archivo no lleva espacios: el anterior
+                                         ("Manual Control Vehicular.pdf") viajaba con %20 en la
+                                         URL y hay clientes de correo y lectores de QR que
+                                         cortan el enlace en el espacio. -->
+                                    <a href="img/Manual_de_Usuario_QRide.pdf" download
                                        class="btn btn-primary btn-sm">
                                         <i class="fas fa-download me-1"></i> Descargar
                                     </a>
-                                    <a href="img/Manual Control Vehicular.pdf" target="_blank" rel="noopener"
+                                    <a href="img/Manual_de_Usuario_QRide.pdf" target="_blank" rel="noopener"
                                        class="btn btn-outline-secondary btn-sm">
                                         <i class="fas fa-up-right-from-square me-1"></i> Abrir
                                     </a>

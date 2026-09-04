@@ -333,8 +333,16 @@
         });
 
         //FUNCION REGISTRO DE LA DOCUMENTACION
+        // Cerrojo de envío. Registrar documentación sube hasta 5 fotos y tarda; como el
+        // botón no daba ninguna señal de que se había pulsado, la gente volvía a picarle y
+        // cada clic mandaba otro POST completo: así salieron registros duplicados en la BD.
+        var registrandoDocumentos = false;
+
         function RegistrarDocumentos() {
+            if (registrandoDocumentos) return;
+
             var formData = new FormData();
+            var archivos = [];   // {campo, file} a comprimir antes de enviar
             var id_vehiculo = $("#id_vehiculo").val();
             var fecha_registro = $("#fecha").val();
             let id_usuario = getCookie("id_usuario");
@@ -365,7 +373,7 @@
                     });
                     return;
                 }
-                formData.append("archivoCirculacion", archivoCirculacion);
+                archivos.push({ campo: "archivoCirculacion", file: archivoCirculacion });
             }
             
             if ($("#licencia").is(":checked")) {
@@ -379,7 +387,7 @@
                     });
                     return;
                 }
-                formData.append("archivoLicencia", archivoLicencia);
+                archivos.push({ campo: "archivoLicencia", file: archivoLicencia });
             }
 
             if ($("#refrendo").is(":checked")) {
@@ -393,7 +401,7 @@
                     });
                     return;
                 }
-                formData.append("archivoRefrendo", archivoRefrendo);
+                archivos.push({ campo: "archivoRefrendo", file: archivoRefrendo });
             }
 
             if ($("#poliza").is(":checked")) {
@@ -407,7 +415,7 @@
                     });
                     return;
                 }
-                formData.append("archivoPoliza", archivoPoliza);
+                archivos.push({ campo: "archivoPoliza", file: archivoPoliza });
             }
 
             if ($("#verificacion").is(":checked")) {
@@ -421,7 +429,7 @@
                     });
                     return;
                 }
-                formData.append("archivoVerificacion", archivoVerificacion);
+                archivos.push({ campo: "archivoVerificacion", file: archivoVerificacion });
             }
 
             // Agregar otros datos al FormData
@@ -433,6 +441,50 @@
             formData.append("placa", placa);
             formData.append("accion", "RegistrarDocumentos");
 
+            // Cerrojo + señal visible ANTES de empezar. Subir 5 fotos desde el celular
+            // tarda, y sin esto el botón se veía igual que si no se hubiera pulsado.
+            registrandoDocumentos = true;
+            $("#btnGuardarDocumentos").prop("disabled", true);
+            Swal.fire({
+                title: 'Guardando documentación...',
+                text: 'Estamos subiendo los archivos. No cierres esta pantalla.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: function () { Swal.showLoading(); }
+            });
+
+            function liberarBotonDocumentos() {
+                registrandoDocumentos = false;
+                $("#btnGuardarDocumentos").prop("disabled", false);
+            }
+
+            // Las fotos de documentos vienen de la cámara y pesan varios MB; sin comprimir
+            // se excede el límite de subida del servidor. comprimirImagen() siempre
+            // resuelve (con null si no pudo), así que esto no se puede quedar colgado.
+            // Los PDF no se tocan: comprimirImagen solo sabe de imágenes.
+            var compresiones = archivos.map(function (a) {
+                if (typeof comprimirImagen !== 'function' || !/^image\//.test(a.file.type)) {
+                    return Promise.resolve(a);
+                }
+                return comprimirImagen(a.file, 1600, 0.75).then(function (blob) {
+                    if (blob && blob.size < a.file.size) {
+                        return { campo: a.campo, file: blob, nombre: a.campo + '.jpg' };
+                    }
+                    return a;
+                });
+            });
+
+            Promise.all(compresiones).then(function (listos) {
+                listos.forEach(function (a) {
+                    // El nombre explícito es obligatorio al mandar un Blob: sin él viaja
+                    // como "blob", sin extensión, y el servidor no sabe qué tipo es.
+                    if (a.nombre) formData.append(a.campo, a.file, a.nombre);
+                    else formData.append(a.campo, a.file);
+                });
+                enviarDocumentos();
+            });
+
+            function enviarDocumentos() {
             $.ajax({
                 type: "POST",
                 url: "acciones_documentacion.php",
@@ -442,6 +494,7 @@
                 dataType: 'json',
                 success: function (respuesta) {
                     //console.log("Respuesta del servidor:", respuesta); // Depuración
+                    Swal.close();
                     if (respuesta.success) {
                         Swal.fire({
                             icon: 'success',
@@ -460,6 +513,7 @@
                             window.location.href = "seguimiento_documentacion";
                         });
                     } else {
+                        liberarBotonDocumentos();
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
@@ -469,15 +523,25 @@
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error("Error en la solicitud:", error);
+                    console.error("Error en la solicitud:", xhr.status, status, error, xhr.responseText);
+                    Swal.close();
+                    liberarBotonDocumentos();
+                    // Se muestra el detalle real (código HTTP y lo que devolvió el
+                    // servidor). Con el mensaje genérico no había forma de distinguir un
+                    // rechazo por tamaño de un error de PHP desde el celular.
+                    var cuerpo = String(xhr.responseText || '').replace(/<[^>]*>/g, ' ')
+                                                               .replace(/\s+/g, ' ').trim().slice(0, 300);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: 'Hubo un problema al registrar la documentación.',
-                        confirmButtonText: 'Aceptar'
+                        html: 'Hubo un problema al registrar la documentación.'
+                            + '<div class="small text-muted mt-3" style="text-align:left; word-break:break-word;">'
+                            + 'HTTP ' + xhr.status + (status ? ' · ' + status : '')
+                            + (cuerpo ? '<br>' + cuerpo : '') + '</div>'
                     });
                 }
             });
+            }
         }
 
         //FUNCION PARA MANEJAR CARPETAS Y FOTO

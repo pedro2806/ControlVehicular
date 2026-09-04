@@ -548,8 +548,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             var enviadasAhora = [];
             $('input[type="file"]').each(function () {
                 var nombre = $(this).attr('name');
-                if ($(this)[0].files.length > 0 && !fotosEnviadas.has(nombre)) {
-                    formData.append(nombre, $(this)[0].files[0]);
+                if (this.files.length > 0 && !fotosEnviadas.has(nombre)) {
+                    // archivoParaEnviar() da el blob comprimido cuando lo hay. El tercer
+                    // argumento es el nombre de archivo, obligatorio al mandar un Blob: sin
+                    // él el navegador lo envía como "blob", sin extensión, y pathinfo() en
+                    // el servidor no podría armar el nombre final de la imagen.
+                    formData.append(nombre, archivoParaEnviar(this), nombre + '.jpg');
                     enviadasAhora.push(nombre);
                 }
             });
@@ -584,14 +588,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             });
 
             // Enviar datos mediante AJAX
-            guardadoEnVuelo = $.ajax({
+            var peticionFinal = $.ajax({
                 url: 'AccionesCheckVehiculo.php',
                 method: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 dataType: 'json',
-                complete: function () { guardadoEnVuelo = null; },
                 success: function(response) {
                     Swal.close();
 
@@ -625,14 +628,25 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         verificarCompletitud();
                     }
                 },
-                error: function(jqXHR, textStatus, errorThrown) {
+                error: function(jqXHR, textStatus) {
                     Swal.close();
-                    Swal.fire("Error", "No se pudo completar la solicitud. Por favor, inténtalo más tarde.", "error");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: 'No se pudo completar la solicitud. Por favor, inténtalo más tarde.'
+                            + detalleFalloAjax(jqXHR, textStatus)
+                    });
                     $('#btnguardarCheck, #btnGuardarAvance, #btnSiguiente').prop('disabled', false);
                     verificarCompletitud();
                 }
             });
-            
+
+            // Mismo patrón que guardarAvance: el cerrojo se engancha a la petición ya
+            // creada, para que no pueda quedarse puesto si jQuery termina antes de tiempo.
+            guardadoEnVuelo = peticionFinal;
+            peticionFinal.always(function () {
+                if (guardadoEnVuelo === peticionFinal) guardadoEnVuelo = null;
+            });
         }
 
         /**
@@ -695,8 +709,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             var enviadasAhora = [];
             $('input[type="file"]').each(function () {
                 var nombre = $(this).attr('name');
-                if ($(this)[0].files.length > 0 && !fotosEnviadas.has(nombre)) {
-                    formData.append(nombre, $(this)[0].files[0]);
+                if (this.files.length > 0 && !fotosEnviadas.has(nombre)) {
+                    // archivoParaEnviar() da el blob comprimido cuando lo hay. El tercer
+                    // argumento es el nombre de archivo, obligatorio al mandar un Blob: sin
+                    // él el navegador lo envía como "blob", sin extensión, y pathinfo() en
+                    // el servidor no podría armar el nombre final de la imagen.
+                    formData.append(nombre, archivoParaEnviar(this), nombre + '.jpg');
                     enviadasAhora.push(nombre);
                 }
             });
@@ -720,18 +738,13 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                 });
             }
 
-            guardadoEnVuelo = $.ajax({
+            var peticionAvance = $.ajax({
                 url: 'AccionesCheckVehiculo.php',
                 method: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 dataType: 'json',
-                complete: function () {
-                    guardadoEnVuelo = null;
-                    // Se atiende el avance que quedó en cola mientras este iba en camino.
-                    if (avanceEnCola) { avanceEnCola = false; guardarAvance(true); }
-                },
                 success: function(response) {
                     if (!silencioso) Swal.close();
                     $('#btnGuardarAvance').prop('disabled', false);
@@ -776,13 +789,59 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         verificarCompletitud();
                     }
                 },
-                error: function() {
+                error: function(jqXHR, textStatus) {
                     if (!silencioso) Swal.close();
-                    Swal.fire("Error", "No se pudo completar la solicitud.", "error");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        html: 'No se pudo completar la solicitud.'
+                            + detalleFalloAjax(jqXHR, textStatus)
+                    });
                     $('#btnGuardarAvance').prop('disabled', false);
                     verificarCompletitud();
                 }
             });
+
+            // El cerrojo se marca DESPUÉS de crear la petición y se libera con .always()
+            // enganchado a esa misma petición. Con `complete:` dentro de las opciones había
+            // un caso en que jQuery lo ejecutaba antes de que la asignación ocurriera (un
+            // fallo inmediato, sin red): se limpiaba una variable todavía vacía y enseguida
+            // se le asignaba la petición ya terminada, dejando el cerrojo puesto para
+            // siempre y el checklist sin volver a guardar en toda la sesión.
+            guardadoEnVuelo = peticionAvance;
+            peticionAvance.always(function () {
+                if (guardadoEnVuelo === peticionAvance) guardadoEnVuelo = null;
+                // Se atiende el avance que quedó en cola mientras este iba en camino.
+                if (avanceEnCola) { avanceEnCola = false; guardarAvance(true); }
+            });
+        }
+
+        /**
+         * Detalle técnico de un fallo de AJAX, para poder diagnosticarlo desde el celular.
+         *
+         * El callback error: de jQuery salta cuando la petición no llegó, devolvió un
+         * código HTTP de error, o respondió algo que no es JSON. Los tres casos se veían
+         * igual ("No se pudo completar la solicitud") y no había forma de distinguirlos sin
+         * abrir las herramientas de desarrollo, que en un celular no están a la mano.
+         *
+         * Casos típicos que ahora quedan a la vista:
+         *   HTTP 413        -> el servidor web rechazó el envío por tamaño, antes de PHP
+         *   HTTP 500        -> error fatal de PHP (el texto trae el mensaje)
+         *   HTTP 0 / abort  -> se cortó la conexión (subida larga en datos móviles)
+         *   parsererror     -> PHP imprimió un warning/HTML junto al JSON
+         */
+        function detalleFalloAjax(jqXHR, textStatus) {
+            var estado = jqXHR ? jqXHR.status : 0;
+            var cuerpo = (jqXHR && jqXHR.responseText) ? String(jqXHR.responseText) : '';
+            // Se quitan etiquetas para que un error en HTML no se renderice dentro del modal.
+            var limpio = cuerpo.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+
+            var partes = ['HTTP ' + estado + (textStatus ? ' · ' + textStatus : '')];
+            if (limpio) partes.push(limpio);
+
+            console.error('Fallo al guardar el checklist:', estado, textStatus, cuerpo);
+            return '<div class="small text-muted mt-3" style="text-align:left; word-break:break-word;">'
+                 + partes.join('<br>') + '</div>';
         }
 
         /**
@@ -1232,6 +1291,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             return compresionesPendientes.length ? Promise.all(compresionesPendientes.slice()) : null;
         }
 
+        // Versión comprimida de cada foto, por nombre de input (foto_Asientos, ...).
+        //
+        // Antes se intentaba sustituir el archivo dentro del propio <input> usando
+        // DataTransfer. En Safari de iOS asignar input.files no funciona de forma
+        // confiable: la sustitución no ocurría, viajaba el JPEG original de 3-8 MB y el
+        // envío moría contra los límites del servidor. Justo el caso de las pruebas, que
+        // se hicieron desde iPhone. Guardando el blob aparte no se depende de esa API.
+        var fotosComprimidas = {};
+
+        /** Lo que debe viajar para un input: el blob comprimido si existe, si no el original. */
+        function archivoParaEnviar(input) {
+            if (fotosComprimidas[input.name]) return fotosComprimidas[input.name];
+            return input.files.length > 0 ? input.files[0] : null;
+        }
+
         // Petición de guardado en vuelo (jqXHR) y avance en cola.
         //
         // Antes no había ningún control: irAPaso() dispara guardarAvance() en CADA cambio
@@ -1355,23 +1429,19 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
             // como "esta petición no traía foto", conservaba la columna y respondía OK.
             // La pantalla decía "guardado" y la ruta nunca llegaba a la BD.
             // Mismo patrón que ya usa qr_vehiculo.php.
-            if (typeof comprimirImagen === 'function' && typeof DataTransfer === 'function' && /^image\//.test(file.type)) {
+            delete fotosComprimidas[input.name];
+            if (typeof comprimirImagen === 'function') {
                 var compresion = comprimirImagen(file, 1280, 0.7).then(function (blob) {
-                    // Si la compresión no da resultado o sale más pesada (imagen ya
-                    // pequeña), se deja la original: nunca empeorar lo que había.
-                    if (!blob || blob.size >= file.size) return;
-                    try {
-                        var dt = new DataTransfer();
-                        dt.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
-                        input.files = dt.files;
-                    } catch (e) {
-                        console.warn('No se pudo sustituir la foto por la comprimida:', e);
+                    // Si no se pudo comprimir o sale más pesada (imagen ya pequeña), se
+                    // deja la original: nunca empeorar lo que había.
+                    if (blob && blob.size < file.size) {
+                        fotosComprimidas[input.name] = blob;
                     }
                 }).catch(function (e) {
                     console.warn('Falló la compresión de la foto:', e);
                 }).then(function () {
                     // Sale de la lista pase lo que pase: si se quedara dentro, los
-                    // guardados esperarían para siempre una promesa ya resuelta.
+                    // guardados esperarían para siempre por una promesa ya resuelta.
                     var i = compresionesPendientes.indexOf(compresion);
                     if (i !== -1) compresionesPendientes.splice(i, 1);
                 });

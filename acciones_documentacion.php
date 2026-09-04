@@ -28,6 +28,32 @@ if ($accion == "RegistrarDocumentos") {
         exit;
     }
 
+    // Barrera contra el doble registro. Subir los documentos tarda y el botón no daba
+    // señal de haberse pulsado, así que la gente le picaba varias veces y cada clic
+    // insertaba otra fila: en producción salieron registros duplicados del mismo vehículo.
+    // La vista ya bloquea el botón, pero la barrera de verdad tiene que estar aquí, que es
+    // quien escribe. Se usa una ventana de 2 minutos: cubre el reenvío por impaciencia sin
+    // impedir que más tarde se vuelva a registrar documentación del mismo vehículo.
+    $stmtDup = $conn->prepare(
+        "SELECT id FROM documentacion
+          WHERE id_vehiculo = ? AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+          LIMIT 1"
+    );
+    if ($stmtDup) {
+        $idVehDup = intval($id_vehiculo);
+        $stmtDup->bind_param("i", $idVehDup);
+        $stmtDup->execute();
+        $yaRegistrado = $stmtDup->get_result()->fetch_assoc();
+        $stmtDup->close();
+        if ($yaRegistrado) {
+            echo json_encode([
+                "success" => false,
+                "message" => "La documentación de este vehículo acaba de registrarse. Revisa el seguimiento antes de volver a guardar."
+            ]);
+            exit;
+        }
+    }
+
     // Crear la carpeta principal con el nombre de la placa si no existe
     if (!file_exists($rutaPlaca)) {
         mkdir($rutaPlaca, 0777, true);

@@ -410,7 +410,36 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                 $registros[] = $row;
             }
             $stmt->close();
-            echo json_encode($registros);
+
+            // El saldo de la tarjeta NO es el de la última carga: una reposición
+            // aprobada abre ciclo nuevo sin insertar carga, así que la última fila de
+            // carga_gasolina sigue trayendo el saldo agotado del ciclo anterior.
+            // saldoActualTarjeta() (includes/api_bootstrap.php) lo resuelve contra el
+            // ciclo abierto. Se manda aparte de los registros para que la vista pinte el
+            // saldo real sin tener que inventar una fila de carga que no existió.
+            $saldoTarjeta = saldoActualTarjeta($conn, $idVeh);
+
+            // Si ya hay una solicitud abierta, el botón de reposición debe salir
+            // deshabilitado: sin esto se podían mandar varias solicitudes seguidas para
+            // el mismo vehículo porque nada en la pantalla cambiaba al enviarla.
+            $solicitudAbierta = false;
+            $stmtSol = $conn->prepare(
+                "SELECT 1 FROM solicitudes_gas
+                 WHERE id_vehiculo = ? AND estatus IN ('PENDIENTE', 'PARCIAL') LIMIT 1"
+            );
+            if ($stmtSol) {
+                $stmtSol->bind_param("i", $idVeh);
+                $stmtSol->execute();
+                $solicitudAbierta = (bool) $stmtSol->get_result()->fetch_assoc();
+                $stmtSol->close();
+            }
+
+            echo json_encode([
+                'status'            => 'success',
+                'registros'         => $registros,
+                'saldo_actual'      => $saldoTarjeta,
+                'solicitud_abierta' => $solicitudAbierta
+            ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => $conn->error]);
         }
@@ -459,6 +488,29 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $id_vehiculo_req = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
         $saldo_actual    = isset($_POST['saldo'])       ? floatval($_POST['saldo'])       : 0;
         $noEmp           = $_COOKIE['noEmpleado'] ?? '';
+
+        // Una solicitud abierta a la vez por vehículo. En pruebas se mandaron varias
+        // seguidas porque al enviar la primera nada cambiaba en pantalla (el botón seguía
+        // igual), y el encargado recibía correos duplicados de la misma tarjeta. La vista
+        // ya deshabilita el botón, pero la barrera tiene que estar en el servidor: es
+        // quien decide, y el botón se puede reactivar desde el navegador.
+        $stmtDup = $conn->prepare(
+            "SELECT id FROM solicitudes_gas
+             WHERE id_vehiculo = ? AND estatus IN ('PENDIENTE', 'PARCIAL') LIMIT 1"
+        );
+        if ($stmtDup) {
+            $stmtDup->bind_param("i", $id_vehiculo_req);
+            $stmtDup->execute();
+            $yaAbierta = $stmtDup->get_result()->fetch_assoc();
+            $stmtDup->close();
+            if ($yaAbierta) {
+                echo json_encode([
+                    'status'  => 'error',
+                    'message' => 'Este vehículo ya tiene una solicitud de reposición en trámite.'
+                ]);
+                exit;
+            }
+        }
 
         $stmt = $conn->prepare("SELECT nombre FROM usuarios WHERE noEmpleado = ?");
         $stmt->bind_param("s", $noEmp);

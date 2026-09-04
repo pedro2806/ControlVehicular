@@ -158,10 +158,10 @@
         </a>
         <div id="collapseMantenimiento" class="collapse" aria-labelledby="headingMantenimiento" data-bs-parent="#accordionSidebar">
             <div class="py-2 collapse-inner">
-                <a class="collapse-item" href="mantenimiento">Registrar Mantenimiento</a>
-                <a class="collapse-item" href="seguimiento_mantenimiento">Seg. Mantenimientos</a>
+                <a class="collapse-item" href="mantenimiento">Registrar Mant.</a>
+                <a class="collapse-item" href="seguimiento_mantenimiento">Seguimiento Mant.</a>
                 <?php if ($puedeAutorizarMant): ?>
-                    <a class="collapse-item" href="autorizar_mantenimiento">Aut. Mantenimientos</a>
+                    <a class="collapse-item" href="autorizar_mantenimiento">Autorizar Mant.</a>
                 <?php endif; ?>
             </div>
         </div>

@@ -1,6 +1,21 @@
 <?php
 include 'includes/api_bootstrap.php';
 
+// Cuando la petición pesa más que post_max_size, PHP VACÍA $_POST y $_FILES antes de que
+// este archivo corra: $opcion queda vacía, no entra a ningún bloque, el script termina
+// sin imprimir nada y jQuery (dataType:'json') cae en el callback error con el mensaje
+// genérico "No se pudo completar la solicitud", sin decir qué pasó. Aquí se detecta —
+// cuerpo enviado pero sin datos parseados— y se responde algo accionable.
+if (empty($_POST) && empty($_FILES) && intval($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    $limite = ini_get('post_max_size');
+    error_log("Checklist: petición descartada por exceder post_max_size ($limite); CONTENT_LENGTH=" . $_SERVER['CONTENT_LENGTH']);
+    echo json_encode([
+        "error" => "Las fotos pesan más de lo que admite el servidor (límite $limite por envío). "
+                 . "Guarda el avance con menos fotos a la vez o vuelve a tomarlas con menor resolución."
+    ]);
+    exit;
+}
+
 $opcion = $_POST['opcion'] ?? '';
 $id_usuario = $_COOKIE['id_usuario'] ?? null;
 $no_empleado = intval($_POST['cookieNoEmpleado'] ?? ($_COOKIE['noEmpleado'] ?? 0));
@@ -205,6 +220,30 @@ $placa = getPostOrSR('placa');
 $id_coche = getPostOrSR('id_coche');
 $motivo = getPostOrSR('motivo');
 
+// La placa arma la carpeta y el nombre de archivo de TODAS las fotos del checklist
+// (getFotoInfo). Cuando no llegaba, las rutas quedaban como
+// "img_control_vehicular//checklist/faros/_checklist_Faros_20260819_110245.jpeg": sin
+// carpeta de vehículo y sin prefijo, así que dos fotos del mismo apartado tomadas en el
+// mismo segundo se pisaban entre vehículos distintos. El cliente ya la manda en un
+// hidden, pero se resuelve también aquí desde la BD: es el dato de la tabla y no depende
+// de que la vista lo mande bien. Mismo criterio que acciones_kilometraje.php.
+if (trim($placa) === '' && intval($id_coche) > 0) {
+    $stmtPlacaChk = $conn->prepare("SELECT placa FROM inventario WHERE id_vehiculo = ? LIMIT 1");
+    if ($stmtPlacaChk) {
+        $idVehChk = intval($id_coche);
+        $stmtPlacaChk->bind_param("i", $idVehChk);
+        $stmtPlacaChk->execute();
+        $rowPlacaChk = $stmtPlacaChk->get_result()->fetch_assoc();
+        $stmtPlacaChk->close();
+        if ($rowPlacaChk && trim((string) $rowPlacaChk['placa']) !== '') {
+            $placa = $rowPlacaChk['placa'];
+        }
+    }
+    if (trim($placa) === '') {
+        error_log("Checklist: no se pudo resolver la placa del vehículo $id_coche; las fotos se guardarían sin carpeta.");
+    }
+}
+
 $si_no_asientos = getPostOrSR('si_no_Asientos');
 $buenEstado_Asientos = getPostOrSR('buenEstado_Asientos');
 $observaciones_Asientos = getPostOrSR('observaciones_Asientos');
@@ -294,7 +333,38 @@ function obtenerRutaImagen($placa, $tipo, $archivo) {
     return "S-R.jpg";
 }
 
+/**
+ * Fotos que el navegador intentó subir y PHP rechazó, para devolverlas en la respuesta.
+ *
+ * Antes esto no existía y era el fallo más caro del módulo: una foto de celular de 3-8 MB
+ * excede upload_max_filesize (2M), PHP la descarta, getFotoInfo() lo interpretaba como
+ * "esta petición no traía foto", la columna se conservaba intacta y el endpoint respondía
+ * success. El usuario veía "guardado" y la BD nunca recibía la ruta.
+ */
+$FOTOS_FALLIDAS = [];
+
+/** Traduce el código de $_FILES a algo que el usuario pueda entender. */
+function motivoErrorSubida($codigo) {
+    switch ($codigo) {
+        case UPLOAD_ERR_INI_SIZE:
+        case UPLOAD_ERR_FORM_SIZE:
+            return 'la foto pesa más de lo que admite el servidor';
+        case UPLOAD_ERR_PARTIAL:
+            return 'la subida se interrumpió a media carga';
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return 'el servidor no tiene carpeta temporal';
+        case UPLOAD_ERR_CANT_WRITE:
+            return 'el servidor no pudo escribir el archivo';
+        case UPLOAD_ERR_EXTENSION:
+            return 'una extensión de PHP bloqueó la subida';
+        default:
+            return 'error desconocido de subida (código ' . intval($codigo) . ')';
+    }
+}
+
 function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
+    global $FOTOS_FALLIDAS;
+
     $archivo = $_FILES[$fileKey] ?? null;
     if ($archivo && $archivo['error'] == UPLOAD_ERR_OK) {
         $ext = pathinfo($archivo['name'], PATHINFO_EXTENSION);
@@ -302,6 +372,15 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
         $dir = "img_control_vehicular/{$placa}/checklist/{$subdir}";
         return ['ruta' => "{$dir}/{$nombre}", 'dir' => $dir, 'nombre' => $nombre, 'tmp' => $archivo['tmp_name'], 'subir' => true];
     }
+
+    // El navegador mandó archivo pero PHP lo rechazó. NO es lo mismo que "no venía foto":
+    // hay que decirlo, o el usuario se queda creyendo que la guardó.
+    if ($archivo && $archivo['error'] != UPLOAD_ERR_NO_FILE) {
+        $motivo = motivoErrorSubida($archivo['error']);
+        $FOTOS_FALLIDAS[$fileKey] = $motivo;
+        error_log("Checklist: falló la subida de $fileKey ($tipo) - $motivo");
+    }
+
     $rutaExistente = !empty($_POST["ruta_{$fileKey}"]) ? $_POST["ruta_{$fileKey}"] : null;
 
     // Centinela que manda quitarFoto() en checkVehiculo.php. Distingue "el usuario quitó
@@ -314,32 +393,68 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
     return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false];
 }
 
+/**
+ * Deja la foto en disco. Devuelve true solo si el archivo quedó escrito.
+ *
+ * Antes no devolvía nada y quien la llamaba ignoraba el resultado: si mkdir o la escritura
+ * fallaban, la BD se quedaba con una ruta que apuntaba a un archivo inexistente.
+ */
 function subirImagenAsientos($rutaChecklist, $rutaImagen, $tempFilePath) {
-    if (!is_dir($rutaChecklist)) { mkdir($rutaChecklist, 0775, true); }
+    if (!is_dir($rutaChecklist) && !mkdir($rutaChecklist, 0775, true) && !is_dir($rutaChecklist)) {
+        error_log("Checklist: no se pudo crear la carpeta $rutaChecklist");
+        return false;
+    }
     $destino = $rutaChecklist . "/" . basename($rutaImagen);
-    reducirPesoImagen($tempFilePath, $destino);
+    if (!reducirPesoImagen($tempFilePath, $destino)) {
+        error_log("Checklist: no se pudo escribir la foto en $destino");
+        return false;
+    }
+    return true;
 }
 
 function reducirPesoImagen($origen, $destino, $calidad = 75) {
-    $info = getimagesize($origen);
-    if ($info === false) { move_uploaded_file($origen, $destino); return; }
+    $info = @getimagesize($origen);
+    // Sin datos de imagen (HEIC de iPhone renombrado a .jpg, archivo corrupto) se mueve
+    // tal cual: vale más guardarlo sin comprimir que perderlo.
+    if ($info === false) { return move_uploaded_file($origen, $destino); }
+
     $mime = $info['mime'];
+    // imagecreatefrom* devuelve false con un archivo que no corresponde a su mime, y en
+    // PHP 8 pasarle ese false a imagejpeg lanza TypeError: petición muerta a media
+    // iteración de secciones, con lo ya procesado guardado y el resto no. De ahí salían
+    // checklists "completos" a los que les faltaban apartados.
     if ($mime == 'image/jpeg') {
-        $image = imagecreatefromjpeg($origen);
-        imagejpeg($image, $destino, $calidad);
+        $image = @imagecreatefromjpeg($origen);
+        if (!$image) { return move_uploaded_file($origen, $destino); }
+        $ok = imagejpeg($image, $destino, $calidad);
         imagedestroy($image);
-    } elseif ($mime == 'image/png') {
-        $image = imagecreatefrompng($origen);
-        imagepng($image, $destino, 7);
-        imagedestroy($image);
-    } else {
-        move_uploaded_file($origen, $destino);
+        return $ok;
     }
+    if ($mime == 'image/png') {
+        $image = @imagecreatefrompng($origen);
+        if (!$image) { return move_uploaded_file($origen, $destino); }
+        $ok = imagepng($image, $destino, 7);
+        imagedestroy($image);
+        return $ok;
+    }
+    return move_uploaded_file($origen, $destino);
 }
 
 function upsertChecklistSeccion($conn, $tabla, $id_checklist, $campos, $fotoKey, $placa, $fotoTipo, $subdir) {
+    global $FOTOS_FALLIDAS;
+
     $foto = getFotoInfo($fotoKey, $placa, $fotoTipo, $subdir);
-    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+
+    // El archivo se escribe ANTES que la fila. Al revés (como estaba) la BD podía quedar
+    // con la ruta de una foto que nunca llegó a disco, y nadie se enteraba porque el
+    // resultado de la subida se descartaba.
+    if ($foto['subir'] && !subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp'])) {
+        $FOTOS_FALLIDAS[$fotoKey] = 'no se pudo guardar el archivo en el servidor';
+        $foto['subir'] = false;
+        $foto['ruta']  = '';   // deja $conservarFoto en true: no se pisa lo ya guardado
+    }
+
+    $fotoSql = $foto['ruta'] !== null ? "'" . mysqli_real_escape_string($conn, $foto['ruta']) . "'" : "NULL";
 
     // Si en esta petición no viene ni archivo nuevo ni ruta previa, la columna foto NO
     // se toca: se conserva lo que ya estuviera guardado. Antes se escribía cadena vacía,
@@ -347,45 +462,67 @@ function upsertChecklistSeccion($conn, $tabla, $id_checklist, $campos, $fotoKey,
     // guardado automático al cambiar de apartado eso pasaría en cada paso.
     $conservarFoto = !$foto['subir'] && empty($foto['limpiar']) && ($foto['ruta'] === '' || $foto['ruta'] === null);
 
-    $r = mysqli_query($conn, "SELECT id_checklist FROM $tabla WHERE id_checklist='$id_checklist'");
+    // Los valores se escapan: un apóstrofe en Observaciones o en "No. Rin" (rin 17')
+    // rompía el UPDATE, la función devolvía false y el foreach de secciones abortaba con
+    // die(), así que los apartados siguientes se quedaban sin guardar. Los nombres de
+    // columna vienen del código, no del POST, por eso van tal cual.
+    $idChk = intval($id_checklist);
+    $esc = function ($v) use ($conn) { return mysqli_real_escape_string($conn, (string) $v); };
+
+    $r = mysqli_query($conn, "SELECT id_checklist FROM $tabla WHERE id_checklist='$idChk'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sets = [];
-        foreach ($campos as $col => $val) { $sets[] = "$col='$val'"; }
+        foreach ($campos as $col => $val) { $sets[] = "$col='" . $esc($val) . "'"; }
         if (!$conservarFoto) $sets[] = "foto=$fotoSql";
-        $sql = "UPDATE $tabla SET " . implode(', ', $sets) . " WHERE id_checklist='$id_checklist'";
+        $sql = "UPDATE $tabla SET " . implode(', ', $sets) . " WHERE id_checklist='$idChk'";
     } else {
         $cols = array_keys($campos);
-        $vals = array_values($campos);
+        $vals = array_map($esc, array_values($campos));
         $cols[] = 'foto';
         $colStr = 'id_checklist, ' . implode(', ', $cols);
-        $valStr = "'$id_checklist', '" . implode("', '", $vals) . "', $fotoSql";
+        $valStr = "'$idChk', '" . implode("', '", $vals) . "', $fotoSql";
         $sql = "INSERT INTO $tabla ($colStr) VALUES ($valStr)";
     }
-    if (mysqli_query($conn, $sql)) {
-        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
-        return true;
-    }
+    if (mysqli_query($conn, $sql)) return true;
+
+    error_log("Checklist: falló el guardado de $tabla (checklist $idChk) - " . mysqli_error($conn));
     return false;
 }
 
 function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campos, $fotoKey, $placa, $fotoTipo, $subdir) {
+    global $FOTOS_FALLIDAS;
+
     $foto = getFotoInfo($fotoKey, $placa, $fotoTipo, $subdir);
-    $fotoSql = $foto['ruta'] !== null ? "'{$foto['ruta']}'" : "NULL";
+
+    // Igual que en upsertChecklistSeccion: primero el archivo, luego la fila.
+    if ($foto['subir'] && !subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp'])) {
+        $FOTOS_FALLIDAS[$fotoKey] = 'no se pudo guardar el archivo en el servidor';
+        $foto['subir'] = false;
+        $foto['ruta']  = '';
+    }
+
+    $fotoSql = $foto['ruta'] !== null ? "'" . mysqli_real_escape_string($conn, $foto['ruta']) . "'" : "NULL";
 
     // Mismo criterio que upsertChecklistSeccion: sin archivo nuevo ni ruta previa, la
     // columna foto se deja como está en vez de sobrescribirla con cadena vacía.
     $conservarFoto = !$foto['subir'] && empty($foto['limpiar']) && ($foto['ruta'] === '' || $foto['ruta'] === null);
 
-    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$id_checklist' AND t_documento='$t_documento'");
+    // Mismo escapado que upsertChecklistSeccion: sin él, un apóstrofe en cualquier campo
+    // libre tiraba el guardado de este documento y de todos los siguientes.
+    $idChk = intval($id_checklist);
+    $esc = function ($v) use ($conn) { return mysqli_real_escape_string($conn, (string) $v); };
+    $tDoc = $esc($t_documento);
+
+    $r = mysqli_query($conn, "SELECT id_checklist FROM checklist_documentacion WHERE id_checklist='$idChk' AND t_documento='$tDoc'");
     if ($r && mysqli_num_rows($r) > 0) {
         $sets = [];
-        foreach ($campos as $col => $val) { $sets[] = "$col='$val'"; }
+        foreach ($campos as $col => $val) { $sets[] = "$col='" . $esc($val) . "'"; }
         if (!$conservarFoto) $sets[] = "foto=$fotoSql";
-        $sql = "UPDATE checklist_documentacion SET " . implode(', ', $sets) . " WHERE id_checklist='$id_checklist' AND t_documento='$t_documento'";
+        $sql = "UPDATE checklist_documentacion SET " . implode(', ', $sets) . " WHERE id_checklist='$idChk' AND t_documento='$tDoc'";
     } else {
         $allCols = ['id_checklist', 't_documento'];
-        $allVals = ["'$id_checklist'", "'$t_documento'"];
-        foreach ($campos as $col => $val) { $allCols[] = $col; $allVals[] = "'$val'"; }
+        $allVals = ["'$idChk'", "'$tDoc'"];
+        foreach ($campos as $col => $val) { $allCols[] = $col; $allVals[] = "'" . $esc($val) . "'"; }
         $allCols[] = 'foto';
         $allVals[] = $fotoSql;
         if (!array_key_exists('entregado', $campos))  { $allCols[] = 'entregado';  $allVals[] = "'S/R'"; }
@@ -393,10 +530,9 @@ function upsertChecklistDocumentacion($conn, $id_checklist, $t_documento, $campo
         if (!array_key_exists('no_tarjeta', $campos)) { $allCols[] = 'no_tarjeta'; $allVals[] = "'S/R'"; }
         $sql = "INSERT INTO checklist_documentacion (" . implode(', ', $allCols) . ") VALUES (" . implode(', ', $allVals) . ")";
     }
-    if (mysqli_query($conn, $sql)) {
-        if ($foto['subir']) subirImagenAsientos($foto['dir'], $foto['nombre'], $foto['tmp']);
-        return true;
-    }
+    if (mysqli_query($conn, $sql)) return true;
+
+    error_log("Checklist: falló el guardado de documentación '$t_documento' (checklist $idChk) - " . mysqli_error($conn));
     return false;
 }
 
@@ -408,6 +544,24 @@ $TABLAS_CHECKLIST = [
     'checklist_limpiaparabrisas', 'checklist_limpieza', 'checklist_llantas',
     'checklist_placas', 'checklist_puertas_llave', 'checklist_documentacion'
 ];
+
+/**
+ * ¿Este checklist tiene alguna foto guardada?
+ *
+ * Se usa antes de borrar borradores huérfanos. Dos guardados en paralelo llegaron a crear
+ * dos checklists para el mismo vehículo y las fotos quedaron repartidas entre ambos; al
+ * completar, el borrado de huérfanos se llevaba el que tenía fotos y esas rutas se perdían
+ * sin vuelta atrás. Ante la duda se conserva: un borrador de más es recuperable, una foto
+ * borrada no.
+ */
+function checklistTieneFotos($conn, $tablas, $id_checklist) {
+    $id = intval($id_checklist);
+    foreach ($tablas as $t) {
+        $res = mysqli_query($conn, "SELECT 1 FROM $t WHERE id_checklist='$id' AND foto IS NOT NULL AND foto <> '' LIMIT 1");
+        if ($res && mysqli_num_rows($res) > 0) return true;
+    }
+    return false;
+}
 
 if ($opcion == 'guardarCheckIn') {
     // A qué checklist escribir. Antes se buscaba siempre "el último borrador del
@@ -440,6 +594,13 @@ if ($opcion == 'guardarCheckIn') {
             $resHuerfanos = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador' AND id_checklist <> '$id_checklist'");
             while ($rowH = mysqli_fetch_assoc($resHuerfanos)) {
                 $hId = $rowH['id_checklist'];
+                // Un huérfano con fotos casi siempre es la otra mitad de este mismo
+                // checklist (dos guardados simultáneos crearon dos filas). Borrarlo
+                // destruye rutas de imágenes reales, así que se deja y se registra.
+                if (checklistTieneFotos($conn, $TABLAS_CHECKLIST, $hId)) {
+                    error_log("Checklist: no se borra el borrador huérfano $hId del vehículo $id_coche porque tiene fotos.");
+                    continue;
+                }
                 foreach ($TABLAS_CHECKLIST as $t) { mysqli_query($conn, "DELETE FROM $t WHERE id_checklist='$hId'"); }
                 mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$hId'");
             }
@@ -454,6 +615,13 @@ if ($opcion == 'guardarCheckIn') {
             $resHuerfanos = mysqli_query($conn, "SELECT id_checklist FROM checklist WHERE id_vehiculo='$id_coche' AND estatus='borrador'");
             while ($rowH = mysqli_fetch_assoc($resHuerfanos)) {
                 $hId = $rowH['id_checklist'];
+                // Un huérfano con fotos casi siempre es la otra mitad de este mismo
+                // checklist (dos guardados simultáneos crearon dos filas). Borrarlo
+                // destruye rutas de imágenes reales, así que se deja y se registra.
+                if (checklistTieneFotos($conn, $TABLAS_CHECKLIST, $hId)) {
+                    error_log("Checklist: no se borra el borrador huérfano $hId del vehículo $id_coche porque tiene fotos.");
+                    continue;
+                }
                 foreach ($TABLAS_CHECKLIST as $t) { mysqli_query($conn, "DELETE FROM $t WHERE id_checklist='$hId'"); }
                 mysqli_query($conn, "DELETE FROM checklist WHERE id_checklist='$hId'");
             }
@@ -504,9 +672,14 @@ if ($opcion == 'guardarCheckIn') {
     // Se devuelve el id para que el cliente sepa en qué checklist está trabajando y lo
     // reenvíe en los siguientes guardados. Sin esto, cada guardado volvía a adivinar
     // "el último borrador del vehículo" y podía escribir en otro distinto.
+    //
+    // fotos_fallidas viaja aunque el guardado haya salido bien: los datos SÍ se guardaron,
+    // pero alguna foto no. Callarlo es lo que producía "en la pantalla estaba completo y
+    // en la BD no estaba la ruta de la imagen".
     echo json_encode(array(
-        "success"      => "Checklist and related data inserted successfully.",
-        "id_checklist" => $id_checklist
+        "success"        => "Checklist and related data inserted successfully.",
+        "id_checklist"   => $id_checklist,
+        "fotos_fallidas" => $FOTOS_FALLIDAS
     ));
 }
 

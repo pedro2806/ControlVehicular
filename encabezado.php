@@ -337,10 +337,10 @@
                             </div>
                         </div>
 
-                        <!-- A qué fue el viaje. Los dos son OPCIONALES: no toda carga va ligada
-                             a una visita, y volverlos obligatorios frenaría el registro. -->
+                        <!-- A qué fue el viaje. Es OPCIONAL: no toda carga va ligada a una
+                             visita, y volverlo obligatorio frenaría el registro. -->
                         <div class="mb-2 row g-2">
-                            <div class="col-12 col-md-8">
+                            <div class="col-12">
                                 <label for="clienteGas" class="form-label">Cliente <span class="text-muted small fw-normal">(opcional)</span></label>
                                 <!-- Autocompletado por AJAX: son 8,376 clientes, así que no caben
                                      ni en un <select> ni en un datalist estático. El id real viaja
@@ -351,7 +351,30 @@
                                 <datalist id="listaClientesGas"></datalist>
                                 <input type="hidden" id="idClienteGas" name="idClienteGas" value="">
                             </div>
-                            <div class="col-12 col-md-4">
+                            <!-- OT / OV oculto: ya no se captura en ninguna carga de gasolina. Este
+                                 modal es el mismo que abren qr_vehiculo.php y el resto de las
+                                 pantallas (no hay una versión "QR" aparte), así que ocultarlo aquí lo
+                                 quita de todos los flujos a la vez.
+
+                                 El input se deja en el DOM a propósito: gas.js sigue leyendo #otGas
+                                 para armar el POST. Al estar vacío se manda ot='' y acciones_gas.php
+                                 lo guarda como NULL, no como cadena vacía.
+
+                                 La columna carga_gasolina.ot NO se toca: conserva lo capturado antes
+                                 de ocultar el campo, y historial_gasolina.php, historial_vehiculo.php
+                                 y validar_recargas.php lo siguen mostrando para esas cargas viejas
+                                 (todos con guardas tipo `if (r.ot)`, así que el NULL no los rompe).
+
+                                 Efecto colateral asumido: acciones_gas.php resolvía el cliente solo
+                                 a partir del OT/OV cuando no se elegía uno (resolverCliente() de
+                                 calcular_ruta.php). Sin campo que capturar, esa vía ya no se dispara
+                                 nunca; el cliente hay que elegirlo del autocompletado.
+
+                                 OJO: la OT del CHECK-IN es otra cosa (actividad_vehiculo.ot, campo
+                                 #Pot) y sigue capturándose. Esto solo aplica a la carga de gasolina.
+
+                                 Para volver a mostrarlo: quitar d-none y regresar el Cliente a col-md-8. -->
+                            <div class="col-12 col-md-4 d-none">
                                 <label for="otGas" class="form-label">OT / OV <span class="text-muted small fw-normal">(opcional)</span></label>
                                 <input type="text" class="form-control" id="otGas" name="otGas"
                                        maxlength="50" placeholder="Número de OT u OV">

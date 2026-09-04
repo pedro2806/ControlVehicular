@@ -514,10 +514,16 @@
                         });
                     } else {
                         liberarBotonDocumentos();
+                        // respuesta.detalle solo viene cuando el servidor tuvo un error
+                        // fatal (ver includes/api_bootstrap.php); trae el motivo real.
+                        var det = respuesta.detalle
+                            ? '<div class="small text-muted mt-3" style="text-align:left; word-break:break-word;">'
+                              + String(respuesta.detalle).replace(/[<>]/g, ' ') + '</div>'
+                            : '';
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: respuesta.message,
+                            html: (respuesta.message || 'No se pudo registrar la documentación.') + det,
                             confirmButtonText: 'Aceptar'
                         });
                     }

@@ -394,6 +394,25 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
 }
 
 /**
+ * ¿Alcanza la memoria para abrir esta imagen con GD?
+ *
+ * GD descomprime a mapa de bits: ancho × alto × 4 bytes, más una copia para el
+ * redimensionado. Se pide el doble de ese cálculo como margen. Superar memory_limit es un
+ * error fatal, no una excepción: no se puede capturar, solo evitar.
+ */
+function hayMemoriaParaImagen($info) {
+    $limite = ini_get('memory_limit');
+    if ($limite === false || $limite === '' || (int) $limite === -1) return true;   // sin límite
+
+    $mult = ['k' => 1024, 'm' => 1048576, 'g' => 1073741824];
+    $u = strtolower(substr(trim($limite), -1));
+    $bytesLimite = isset($mult[$u]) ? ((int) $limite) * $mult[$u] : (int) $limite;
+
+    $necesarios = $info[0] * $info[1] * 4 * 2;
+    return ($bytesLimite - memory_get_usage(true)) > $necesarios;
+}
+
+/**
  * Deja la foto en disco. Devuelve true solo si el archivo quedó escrito.
  *
  * Antes no devolvía nada y quien la llamaba ignoraba el resultado: si mkdir o la escritura
@@ -417,6 +436,23 @@ function reducirPesoImagen($origen, $destino, $calidad = 75) {
     // Sin datos de imagen (HEIC de iPhone renombrado a .jpg, archivo corrupto) se mueve
     // tal cual: vale más guardarlo sin comprimir que perderlo.
     if ($info === false) { return move_uploaded_file($origen, $destino); }
+
+    // Sin GD no se puede recomprimir: se guarda el archivo tal cual. Antes se llamaba a
+    // imagecreatefromjpeg() a ciegas y, si la extensión no está cargada, eso es un error
+    // fatal —"Call to undefined function"— que tumba la petición entera y el navegador
+    // solo ve un HTTP 500 sin cuerpo.
+    if (!function_exists('imagecreatefromjpeg') || !function_exists('imagejpeg')) {
+        error_log('Checklist: GD no disponible, la foto se guarda sin recomprimir.');
+        return move_uploaded_file($origen, $destino);
+    }
+
+    // Recomprimir carga la imagen entera en memoria (~4 bytes por píxel): una foto de 12 MP
+    // pide unos 50 MB y con varias en la misma petición se agota memory_limit, que también
+    // es fatal. Si no hay margen suficiente, se guarda sin tocar.
+    if (!hayMemoriaParaImagen($info)) {
+        error_log('Checklist: memoria insuficiente para recomprimir (' . $info[0] . 'x' . $info[1] . '), se guarda tal cual.');
+        return move_uploaded_file($origen, $destino);
+    }
 
     $mime = $info['mime'];
     // imagecreatefrom* devuelve false con un archivo que no corresponde a su mime, y en

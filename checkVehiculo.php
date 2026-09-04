@@ -623,7 +623,12 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         Swal.fire("Éxito", "El check-in se guardó correctamente.", "success");
                         window.location.assign("verifica_checkinVehiculo");
                     } else {
-                        Swal.fire("Error", response.error || "Hubo un problema al guardar el check-in. Inténtalo nuevamente.", "error");
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (response.error || 'Hubo un problema al guardar el check-in. Inténtalo nuevamente.')
+                                + detalleServidor(response)
+                        });
                         $('#btnguardarCheck, #btnGuardarAvance, #btnSiguiente').prop('disabled', false);
                         verificarCompletitud();
                     }
@@ -783,9 +788,14 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                     } else {
                         // El error sí se avisa siempre: si no se guardó, el usuario tiene
                         // que enterarse aunque el guardado fuera automático. Y se muestra
-                        // el motivo que manda el servidor (response.error), que antes se
-                        // descartaba: sin él no había forma de saber qué apartado falló.
-                        Swal.fire("Error", response.error || "Hubo un problema al guardar el avance.", "error");
+                        // el motivo que manda el servidor (response.error/detalle), que
+                        // antes se descartaba: sin él no había forma de saber qué falló.
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: (response.error || 'Hubo un problema al guardar el avance.')
+                                + detalleServidor(response)
+                        });
                         verificarCompletitud();
                     }
                 },
@@ -830,6 +840,21 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
          *   HTTP 0 / abort  -> se cortó la conexión (subida larga en datos móviles)
          *   parsererror     -> PHP imprimió un warning/HTML junto al JSON
          */
+        /**
+         * Detalle que manda el servidor cuando responde JSON pero el guardado falló.
+         *
+         * Un error fatal de PHP ahora vuelve como JSON con 'detalle' (ver
+         * includes/api_bootstrap.php): trae el mensaje real y el archivo:línea. Antes eso
+         * salía como HTTP 500 con cuerpo vacío y no había manera de saber qué pasó.
+         */
+        function detalleServidor(response) {
+            var d = response && response.detalle ? String(response.detalle) : '';
+            if (!d) return '';
+            console.error('Detalle del servidor:', d);
+            return '<div class="small text-muted mt-3" style="text-align:left; word-break:break-word;">'
+                 + d.replace(/[<>]/g, ' ') + '</div>';
+        }
+
         function detalleFalloAjax(jqXHR, textStatus) {
             var estado = jqXHR ? jqXHR.status : 0;
             var cuerpo = (jqXHR && jqXHR.responseText) ? String(jqXHR.responseText) : '';

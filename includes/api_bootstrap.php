@@ -4,6 +4,51 @@ header('Content-Type: application/json');
 mysqli_set_charset($conn, "utf8mb4");
 date_default_timezone_set('America/Mexico_City');
 
+/**
+ * Un error fatal aquí debe salir como JSON, no como un 500 vacío.
+ *
+ * Estos endpoints prometen JSON, pero ante un fatal (función inexistente, memoria
+ * agotada, excepción sin capturar) PHP responde 500 con cuerpo HTML —o vacío, porque en
+ * producción display_errors está apagado—. Del lado del cliente eso solo se veía como
+ * "No se pudo completar la solicitud", sin ninguna pista: así se perdieron días
+ * persiguiendo el fallo de las fotos del checklist.
+ *
+ * Con esto, el motivo real viaja al navegador y además queda en el log del servidor.
+ */
+function responderFatalComoJson($mensaje, $detalle = '') {
+    if (headers_sent()) return;
+    http_response_code(200);   // el cliente ya distingue el fallo por el JSON, no por el código
+    header('Content-Type: application/json');
+    // 'message' va además de 'error' porque cada endpoint tiene su propia convención y
+    // varias vistas leen respuesta.message: así el aviso se ve venga de donde venga.
+    echo json_encode([
+        'success' => false,
+        'error'   => $mensaje,
+        'message' => $mensaje,
+        'detalle' => $detalle
+    ]);
+}
+
+set_exception_handler(function ($e) {
+    error_log('API fatal (excepción): ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+    responderFatalComoJson(
+        'El servidor no pudo procesar la petición.',
+        $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')'
+    );
+});
+
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if (!$err || !in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+        return;
+    }
+    error_log('API fatal: ' . $err['message'] . ' en ' . $err['file'] . ':' . $err['line']);
+    responderFatalComoJson(
+        'El servidor no pudo procesar la petición.',
+        $err['message'] . ' (' . basename($err['file']) . ':' . $err['line'] . ')'
+    );
+});
+
 // Normalización de $_COOKIE['id_usuario'] (ver includes/sesion_cookies.php). Está en un
 // archivo aparte porque las VISTAS también la necesitan y no pueden incluir este
 // bootstrap, que manda cabeceras JSON.

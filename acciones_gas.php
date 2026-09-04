@@ -259,12 +259,15 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             exit;
         }
 
-        // fecha_carga es DATE, pero el input es datetime-local y manda "2026-08-20T12:43".
-        // Se normaliza a Y-m-d; la hora se descarta porque la columna no la guarda.
+        // fecha_carga es DATETIME y el input es datetime-local ("2026-08-20T12:43"), así
+        // que se guarda con hora. Antes la columna era DATE y aquí se recortaba a Y-m-d:
+        // el usuario capturaba la hora y se tiraba. Eso dejaba todas las cargas ordenadas
+        // como las 00:00 de su día, y cualquier check-in de esa fecha las tapaba al
+        // calcular el último kilometraje (ver obtenerUltimoKM en includes/api_bootstrap.php).
         $fechaLimpia = null;
         if (!empty($fecha_carga)) {
             $ts = strtotime(str_replace('T', ' ', $fecha_carga));
-            if ($ts) $fechaLimpia = date('Y-m-d', $ts);
+            if ($ts) $fechaLimpia = date('Y-m-d H:i:s', $ts);
         }
         if (!$fechaLimpia) {
             echo json_encode(["status" => "error", "message" => "La fecha de carga es obligatoria y debe tener un formato válido."]);
@@ -277,7 +280,10 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
 
         // Ciclo de tarjeta al que pertenece esta carga. Si el monto viene por encima del
         // saldo del ciclo abierto, resolverCicloParaCarga() abre uno nuevo solo.
-        $idCiclo = resolverCicloParaCarga($conn, $idVeh, $montoNum, $fechaLimpia . ' 00:00:00', $idUsr);
+        // $fechaLimpia ya viene con hora. Antes era solo Y-m-d y aquí se le pegaba
+        // ' 00:00:00' para que ciclos_tarjeta.fecha_inicio (DATETIME) la aceptara;
+        // concatenarlo ahora produciría "2026-09-04 13:20:00 00:00:00", una fecha inválida.
+        $idCiclo = resolverCicloParaCarga($conn, $idVeh, $montoNum, $fechaLimpia, $idUsr);
 
         // A qué fue el viaje. Los dos son opcionales: no toda carga de gasolina va ligada
         // a una visita. id_cliente se guarda como NULL (no 0) cuando no se eligió, para

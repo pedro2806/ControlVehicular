@@ -397,12 +397,20 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                          ORDER BY prev.id DESC LIMIT 1),
                         cg.km_actual
                     )) AS km_consumidos,
-                    cli.CLIENTE AS cliente
+                    cli.CLIENTE AS cliente,
+                    ct.saldo_inicial AS ciclo_saldo_inicial,
+                    ct.fecha_inicio  AS ciclo_fecha_inicio,
+                    ct.origen        AS ciclo_origen
                  FROM carga_gasolina cg
                  INNER JOIN inventario inv ON inv.id_vehiculo = cg.id_vehiculo
                  LEFT JOIN usuarios u ON u.id_usuario = cg.id_usuario
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
                  LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
+                 -- Datos del ciclo al que pertenece la carga. Alimentan el separador que la
+                 -- vista dibuja entre créditos: sin ellos se veían seguidas la última carga
+                 -- de un crédito agotado y la primera del siguiente, como si fueran la
+                 -- misma secuencia.
+                 LEFT JOIN ciclos_tarjeta ct ON ct.id_ciclo = cg.id_ciclo
                  WHERE cg.id_vehiculo = ?
                  ORDER BY cg.id DESC";
 
@@ -440,11 +448,15 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                 $stmtSol->close();
             }
 
+            // credito_tarjeta viaja para que la vista no tenga que hardcodear otro 4000.
+            // El número ya está repetido en verPlaca() (js/global/vehiculos.js) y en
+            // validar_recargas.php; mandarlo desde aquí evita sumar una cuarta copia.
             echo json_encode([
                 'status'            => 'success',
                 'registros'         => $registros,
                 'saldo_actual'      => $saldoTarjeta,
-                'solicitud_abierta' => $solicitudAbierta
+                'solicitud_abierta' => $solicitudAbierta,
+                'credito_tarjeta'   => CREDITO_TARJETA
             ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => $conn->error]);
@@ -458,7 +470,37 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $perm = vehiculosPermitidosGas($conn, $id_usuario, $noEmpleado);
         $idElegido = 0;
 
-        if ($perm['todas']) {
+        // Primero, el vehículo DEL USUARIO. Antes se elegía siempre el de más kilómetros
+        // acumulados, así que a quien tiene permiso 'TODAS' (los administradores) la
+        // pantalla le abría siempre el mismo coche de la flota —nunca el suyo— y había que
+        // buscarlo a mano en cada visita. El criterio de más km solo tiene sentido como
+        // respaldo, para quien no trae vehículo asignado.
+        // Si trae varios asignados se toma el de más km entre ellos, que es el que más
+        // probablemente esté usando.
+        $idUsuarioPref = intval($id_usuario);
+        if ($idUsuarioPref > 0) {
+            $stmtPropio = $conn->prepare(
+                "SELECT inv.id_vehiculo
+                   FROM inventario inv
+                   LEFT JOIN reporte_km_vehiculo rk ON rk.id_vehiculo = inv.id_vehiculo
+                  WHERE (inv.id_usuario = ? OR inv.id_us_asignado = ?)
+                    AND TRIM(inv.estatus) = 'Activo'
+                  GROUP BY inv.id_vehiculo
+                  ORDER BY IFNULL(SUM(rk.km_registrado), 0) DESC, inv.id_vehiculo
+                  LIMIT 1"
+            );
+            if ($stmtPropio) {
+                $stmtPropio->bind_param("ii", $idUsuarioPref, $idUsuarioPref);
+                $stmtPropio->execute();
+                $rowPropio = $stmtPropio->get_result()->fetch_assoc();
+                $stmtPropio->close();
+                if ($rowPropio) { $idElegido = intval($rowPropio['id_vehiculo']); }
+            }
+        }
+
+        if ($idElegido) {
+            // Ya está: es suyo, así que no hace falta pasar por el filtro de permisos.
+        } elseif ($perm['todas']) {
             $res = $conn->query("SELECT id_vehiculo FROM reporte_km_vehiculo GROUP BY id_vehiculo ORDER BY SUM(km_registrado) DESC LIMIT 1");
             if ($res && ($row = $res->fetch_assoc())) { $idElegido = intval($row['id_vehiculo']); }
             if (!$idElegido) {
@@ -587,9 +629,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // se lee del POST, así que no se puede desviar el correo desde el cliente.
         require_once __DIR__ . '/includes/enviar_notificacion.php';
 
+        // Cuentas de gastos (Ana Victoria Torres Lezama), que es quien repone el crédito.
+        // Durante el desarrollo esto apuntaba al correo del programador para no molestar a
+        // cuentas de gastos con cada prueba; ya en uso real va a quien resuelve.
         $destinatariosGas = isset($destinatariosGasPrueba) && $destinatariosGasPrueba
             ? $destinatariosGasPrueba
-            : ['sebastian.gutierrez@mess.com.mx'];
+            : ['cuentasdegastos@mess.com.mx'];
 
         $cuerpoGas = '
             <html><body style="font-family:Arial,sans-serif;color:#222">

@@ -25,6 +25,19 @@ if (empty($_COOKIE['noEmpleado'])) {
          pantalla. Se sirve desde css/lib y js/lib, no por CDN, para que no dependa
          de internet. -->
     <link rel="stylesheet" href="css/lib/responsive.dataTables.min.css">
+    <!-- RowGroup: dibuja el separador entre ciclos de tarjeta. Sin él, la última carga de
+         un crédito agotado y la primera del siguiente se veían seguidas, como si fueran la
+         misma secuencia de consumo. -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/rowgroup/1.4.1/css/rowGroup.dataTables.min.css">
+    <style>
+        /* La banda del separador usa el color de marca y se distingue de las filas
+           normales sin competir con los badges de saldo. */
+        #tablaGas tr.dtrg-group td {
+            background: var(--card-soft, #eef1ff);
+            border-top: 2px solid var(--accent, #050D9E);
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body id="page-top">
 <div id="wrapper">
@@ -33,15 +46,11 @@ if (empty($_COOKIE['noEmpleado'])) {
         <div id="content">
             <?php include 'encabezado.php'; ?>
             <div class="container-fluid">
-
                 <div class="d-sm-flex align-items-center justify-content-between mb-3">
                     <h1 class="h3 mb-0 text-gray-800">Historial de Cargas de Gasolina</h1>
                     <div class="d-flex gap-2">
                         <button id="btnDescargar" class="btn btn-outline-warning btn-sm" onclick="descargarTabla()" disabled>
                             <i class="fas fa-file-excel me-1"></i> Descargar XLSX
-                        </button>
-                        <button id="btnReposicion" class="btn btn-primary btn-sm" onclick="solicitarReposicionVehiculo()" disabled>
-                            <i class="fas fa-gas-pump me-1"></i> Solicitar reposición de crédito
                         </button>
                     </div>
                 </div>
@@ -85,6 +94,10 @@ if (empty($_COOKIE['noEmpleado'])) {
                                         <th>Fecha Carga</th>
                                         <th>Fecha Registro</th>
                                         <th>Acciones</th>
+                                        <!-- Columna 11, oculta: solo existe para que RowGroup
+                                             agrupe por ciclo de tarjeta. Va al final para no
+                                             recorrer los índices de columnDefs. -->
+                                        <th>Ciclo</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -140,6 +153,7 @@ if (empty($_COOKIE['noEmpleado'])) {
 
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="js/lib/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/rowgroup/1.4.1/js/dataTables.rowGroup.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -147,7 +161,9 @@ if (empty($_COOKIE['noEmpleado'])) {
 var tabla;
 var idVehSel = 0;
 var placaSel = '';
-var saldoSel = 0;
+// Datos de cada ciclo de tarjeta, por id, para rotular el separador de la tabla.
+// RowGroup solo entrega el valor de la columna que agrupa, no la fila completa.
+var infoCiclos = {};
 
 $(document).ready(function () {
     tabla = $('#tablaGas').DataTable({
@@ -171,8 +187,26 @@ $(document).ready(function () {
         // defecto y la columna no ordenable apuntan a la equivocada.
         // 0 Vehículo · 1 Usuario · 2 Monto · 3 Pagos · 4 Saldo · 5 Km Actual
         // 6 Km Consumidos · 7 Destino · 8 Fecha Carga · 9 Fecha Registro · 10 Acciones
+        // Agrupa por ciclo de tarjeta. La columna 11 va oculta y solo existe para esto:
+        // se agregó AL FINAL a propósito, para no recorrer los índices de arriba.
+        rowGroup: {
+            dataSrc: 11,
+            startRender: function (rows, group) {
+                return etiquetaCiclo(group, rows.count());
+            }
+        },
         columnDefs: [
+            { visible: false, searchable: false, targets: [11] },
             { orderable: false, targets: [10] },
+            // Fechas: se ordenan y se buscan por el valor crudo de MySQL, que es
+            // cronológico como texto, y se muestran en formato legible.
+            {
+                targets: [8, 9],
+                render: function (d, type) {
+                    if (type === 'sort' || type === 'type') return d || '';
+                    return fmtFechaGas(d);
+                }
+            },
             { responsivePriority: 1,  targets: [8, 10] },  // Fecha Carga, Acciones
             { responsivePriority: 2,  targets: 4 },        // Saldo
             { responsivePriority: 3,  targets: 2 },        // Monto
@@ -360,6 +394,39 @@ function fmtFechaGas(f) {
     return p[2] + '/' + p[1] + '/' + p[0] + (p[3] ? ' ' + p[3] + ':' + (p[4] || '00') : '');
 }
 
+/**
+ * Texto del separador que divide la tabla por ciclo de tarjeta.
+ *
+ * Un ciclo es la vida de un crédito: desde que se abona dinero hasta el siguiente abono.
+ * Sin este separador, la última carga de un crédito agotado y la primera del siguiente se
+ * veían pegadas, como si fueran la misma secuencia de consumo — que fue justo lo que se
+ * notó al ver un saldo de $200 seguido de uno de $3,500.
+ */
+function etiquetaCiclo(clave, cuantas) {
+    var plural = cuantas === 1 ? '1 carga' : cuantas + ' cargas';
+
+    if (clave === 'sin-ciclo') {
+        return '<i class="fas fa-clock-rotate-left me-2"></i>Cargas anteriores al control de créditos'
+             + ' <span class="fw-normal text-muted">· ' + plural + '</span>';
+    }
+
+    var info = infoCiclos[clave] || {};
+    var monto = parseFloat(info.saldoInicial);
+    var partes = [];
+    if (!isNaN(monto)) partes.push('$' + monto.toFixed(2));
+    if (info.fechaInicio) partes.push('desde ' + fmtFechaGas(info.fechaInicio));
+    partes.push(plural);
+
+    // DETECTADO = el abono no pasó por una solicitud, se dedujo de una carga cuyo monto
+    // subió. Vale la pena distinguirlo: significa que alguien recargó fuera del sistema.
+    var aviso = (info.origen === 'DETECTADO')
+        ? ' <span class="badge bg-warning text-dark ms-2">Recarga no registrada</span>'
+        : '';
+
+    return '<i class="fas fa-credit-card me-2"></i>Crédito'
+         + ' <span class="fw-normal text-muted">· ' + partes.join(' · ') + '</span>' + aviso;
+}
+
 function cargarHistorialVehiculo() {
     idVehSel = parseInt($('#filtroVehiculo').val()) || 0;
     placaSel = $('#filtroVehiculo option:selected').data('placa') || '';
@@ -380,7 +447,13 @@ function cargarHistorialVehiculo() {
             // el array aparte porque ante un error responde un objeto sin 'registros'.
             var data = (resp && Array.isArray(resp.registros)) ? resp.registros : [];
             var solicitudAbierta = !!(resp && resp.solicitud_abierta);
+            // El crédito estándar lo manda el servidor (constante CREDITO_TARJETA de
+            // acciones_gas.php) para no hardcodear otro 4000 aquí: ya está repetido en
+            // verPlaca() (js/global/vehiculos.js) y en validar_recargas.php.
+            var CREDITO_TARJETA = parseFloat(resp && resp.credito_tarjeta) || 4000;
             tabla.clear();
+            // Se reinicia con cada vehículo: los ciclos del anterior no aplican.
+            infoCiclos = {};
 
             // La carga más reciente (mayor id) muestra el botón de reposición si es del usuario actual
             var currentUserId = getCookie('id_usuario') || getCookie('id_usuarioL') || '';
@@ -397,7 +470,6 @@ function cargarHistorialVehiculo() {
                 ? parseFloat(resp.saldo_actual)
                 : (latest ? parseFloat(latest.saldo) : NaN);
             if (isNaN(saldoTarjeta)) saldoTarjeta = 0;
-            saldoSel = saldoTarjeta;
 
             if (data.length || (resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined)) {
                 $('#cajaSaldoTarjeta').show();
@@ -427,13 +499,22 @@ function cargarHistorialVehiculo() {
 
                 var esUltimoPropio = latest && String(r.id) === String(latest.id)
                     && String(r.id_usuario) === String(currentUserId);
-                // Con una solicitud ya en trámite el botón se deshabilita: en pruebas se
-                // mandaban varias seguidas porque al enviar la primera el botón se quedaba
-                // igual y parecía que no había pasado nada.
+                // El estado de la tarjeta manda sobre el de la solicitud, y en ese orden:
+                //
+                // 1. Tarjeta al crédito completo -> no hay nada que reponer, punto. Se mira
+                //    ANTES que la solicitud porque una PARCIAL puede quedarse abierta aunque
+                //    el crédito ya se haya completado por otra vía, y entonces la pantalla
+                //    decía "Solicitud enviada" con la tarjeta llena.
+                // 2. Solicitud en trámite y tarjeta sin llenar -> se avisa y se bloquea: en
+                //    pruebas se mandaban varias seguidas porque el botón no cambiaba.
+                // 3. Lo normal -> se ofrece pedir la reposición.
+                //
                 // El monto que viaja es saldoTarjeta (el del ciclo abierto), no el saldo
                 // histórico de la fila, que tras una reposición ya está desactualizado.
                 var btnRepos = '';
-                if (esUltimoPropio && solicitudAbierta) {
+                if (esUltimoPropio && saldoTarjeta >= CREDITO_TARJETA - 0.01) {
+                    btnRepos = '<span class="text-muted small">Tarjeta al corriente</span>';
+                } else if (esUltimoPropio && solicitudAbierta) {
                     btnRepos = '<button class="btn btn-outline-secondary btn-sm" disabled '
                         + 'title="Ya hay una solicitud en trámite para este vehículo">'
                         + '<i class="fas fa-hourglass-half me-1"></i>Solicitud enviada</button>';
@@ -461,14 +542,33 @@ function cargarHistorialVehiculo() {
                     (parseInt(r.km_actual) || 0).toLocaleString() + ' km',
                     kmBadge,
                     destino,
-                    fmtFechaGas(r.fecha_carga),
-                    fmtFechaGas(r.fecha_registro),
-                    btnRepos
+                    // Las fechas viajan CRUDAS ('YYYY-MM-DD HH:MM:SS') y se formatean en el
+                    // render de la columna. Si se guardan ya formateadas como 'DD/MM/YYYY',
+                    // DataTables las ordena como texto: 27/07 quedaba por encima de 04/09, y
+                    // al perderse el orden cronológico las cargas de un mismo ciclo dejaban
+                    // de ser contiguas y el separador se repetía varias veces.
+                    r.fecha_carga || '',
+                    r.fecha_registro || '',
+                    btnRepos,
+                    // Columna oculta que agrupa. Las cargas anteriores a los ciclos de
+                    // tarjeta no tienen id_ciclo; se juntan todas bajo la misma etiqueta.
+                    (r.id_ciclo === null || r.id_ciclo === undefined) ? 'sin-ciclo' : String(r.id_ciclo)
                 ]);
+
+                // Datos para rotular el separador. Se guardan aparte porque RowGroup solo
+                // recibe el valor de la columna que agrupa, no la fila completa.
+                var claveCiclo = (r.id_ciclo === null || r.id_ciclo === undefined) ? 'sin-ciclo' : String(r.id_ciclo);
+                if (!infoCiclos[claveCiclo]) {
+                    infoCiclos[claveCiclo] = {
+                        saldoInicial: r.ciclo_saldo_inicial,
+                        fechaInicio:  r.ciclo_fecha_inicio,
+                        origen:       r.ciclo_origen
+                    };
+                }
             });
 
             tabla.draw(false);
-            toggleBotones(data.length > 0, solicitudAbierta);
+            toggleBotones(data.length > 0);
         },
         error: function () {
             Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el historial.' });
@@ -527,47 +627,6 @@ function solicitarReposicion(id_vehiculo, saldo, placa) {
     });
 }
 
-function solicitarReposicionVehiculo() {
-    if (!idVehSel) return;
-    Swal.fire({
-        title: '¿Solicitar reposición?',
-        html: 'Se enviará un correo al encargado solicitando crédito de gasolina para <strong>' + escHtml(placaSel) + '</strong>.<br>Saldo actual: <strong>$' + saldoSel.toFixed(2) + '</strong>',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Enviar solicitud',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#050D9E'
-    }).then(function (result) {
-        if (!result.isConfirmed) return;
-        $.ajax({
-            url: 'acciones_gas.php',
-            method: 'POST',
-            dataType: 'json',
-            data: { accion: 'solicitarReposicionGas', id_vehiculo: idVehSel, saldo: saldoSel },
-            success: function (resp) {
-                Swal.fire({
-                    icon: resp.status === 'success' ? 'success' : 'error',
-                    title: resp.status === 'success' ? '¡Enviado!' : 'Error',
-                    text: resp.message,
-                    timer: 2500,
-                    showConfirmButton: false
-                });
-                // Se refresca el seguimiento para que la solicitud recién hecha aparezca
-                // de inmediato; si no, habría que recargar la página para verla.
-                // Y también el historial: ahí vive el botón de reposición, que tiene que
-                // pasar a "Solicitud enviada". Sin esto el botón se quedaba intacto y se
-                // podían mandar solicitudes repetidas sin darse cuenta.
-                if (resp.status === 'success') {
-                    cargarMisSolicitudes();
-                    cargarHistorialVehiculo();
-                }
-            },
-            error: function () {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo enviar la solicitud.' });
-            }
-        });
-    });
-}
 
 function descargarTabla() {
     if (!idVehSel) return;

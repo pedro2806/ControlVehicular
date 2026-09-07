@@ -390,7 +390,7 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
         return ['ruta' => '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false, 'limpiar' => true];
     }
 
-    return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false];
+    return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => falnse];
 }
 
 /**
@@ -690,22 +690,7 @@ if ($opcion == 'guardarCheckIn') {
             }
         }
     } else {
-        // id_vehiculo, id_usuario e id_revisor son columnas int: van como número, no
-        // entrecomilladas. Si la cookie de usuario viniera vacía se mandaba '' a un int y,
-        // con STRICT_TRANS_TABLES, eso es un error de MySQL (y desde PHP 8.1 una excepción
-        // que tumba la petición). id_usuario admite NULL; id_vehiculo no, así que sin
-        // vehículo no tiene caso intentar el INSERT.
-        $idVehInsert = intval($id_coche);
-        if ($idVehInsert <= 0) {
-            die(json_encode(["error" => "No se pudo identificar el vehículo del checklist."]));
-        }
-        $idUsuarioInsert = ($id_usuario === null || $id_usuario === '') ? 'NULL' : intval($id_usuario);
-        $idRevisorInsert = ($id_revisor === null || $id_revisor === '') ? 'NULL' : intval($id_revisor);
-        $motivoEsc  = mysqli_real_escape_string($conn, (string) $motivo);
-        $estatusEsc = mysqli_real_escape_string($conn, (string) $estatus);
-
-        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
-                VALUES ($idVehInsert, NOW(), $idUsuarioInsert, $idRevisorInsert, '$motivoEsc', '$estatusEsc')";
+        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus) VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
         $resultadoChecklist = mysqli_query($conn, $sql);
         if (!$resultadoChecklist) { die(json_encode(array("error" => "Failed to insert checklist: " . mysqli_error($conn)))); }
         $id_checklist = mysqli_insert_id($conn);

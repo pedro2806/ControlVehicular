@@ -139,25 +139,59 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
      * se dedujo de una carga cuyo monto subió, 'INICIAL' para el primer ciclo.
      */
     function abrirCicloTarjeta($conn, $id_vehiculo, $fecha, $saldoInicial, $montoAbonado, $origen, $idSolicitud = null, $idUsuario = null) {
-        $abierto = cicloAbiertoTarjeta($conn, $id_vehiculo);
-        if ($abierto) {
-            $cerrar = $conn->prepare("UPDATE ciclos_tarjeta SET fecha_fin = ?, estatus = 'CERRADO' WHERE id_ciclo = ?");
-            $cerrar->bind_param("si", $fecha, $abierto['id_ciclo']);
+        $idVeh = intval($id_vehiculo);
+
+        // Cerrar-y-abrir tiene que ser atómico. Antes eran dos consultas sueltas, sin
+        // transacción ni bloqueo, y con dos defectos:
+        //
+        //   1. Se cerraba UN solo ciclo, el que devolvía cicloAbiertoTarjeta() con LIMIT 1.
+        //      Si por lo que fuera ya había dos abiertos, se cerraba uno y se abría otro:
+        //      el problema se perpetuaba solo.
+        //   2. Entre el SELECT y el INSERT no había nada. Dos peticiones simultáneas del
+        //      mismo vehículo —dos aprobaciones, un doble clic, dos cargas a la vez— leían
+        //      las dos el mismo ciclo abierto, lo cerraban las dos e insertaban las dos.
+        //
+        // Ahora: transacción, se bloquean las filas del vehículo con FOR UPDATE para que la
+        // segunda petición espere, y se cierran TODOS los abiertos, no solo el último.
+        $conn->begin_transaction();
+        try {
+            $lock = $conn->prepare(
+                "SELECT id_ciclo FROM ciclos_tarjeta
+                  WHERE id_vehiculo = ? AND estatus = 'ABIERTO' FOR UPDATE"
+            );
+            $lock->bind_param("i", $idVeh);
+            $lock->execute();
+            $lock->get_result();
+            $lock->close();
+
+            $cerrar = $conn->prepare(
+                "UPDATE ciclos_tarjeta SET fecha_fin = ?, estatus = 'CERRADO'
+                  WHERE id_vehiculo = ? AND estatus = 'ABIERTO'"
+            );
+            $cerrar->bind_param("si", $fecha, $idVeh);
             $cerrar->execute();
             $cerrar->close();
-        }
 
-        $stmt = $conn->prepare(
-            "INSERT INTO ciclos_tarjeta
-                (id_vehiculo, fecha_inicio, saldo_inicial, monto_abonado, id_solicitud, id_usuario, origen, estatus)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'ABIERTO')"
-        );
-        if (!$stmt) return 0;
-        $stmt->bind_param("isddiis", $id_vehiculo, $fecha, $saldoInicial, $montoAbonado, $idSolicitud, $idUsuario, $origen);
-        $stmt->execute();
-        $id = $conn->insert_id;
-        $stmt->close();
-        return intval($id);
+            $stmt = $conn->prepare(
+                "INSERT INTO ciclos_tarjeta
+                    (id_vehiculo, fecha_inicio, saldo_inicial, monto_abonado, id_solicitud, id_usuario, origen, estatus)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, 'ABIERTO')"
+            );
+            $stmt->bind_param("isddiis", $idVeh, $fecha, $saldoInicial, $montoAbonado, $idSolicitud, $idUsuario, $origen);
+            $stmt->execute();
+            $id = $conn->insert_id;
+            $stmt->close();
+
+            $conn->commit();
+            return intval($id);
+        } catch (Throwable $e) {
+            $conn->rollback();
+            // Incluye el choque contra uk_ciclo_abierto, el índice que impide dos ciclos
+            // abiertos del mismo vehículo: si otra petición ganó la carrera, esta no abre
+            // un segundo ciclo, se queda sin hacer nada y lo deja registrado.
+            error_log("abrirCicloTarjeta: no se pudo abrir ciclo del vehículo $idVeh - " . $e->getMessage());
+            return 0;
+        }
     }
 
     /**

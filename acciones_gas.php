@@ -232,6 +232,186 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
     }
 
     /**
+     * Cargas y recorridos de un ciclo de tarjeta, hasta un corte.
+     *
+     * La comparten el detalle de una solicitud (modal de validar_recargas.php) y el reporte
+     * descargable del historial, para que las dos den exactamente las mismas cifras.
+     *
+     * - $ciclo null: devuelve las cargas SIN ciclo (anteriores al control de créditos) y
+     *   ningún recorrido, porque no hay un crédito que acote la ventana.
+     * - $hasta: fin de la ventana de recorridos. Si el ciclo tiene cargas posteriores se
+     *   extiende hasta la última: si no, esas cargas aparecerían sin los viajes que las
+     *   rodean (pasa con una solicitud rechazada, que deja el crédito abierto).
+     */
+    function detalleCicloTarjeta($conn, $idVehiculo, $ciclo, $hasta) {
+        $stmtC = $conn->prepare(
+            "SELECT cg.id, cg.monto, cg.pagos, cg.saldo, cg.km_actual,
+                    cg.fecha_carga, cg.fecha_registro, cg.ot,
+                    -- Datos del destino. `PARQUE-IND` lleva guion en el nombre, así que
+                    -- necesita backticks o MySQL lo lee como una resta.
+                    cli.CLIENTE AS cliente,
+                    cli.CLIENTE_CORTO AS cliente_corto,
+                    -- El catálogo usa marcadores para 'sin parque': 77 clientes traen
+                    -- '-- y otros solo guiones. Se normalizan a NULL aquí para que la
+                    -- vista no tenga que conocer esos valores y no pinte basura.
+                    CASE WHEN TRIM(REPLACE(REPLACE(IFNULL(cli.`PARQUE-IND`, ''), '-', ''), '''', '')) = ''
+                         THEN NULL ELSE cli.`PARQUE-IND` END AS parque_industrial,
+                    cli.CIUDAD AS ciudad,
+                    cli.ESTADO AS estado,
+                    -- Km recorridos desde la carga anterior del mismo vehículo. Mismo
+                    -- cálculo que la columna 'Km Consumidos' de obtenerHistorialGas, para
+                    -- que las dos vistas no den cifras distintas. La carga anterior se
+                    -- busca por id y no por fecha: la captura en lote deja varias cargas
+                    -- con la misma fecha_registro y el id es el único orden estable.
+                    -- En la primera carga del vehículo no hay contra qué comparar y queda
+                    -- NULL, que la vista pinta con un guion en vez de un 0 engañoso.
+                    -- Un resultado NEGATIVO también se descarta: significa que el odómetro
+                    -- de alguna de las dos capturas está mal (hay lecturas con un dígito
+                    -- de más, como 1,681,614 km, que darían cifras absurdas). Es el mismo
+                    -- criterio con el que solicitudes_gas.km_recorrido se deja en null.
+                    (SELECT CASE WHEN cg.km_actual - prev.km_actual >= 0
+                                 THEN cg.km_actual - prev.km_actual END
+                     FROM carga_gasolina prev
+                     WHERE prev.id_vehiculo = cg.id_vehiculo AND prev.id < cg.id
+                     ORDER BY prev.id DESC LIMIT 1) AS km_recorridos,
+                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
+             FROM carga_gasolina cg
+             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
+             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+             LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
+             WHERE cg.id_vehiculo = ? AND " . ($ciclo ? "cg.id_ciclo = ?" : "cg.id_ciclo IS NULL") . "
+             ORDER BY cg.fecha_carga DESC, cg.id DESC"
+        );
+        if ($ciclo) {
+            $idCiclo = intval($ciclo['id_ciclo']);
+            $stmtC->bind_param("ii", $idVehiculo, $idCiclo);
+        } else {
+            $stmtC->bind_param("i", $idVehiculo);
+        }
+        $stmtC->execute();
+        $resC = $stmtC->get_result();
+        $cargas = [];
+        // Se suma 'pagos', NO 'monto'. En carga_gasolina 'monto' es el saldo que había
+        // ANTES de la carga (el monto de cada fila es el saldo de la anterior, y siempre
+        // se cumple monto - pagos = saldo), así que sumarlo daba una cifra sin sentido:
+        // el acumulado de saldos corrientes, muy por encima de lo realmente gastado.
+        $totalGastado = 0.0;
+        $kmMin = null; $kmMax = null;
+        while ($row = $resC->fetch_assoc()) {
+            $cargas[] = $row;
+            $totalGastado += floatval($row['pagos']);
+            // Km recorridos del ciclo completo: de la lectura más baja a la más alta de
+            // sus cargas. Es más robusto que sumar los deltas, porque los deltas que se
+            // descartan por odómetro incoherente dejarían huecos en la suma.
+            $km = intval($row['km_actual']);
+            if ($km > 0) {
+                if ($kmMin === null || $km < $kmMin) $kmMin = $km;
+                if ($kmMax === null || $km > $kmMax) $kmMax = $km;
+            }
+        }
+        $stmtC->close();
+
+        // Solo se reporta si es coherente: un crédito de $4,000 rinde del orden de 1,500
+        // km, así que una cifra desbordada delata una lectura mal capturada.
+        $kmCiclo = null;
+        if ($kmMin !== null && $kmMax !== null && $kmMax > $kmMin && ($kmMax - $kmMin) <= 10000) {
+            $kmCiclo = $kmMax - $kmMin;
+        }
+
+        $corte = $hasta;
+        foreach ($cargas as $cg) {
+            if ($corte === null || $cg['fecha_carga'] > $corte) $corte = $cg['fecha_carga'];
+        }
+
+        $recorridos = $ciclo ? recorridosVehiculo($conn, $idVehiculo, $ciclo['fecha_inicio'], $corte) : [];
+
+        return [
+            'cargas'        => $cargas,
+            'total_gastado' => $totalGastado,
+            'km_ciclo'      => $kmCiclo,
+            'corte'         => $corte,
+            'recorridos'    => $recorridos
+        ];
+    }
+
+    /**
+     * Recorridos de un vehículo en una ventana: un par INICIO -> FINALIZACION por viaje.
+     *
+     * Se empareja por MISMO usuario, igual que en el resto del sistema (en un préstamo dos
+     * personas mueven el auto). Los registros sueltos NO se descartan: un INICIO sin
+     * cierre o una FINALIZACION cuyo INICIO quedó antes de la ventana también son uso del
+     * vehículo, y son justo los que hay que revisar.
+     */
+    function recorridosVehiculo($conn, $idVehiculo, $desde, $hasta) {
+        // Mismo JOIN a usuarios que consultarCheckins: MAX(id) porque
+        // usuarios.id_usuario no es único y un JOIN directo duplicaría filas.
+        $stmtA = $conn->prepare(
+            "SELECT av.id_actividad, av.id_usuario, av.tipo_actividad, av.fecha_actividad,
+                    av.km_actual, av.ot, av.notas,
+                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
+             FROM actividad_vehiculo av
+             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario)
+             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+             WHERE av.id_vehiculo = ? AND av.fecha_actividad >= ? AND av.fecha_actividad <= ?
+             ORDER BY av.fecha_actividad ASC, av.id_actividad ASC"
+        );
+        $stmtA->bind_param("iss", $idVehiculo, $desde, $hasta);
+        $stmtA->execute();
+        $resA = $stmtA->get_result();
+
+        $armar = function ($ini, $fin) {
+            $km = null;
+            if ($ini && $fin && intval($fin['km_actual']) - intval($ini['km_actual']) >= 0) {
+                $km = intval($fin['km_actual']) - intval($ini['km_actual']);
+            }
+            $base = $ini ?: $fin;
+            return [
+                'id_inicio'     => $ini ? intval($ini['id_actividad']) : null,
+                'fecha_inicio'  => $ini['fecha_actividad'] ?? null,
+                'fecha_fin'     => $fin['fecha_actividad'] ?? null,
+                'km_inicio'     => $ini ? intval($ini['km_actual']) : null,
+                'km_fin'        => $fin ? intval($fin['km_actual']) : null,
+                // Negativo = odómetro mal capturado; mismo criterio que km_recorridos
+                // de las cargas, se deja en null en vez de dar una cifra falsa.
+                'km_recorridos' => $km,
+                'usuario'       => $base['usuario'],
+                // OT y notas: el cierre suele traer el destino real del viaje.
+                'ot'            => !empty($fin['ot']) ? $fin['ot'] : ($ini['ot'] ?? null),
+                'notas_inicio'  => $ini['notas'] ?? null,
+                'notas_fin'     => $fin['notas'] ?? null,
+                'tipo'          => null
+            ];
+        };
+
+        $recorridos = [];
+        $abiertos = [];
+        while ($a = $resA->fetch_assoc()) {
+            $uid = $a['id_usuario'];
+            if ($a['tipo_actividad'] === 'INICIO') {
+                if (isset($abiertos[$uid])) $recorridos[] = $armar($abiertos[$uid], null);
+                $abiertos[$uid] = $a;
+            } elseif ($a['tipo_actividad'] === 'FINALIZACION') {
+                $recorridos[] = $armar($abiertos[$uid] ?? null, $a);
+                unset($abiertos[$uid]);
+            } else {
+                // Otros registros (p. ej. KM_SEMANAL): un solo punto en el tiempo.
+                $r = $armar($a, null);
+                $r['tipo'] = $a['tipo_actividad'];
+                $recorridos[] = $r;
+            }
+        }
+        foreach ($abiertos as $ini) $recorridos[] = $armar($ini, null);
+        $stmtA->close();
+
+        // Orden cronológico por el momento en que empezó el viaje (o terminó, si su
+        // inicio quedó antes de la ventana). Los abiertos se agregaron al final.
+        usort($recorridos, function ($x, $y) {
+            return strcmp($x['fecha_inicio'] ?? $x['fecha_fin'], $y['fecha_inicio'] ?? $y['fecha_fin']);
+        });
+        return $recorridos;
+    }
+
+    /**
      * Busca clientes por nombre para el autocompletado del modal de gasolina.
      *
      * La tabla tiene 8,376 clientes, así que no se mandan todos al navegador ni cabe un
@@ -1094,75 +1274,10 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $ciclo = $stmtCi->get_result()->fetch_assoc();
         $stmtCi->close();
 
-        $stmtC = $conn->prepare(
-            "SELECT cg.id, cg.monto, cg.pagos, cg.saldo, cg.km_actual,
-                    cg.fecha_carga, cg.fecha_registro, cg.ot,
-                    -- Datos del destino. `PARQUE-IND` lleva guion en el nombre, así que
-                    -- necesita backticks o MySQL lo lee como una resta.
-                    cli.CLIENTE AS cliente,
-                    cli.CLIENTE_CORTO AS cliente_corto,
-                    -- El catálogo usa marcadores para 'sin parque': 77 clientes traen
-                    -- '-- y otros solo guiones. Se normalizan a NULL aquí para que la
-                    -- vista no tenga que conocer esos valores y no pinte basura.
-                    CASE WHEN TRIM(REPLACE(REPLACE(IFNULL(cli.`PARQUE-IND`, ''), '-', ''), '''', '')) = ''
-                         THEN NULL ELSE cli.`PARQUE-IND` END AS parque_industrial,
-                    cli.CIUDAD AS ciudad,
-                    cli.ESTADO AS estado,
-                    -- Km recorridos desde la carga anterior del mismo vehículo. Mismo
-                    -- cálculo que la columna 'Km Consumidos' de obtenerHistorialGas, para
-                    -- que las dos vistas no den cifras distintas. La carga anterior se
-                    -- busca por id y no por fecha: la captura en lote deja varias cargas
-                    -- con la misma fecha_registro y el id es el único orden estable.
-                    -- En la primera carga del vehículo no hay contra qué comparar y queda
-                    -- NULL, que la vista pinta con un guion en vez de un 0 engañoso.
-                    -- Un resultado NEGATIVO también se descarta: significa que el odómetro
-                    -- de alguna de las dos capturas está mal (hay lecturas con un dígito
-                    -- de más, como 1,681,614 km, que darían cifras absurdas). Es el mismo
-                    -- criterio con el que solicitudes_gas.km_recorrido se deja en null.
-                    (SELECT CASE WHEN cg.km_actual - prev.km_actual >= 0
-                                 THEN cg.km_actual - prev.km_actual END
-                     FROM carga_gasolina prev
-                     WHERE prev.id_vehiculo = cg.id_vehiculo AND prev.id < cg.id
-                     ORDER BY prev.id DESC LIMIT 1) AS km_recorridos,
-                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
-             FROM carga_gasolina cg
-             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
-             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
-             LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
-             WHERE cg.id_ciclo = ?
-             ORDER BY cg.fecha_carga DESC, cg.id DESC"
-        );
-        $idCicloCons = $ciclo ? intval($ciclo['id_ciclo']) : 0;
-        $stmtC->bind_param("i", $idCicloCons);
-        $stmtC->execute();
-        $resC = $stmtC->get_result();
-        $cargas = [];
-        // Se suma 'pagos', NO 'monto'. En carga_gasolina 'monto' es el saldo que había
-        // ANTES de la carga (el monto de cada fila es el saldo de la anterior, y siempre
-        // se cumple monto - pagos = saldo), así que sumarlo daba una cifra sin sentido:
-        // el acumulado de saldos corrientes, muy por encima de lo realmente gastado.
-        $totalGastado = 0.0;
-        $kmMin = null; $kmMax = null;
-        while ($row = $resC->fetch_assoc()) {
-            $cargas[] = $row;
-            $totalGastado += floatval($row['pagos']);
-            // Km recorridos del ciclo completo: de la lectura más baja a la más alta de
-            // sus cargas. Es más robusto que sumar los deltas, porque los deltas que se
-            // descartan por odómetro incoherente dejarían huecos en la suma.
-            $km = intval($row['km_actual']);
-            if ($km > 0) {
-                if ($kmMin === null || $km < $kmMin) $kmMin = $km;
-                if ($kmMax === null || $km > $kmMax) $kmMax = $km;
-            }
-        }
-        $stmtC->close();
-
-        // Solo se reporta si es coherente: un crédito de $4,000 rinde del orden de 1,500
-        // km, así que una cifra desbordada delata una lectura mal capturada.
-        $kmCiclo = null;
-        if ($kmMin !== null && $kmMax !== null && $kmMax > $kmMin && ($kmMax - $kmMin) <= 10000) {
-            $kmCiclo = $kmMax - $kmMin;
-        }
+        // Cargas y recorridos hasta el corte de la solicitud. La misma función arma cada
+        // ciclo del reporte descargable (reporteGasVehiculo), para que el modal y el Excel
+        // no den cifras distintas.
+        $det = detalleCicloTarjeta($conn, intval($sol['id_vehiculo']), $ciclo ?: null, $sol['fecha']);
 
         echo json_encode([
             'status'        => 'success',
@@ -1170,9 +1285,111 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             'ciclo'         => $ciclo ?: null,
             'desde'         => $ciclo['fecha_inicio'] ?? null,
             'hasta'         => $ciclo['fecha_fin'] ?? $sol['fecha'],
-            'total_gastado' => $totalGastado,
-            'km_ciclo'      => $kmCiclo,
-            'cargas'        => $cargas
+            'total_gastado' => $det['total_gastado'],
+            'km_ciclo'      => $det['km_ciclo'],
+            'cargas'        => $det['cargas'],
+            'corte'         => $det['corte'],
+            'recorridos'    => $det['recorridos']
+        ]);
+        exit;
+    }
+
+    /**
+     * Reporte de gasolina de UN vehículo, para descargar en Excel desde el historial.
+     *
+     * Es el mismo contenido que el detalle de una solicitud (recorridos intercalados con
+     * cargas), pero de TODOS los ciclos de la tarjeta. Lo usa cada ingeniero, así que el
+     * permiso es el del historial (vehículos asignados, prestados o de su área), no
+     * verSolicitudesGas, que solo tienen quienes autorizan.
+     *
+     * A diferencia del modal, cada ciclo se toma completo hasta su cierre (o hasta hoy si
+     * sigue abierto): entre la solicitud y la aprobación el vehículo también se usa, y en
+     * un reporte de todo el historial esos viajes no deben perderse entre dos ciclos. Las
+     * solicitudes que caen dentro del ciclo se marcan como cortes donde ocurrieron.
+     */
+    if ($accion == 'reporteGasVehiculo') {
+        $idVehRep = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
+        if ($idVehRep <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Selecciona un vehículo.']);
+            exit;
+        }
+
+        // Salvaguarda anti-IDOR, igual que obtenerHistorialGas.
+        $perm = vehiculosPermitidosGas($conn, $id_usuario, $noEmpleado);
+        if (!$perm['todas'] && !in_array($idVehRep, $perm['ids'], true)) {
+            echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a este vehículo.']);
+            exit;
+        }
+
+        $stmtV = $conn->prepare(
+            "SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.efecticard,
+                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''),
+                           NULLIF(TRIM(inv.usuario), '')) AS usuario_vehiculo
+             FROM inventario inv
+             LEFT JOIN usuarios uv ON uv.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = inv.id_usuario)
+             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = uv.noEmpleado
+             WHERE inv.id_vehiculo = ? LIMIT 1"
+        );
+        $stmtV->bind_param("i", $idVehRep);
+        $stmtV->execute();
+        $veh = $stmtV->get_result()->fetch_assoc();
+        $stmtV->close();
+        if (!$veh) {
+            echo json_encode(['status' => 'error', 'message' => 'No se encontró el vehículo.']);
+            exit;
+        }
+
+        $stmtCs = $conn->prepare(
+            "SELECT id_ciclo, fecha_inicio, fecha_fin, saldo_inicial, monto_abonado, origen, estatus
+             FROM ciclos_tarjeta WHERE id_vehiculo = ?
+             ORDER BY fecha_inicio DESC, id_ciclo DESC"
+        );
+        $stmtCs->bind_param("i", $idVehRep);
+        $stmtCs->execute();
+        $resCs = $stmtCs->get_result();
+        $ciclosRep = [];
+        while ($row = $resCs->fetch_assoc()) $ciclosRep[] = $row;
+        $stmtCs->close();
+
+        $stmtSo = $conn->prepare(
+            "SELECT id, fecha, saldo_solicitud, estatus FROM solicitudes_gas
+             WHERE id_vehiculo = ? AND fecha >= ? AND (? IS NULL OR fecha < ?)
+             ORDER BY fecha ASC, id ASC"
+        );
+
+        $secciones = [];
+        foreach ($ciclosRep as $ci) {
+            $hasta = $ci['fecha_fin'] ?? date('Y-m-d H:i:s');
+            $det = detalleCicloTarjeta($conn, $idVehRep, $ci, $hasta);
+
+            $solicitudes = [];
+            $stmtSo->bind_param("isss", $idVehRep, $ci['fecha_inicio'], $ci['fecha_fin'], $ci['fecha_fin']);
+            $stmtSo->execute();
+            $resSo = $stmtSo->get_result();
+            while ($row = $resSo->fetch_assoc()) $solicitudes[] = $row;
+
+            $secciones[] = [
+                'ciclo'         => $ci,
+                'solicitudes'   => $solicitudes,
+                'cargas'        => $det['cargas'],
+                'recorridos'    => $det['recorridos'],
+                'total_gastado' => $det['total_gastado'],
+                'km_ciclo'      => $det['km_ciclo']
+            ];
+        }
+        $stmtSo->close();
+
+        // Cargas de antes de que existieran los ciclos de tarjeta. Van sin recorridos: no
+        // hay un crédito que acote la ventana y traerían todo el historial del vehículo.
+        $det = detalleCicloTarjeta($conn, $idVehRep, null, null);
+
+        echo json_encode([
+            'status'       => 'success',
+            'vehiculo'     => $veh,
+            'saldo_actual' => saldoActualTarjeta($conn, $idVehRep),
+            'generado'     => date('Y-m-d H:i:s'),
+            'secciones'    => $secciones,
+            'sin_ciclo'    => $det['cargas']
         ]);
         exit;
     }

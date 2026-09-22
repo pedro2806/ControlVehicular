@@ -146,7 +146,9 @@ $SECCIONES_CHECK = [
     'checklist_golpes_exterior'  => ['nombre' => 'Golpes Exterior',              'tipo' => 'standard'],
     'checklist_graficas'         => ['nombre' => 'Graficas',                     'tipo' => 'standard'],
     'checklist_limpiaparabrisas' => ['nombre' => 'Limpiaparabrisas',             'tipo' => 'standard'],
-    'checklist_limpieza'         => ['nombre' => 'Limpieza',                     'tipo' => 'standard'],
+    // Limpieza ya no está en el formulario: solo se muestra si la fila trae datos
+    // (checklists viejos). Ver filaTieneDatos().
+    'checklist_limpieza'         => ['nombre' => 'Limpieza',                     'tipo' => 'standard', 'retirada' => true],
     'checklist_placas'           => ['nombre' => 'Placas',                       'tipo' => 'standard'],
     'checklist_llantas'          => ['nombre' => 'Llantas',                      'tipo' => 'llantas'],
     'checklist_documentacion'    => ['nombre' => null,                           'tipo' => 'documentacion'],
@@ -155,19 +157,53 @@ $SECCIONES_CHECK = [
 // checklist_puertas_llaves usa tabla checklist_puertas_llave (sin s)
 $SECCIONES_CHECK_ALIAS = ['checklist_puertas_llaves' => ['tabla' => 'checklist_puertas_llave', 'nombre' => 'Puertas y Llaves', 'tipo' => 'standard']];
 
+// Documentos que el formulario ya no captura (Refrendo y Seguro viven en el módulo de
+// Documentación). Mismo trato que las secciones con 'retirada' => true.
+$DOCUMENTOS_RETIRADOS = ['Refrendo', 'Seguro de Auto'];
+
+/**
+ * ¿La fila trae algo capturado de verdad?
+ *
+ * Sirve para no mostrar las secciones retiradas cuando están vacías. Todos los checklists
+ * guardados desde que el formulario dejó de capturarlas tienen esas filas en blanco, y el
+ * detalle las pintaba como si al checklist le faltara evidencia. Si una fila vieja sí
+ * tiene datos, se sigue mostrando.
+ *
+ * buen_estado NO cuenta: el cliente viejo mandaba '0' en todas las secciones sin tocar, así
+ * que un '0' sin foto ni observaciones no es una respuesta, es ese bug.
+ */
+function filaTieneDatos($row) {
+    $vacios = ['', 'S/R', 'N/A', 'S-R.jpg', '0000-00-00'];
+    foreach (['foto', 'observaciones', 'vencimiento', 'no_tarjeta'] as $col) {
+        $v = trim((string) ($row[$col] ?? ''));
+        if ($col === 'foto' && substr($v, -3) === 'S/R') continue;
+        if (!in_array($v, $vacios, true)) return true;
+    }
+    return (string) ($row['si_no'] ?? '') === '1';
+}
+
 function consultarSeccionChecklist($conn, $tabla, $config, $id_checklist) {
-    $sql = "SELECT * FROM $tabla WHERE id_checklist = '$id_checklist'";
+    global $DOCUMENTOS_RETIRADOS;
+
+    $sql = "SELECT * FROM $tabla WHERE id_checklist = '" . intval($id_checklist) . "'";
     $res = mysqli_query($conn, $sql);
     if (!$res) { die(json_encode(["error" => mysqli_error($conn)])); }
 
+    // La columna se llama `observaciones` en todas las tablas de sección. Aquí se leía
+    // `obervaciones` (sin la s), que no existe: el detalle mostraba "N/A" en todas las
+    // observaciones aunque el usuario las hubiera escrito.
     $registros = [];
     while ($row = mysqli_fetch_assoc($res)) {
+        $retirada = !empty($config['retirada'])
+            || ($config['tipo'] === 'documentacion' && in_array($row['t_documento'] ?? '', $DOCUMENTOS_RETIRADOS, true));
+        if ($retirada && !filaTieneDatos($row)) continue;
+
         switch ($config['tipo']) {
             case 'standard':
                 $registros[] = [
                     'nombre_seccion' => $config['nombre'],
                     'Si_No'          => $row["si_no"] ?? null,
-                    'Observaciones'  => $row["obervaciones"] ?? null,
+                    'Observaciones'  => $row["observaciones"] ?? null,
                     'Buen_estado'    => $row["buen_estado"] ?? null,
                     'imagen'         => $row["foto"] ?? null
                 ];
@@ -177,7 +213,7 @@ function consultarSeccionChecklist($conn, $tabla, $config, $id_checklist) {
                     'nombre_seccion' => 'Llantas',
                     'Medidas'        => $row["medidas"] ?? null,
                     'No_Rin'         => $row["no_rin"] ?? null,
-                    'Observaciones'  => $row["obervaciones"] ?? null,
+                    'Observaciones'  => $row["observaciones"] ?? null,
                     'Buen_estado'    => $row["buen_estado"] ?? null,
                     'imagen'         => $row["foto"] ?? null
                 ];
@@ -186,7 +222,7 @@ function consultarSeccionChecklist($conn, $tabla, $config, $id_checklist) {
                 $registros[] = [
                     'nombre_seccion' => $row["t_documento"] ?? null,
                     'Si_No'          => $row["si_no"] ?? null,
-                    'Observaciones'  => $row["obervaciones"] ?? null,
+                    'Observaciones'  => $row["observaciones"] ?? null,
                     'No_tarjeta'     => $row["no_tarjeta"] ?? null,
                     'imagen'         => $row["foto"] ?? null
                 ];
@@ -248,10 +284,6 @@ $si_no_asientos = getPostOrSR('si_no_Asientos');
 $buenEstado_Asientos = getPostOrSR('buenEstado_Asientos');
 $observaciones_Asientos = getPostOrSR('observaciones_Asientos');
 
-$si_no_Limpieza = getPostOrSR('si_no_Limpieza');
-$buenEstado_Limpieza = getPostOrSR('buenEstado_Limpieza');
-$observaciones_Limpieza = getPostOrSR('observaciones_Limpieza');
-
 $si_no_Exterior = getPostOrSR('si_no_Exterior');
 $buenEstado_Exterior = getPostOrSR('buenEstado_Exterior');
 $observaciones_Exterior = getPostOrSR('observaciones_Exterior');
@@ -292,14 +324,6 @@ $observaciones_PuertasLlave = getPostOrSR('observaciones_PuertasLlave');
 
 $si_no_tarjetaC = getPostOrSR('si_no_tarjetaC');
 $observaciones_tarjetaC = getPostOrSR('observaciones_tarjetaC');
-
-$si_no_Refrendo = getPostOrSR('si_no_Refrendo');
-$observaciones_Refrendo = getPostOrSR('observaciones_Refrendo');
-
-$si_no_Seguro = $_POST['si_no_Seguro'] ?? null;
-$vencimiento_Seguro = $_POST['vencimiento_Seguro'] ?? null;
-$no_tarjeta_Seguro = $_POST['no_tarjeta_Seguro'] ?? null;
-$observaciones_Seguro = $_POST['observaciones_Seguro'] ?? null;
 
 $si_no_Verificacion = $_POST['si_no_Verificacion'] ?? null;
 $vencimiento_Verificacion = $_POST['vencimiento_Verificacion'] ?? null;
@@ -390,7 +414,7 @@ function getFotoInfo($fileKey, $placa, $tipo, $subdir) {
         return ['ruta' => '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false, 'limpiar' => true];
     }
 
-    return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => falnse];
+    return ['ruta' => $rutaExistente ?? '', 'dir' => null, 'nombre' => null, 'tmp' => null, 'subir' => false];
 }
 
 /**
@@ -690,13 +714,35 @@ if ($opcion == 'guardarCheckIn') {
             }
         }
     } else {
-        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus) VALUES ('$id_coche', NOW(), '$id_usuario', '$id_revisor', '$motivo', '$estatus')";
+        // id_vehiculo, id_usuario e id_revisor son columnas int: van como número, no
+        // entrecomilladas. Si la cookie de usuario viniera vacía se mandaba '' a un int y,
+        // con STRICT_TRANS_TABLES, eso es un error de MySQL (y desde PHP 8.1 una excepción
+        // que tumba la petición). id_usuario admite NULL; id_vehiculo no, así que sin
+        // vehículo no tiene caso intentar el INSERT.
+        $idVehInsert = intval($id_coche);
+        if ($idVehInsert <= 0) {
+            die(json_encode(["error" => "No se pudo identificar el vehículo del checklist."]));
+        }
+        $idUsuarioInsert = ($id_usuario === null || $id_usuario === '') ? 'NULL' : intval($id_usuario);
+        $idRevisorInsert = ($id_revisor === null || $id_revisor === '') ? 'NULL' : intval($id_revisor);
+        $motivoEsc  = mysqli_real_escape_string($conn, (string) $motivo);
+        $estatusEsc = mysqli_real_escape_string($conn, (string) $estatus);
+
+        $sql = "INSERT INTO checklist (id_vehiculo, fecha, id_usuario, id_revisor, motivo, estatus)
+                VALUES ($idVehInsert, NOW(), $idUsuarioInsert, $idRevisorInsert, '$motivoEsc', '$estatusEsc')";
         $resultadoChecklist = mysqli_query($conn, $sql);
         if (!$resultadoChecklist) { die(json_encode(array("error" => "Failed to insert checklist: " . mysqli_error($conn)))); }
         $id_checklist = mysqli_insert_id($conn);
     }
 
-    // Secciones físicas — todas usan upsertChecklistSeccion
+    // Secciones físicas — todas usan upsertChecklistSeccion.
+    //
+    // Esta lista y la de $documentos tienen que ser EXACTAMENTE los pasos del formulario
+    // ($pasos en checkVehiculo.php). Aquí seguían Limpieza, Refrendo y Seguro, que el
+    // formulario ya no captura: cada checklist nuevo creaba esas tres filas vacías y sin
+    // foto, y el detalle del checklist las mostraba como si faltara evidencia en un
+    // checklist completo. Las filas de checklists viejos se quedan en la BD (el borrado
+    // de huérfanos de $TABLAS_CHECKLIST sigue incluyendo checklist_limpieza).
     $secciones = [
         ['checklist_asientos',         ['si_no' => $si_no_asientos, 'observaciones' => $observaciones_Asientos, 'buen_estado' => $buenEstado_Asientos],                                          'foto_Asientos',         'checklist_Asientos',         'asientos'],
         ['checklist_espejos_ventanas', ['si_no' => $si_no_espejos, 'observaciones' => $observaciones_Espejos, 'buen_estado' => $buenEstado_Espejos],                                             'foto_Espejos',          'checklist_Espejos',          'espejos'],
@@ -705,7 +751,6 @@ if ($opcion == 'guardarCheckIn') {
         ['checklist_golpes_exterior',  ['si_no' => $si_no_Exterior, 'observaciones' => $observaciones_Exterior, 'buen_estado' => $buenEstado_Exterior],                                           'foto_Exterior',         'checklist_GolpesExterior',   'golpes_exterior'],
         ['checklist_graficas',         ['si_no' => $si_no_Graficas, 'observaciones' => $observaciones_Graficas, 'buen_estado' => $buenEstado_Graficas],                                           'foto_Graficas',         'checklist_Graficas',         'graficas'],
         ['checklist_limpiaparabrisas', ['si_no' => $si_no_Limpiaparabrisas, 'observaciones' => $observaciones_Limpiaparabrisas, 'buen_estado' => $buenEstado_Limpiaparabrisas],                    'foto_Limpiaparabrisas', 'checklist_LimpiaParabrisas', 'limpiaParabrisas'],
-        ['checklist_limpieza',         ['si_no' => $si_no_Limpieza, 'observaciones' => $observaciones_Limpieza, 'buen_estado' => $buenEstado_Limpieza],                                           'foto_Limpieza',         'checklist_Limpieza',         'limpieza'],
         ['checklist_llantas',          ['buen_estado' => $buenEstado_Llantas, 'no_rin' => $no_rin, 'medidas' => $medidas, 'observaciones' => $observaciones_Llantas],                              'foto_Llantas',          'checklist_Llantas',          'llantas'],
         ['checklist_placas',           ['si_no' => $si_no_Placas, 'observaciones' => $observaciones_Placas, 'buen_estado' => $buenEstado_Placas],                                                 'foto_Placas',           'checklist_Placas',           'placas'],
         ['checklist_puertas_llave',    ['buen_estado' => $buenEstado_PuertasLlave, 'duplicado_llaves' => $duplicado_PuertasLlave, 'observaciones' => $observaciones_PuertasLlave],                 'foto_PuertasLlave',     'checklist_PuertasLlave',     'puertas_llave'],
@@ -719,8 +764,6 @@ if ($opcion == 'guardarCheckIn') {
     // Documentación — todas usan upsertChecklistDocumentacion
     $documentos = [
         ['Tarjeta de Circulacion', ['si_no' => $si_no_tarjetaC, 'observaciones' => $observaciones_tarjetaC],                                                                  'foto_tarjetaC',    'checklist_TarjetaC',    'tarjetaC'],
-        ['Refrendo',               ['si_no' => $si_no_Refrendo, 'observaciones' => $observaciones_Refrendo],                                                                  'foto_Refrendo',    'checklist_Refrendo',    'refrendo'],
-        ['Seguro de Auto',         ['si_no' => $si_no_Seguro, 'vencimiento' => $vencimiento_Seguro, 'no_tarjeta' => $no_tarjeta_Seguro, 'observaciones' => $observaciones_Seguro],              'foto_Seguro',      'checklist_Seguro',      'seguro'],
         ['Verificacion',           ['si_no' => $si_no_Verificacion, 'vencimiento' => $vencimiento_Verificacion, 'observaciones' => $observaciones_Verificacion],               'foto_Verificacion','checklist_Verificacion','verificacion'],
         ['Licencia de Manejo',     ['si_no' => $si_no_Licencia, 'vencimiento' => $vencimiento_Licencia, 'observaciones' => $observaciones_Licencia],                           'foto_Licencia',    'checklist_Licencia',    'licencia'],
         ['Tarjeta Efecticard',     ['si_no' => $si_no_TarjetaEfe, 'vencimiento' => $vencimiento_TarjetaEfe, 'no_tarjeta' => $no_tarjeta_TarjetaEfe, 'observaciones' => $observaciones_TarjetaEfe], 'foto_TarjetaEfe',  'checklist_TarjetaEfe',  'tarjetaEfe'],

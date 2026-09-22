@@ -49,8 +49,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                 <div class="d-sm-flex align-items-center justify-content-between mb-3">
                     <h1 class="h3 mb-0 text-gray-800">Historial de Cargas de Gasolina</h1>
                     <div class="d-flex gap-2">
-                        <button id="btnDescargar" class="btn btn-outline-warning btn-sm" onclick="descargarTabla()" disabled>
-                            <i class="fas fa-file-excel me-1"></i> Descargar XLSX
+                        <button id="btnDescargar" class="btn btn-outline-warning btn-sm" onclick="descargarReporteGas()" disabled>
+                            <i class="fas fa-file-excel me-1"></i> Descargar reporte de gasolina
                         </button>
                     </div>
                 </div>
@@ -154,7 +154,10 @@ if (empty($_COOKIE['noEmpleado'])) {
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="js/lib/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/rowgroup/1.4.1/js/dataTables.rowGroup.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- xlsx-js-style: SheetJS con soporte de estilos (rellenos, bordes, formatos). La
+     versión normal de SheetJS no escribe colores, y el reporte necesita la cinta cian
+     de las cargas y las franjas de cada ciclo. Expone el mismo global XLSX. -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -628,13 +631,296 @@ function solicitarReposicion(id_vehiculo, saldo, placa) {
 }
 
 
-function descargarTabla() {
+/**
+ * Reporte de gasolina del vehículo seleccionado, en Excel.
+ *
+ * Antes el botón volcaba la tabla tal cual (solo cargas, y solo la página visible del
+ * DataTable). Ahora es el mismo contenido que el detalle de una solicitud en
+ * validar_recargas.php, pero de todos los ciclos de la tarjeta: cada crédito con sus
+ * recorridos y sus cargas en orden, la cinta cian en las cargas y el corte en cada
+ * solicitud de renovación. Los datos los arma reporteGasVehiculo en acciones_gas.php.
+ */
+function descargarReporteGas() {
     if (!idVehSel) return;
+    var $btn = $('#btnDescargar');
+    var htmlBtn = $btn.html();
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Generando...');
+
+    $.ajax({
+        url: 'acciones_gas.php',
+        method: 'POST',
+        dataType: 'json',
+        data: { accion: 'reporteGasVehiculo', id_vehiculo: idVehSel }
+    }).done(function (resp) {
+        if (!resp || resp.status !== 'success') {
+            Swal.fire({ icon: 'error', title: 'No se pudo generar', text: (resp && resp.message) ? resp.message : 'Error del servidor.' });
+            return;
+        }
+        construirExcelGas(resp);
+    }).fail(function () {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo generar el reporte.' });
+    }).always(function () {
+        $btn.prop('disabled', false).html(htmlBtn);
+    });
+}
+
+function construirExcelGas(resp) {
+    var veh = resp.vehiculo || {};
+
+    // Colores del Excel. Van en hex porque Excel no entiende variables CSS; son los
+    // mismos del modal: --accent-soft / --accent para las franjas y el cian de Bootstrap
+    // (--bs-info) para las cargas.
+    var C = { franja: 'EAF3FF', acento: '1C83F1', cian: 'CFF4FC', cianFuerte: '0DCAF0', gris: '6C757D', borde: 'D9DEE5' };
+    var FMT = { dinero: '"$"#,##0.00', km: '#,##0', fecha: 'dd/mm/yyyy' };
+
+    // Columnas. OJO: los índices de COL se usan en todas las filas; si se agrega una
+    // columna hay que moverla aquí y en ANCHOS.
+    var ENCABEZADOS = ['Fecha', 'Hora', 'Movimiento', 'Detalle', 'OT / OV', 'Conductor',
+                       'Odómetro inicial', 'Odómetro final', 'Recorrido (km)', 'Gasto', 'Saldo'];
+    var COL = { fecha: 0, hora: 1, mov: 2, detalle: 3, ot: 4, conductor: 5,
+                kmIni: 6, kmFin: 7, km: 8, gasto: 9, saldo: 10 };
+    var ANCHOS = [12, 15, 22, 42, 14, 28, 15, 15, 14, 13, 13];
+    var N = ENCABEZADOS.length;
+
+    var celdas = [];   // filas de celdas {v, t, z, s}
+    var merges = [];
+
+    var partes = function (f) { return String(f || '').split(/[- :]/); };
+    // Fecha de Excel como número de serie: se calcula en UTC a partir del texto de MySQL
+    // para que la zona horaria del navegador no la mueva un día.
+    var serialFecha = function (f) {
+        var p = partes(f);
+        if (!p[0] || !p[2]) return null;
+        return (Date.UTC(+p[0], +p[1] - 1, +p[2]) - Date.UTC(1899, 11, 30)) / 86400000;
+    };
+    var hora = function (f) { var p = partes(f); return p[3] ? p[3] + ':' + (p[4] || '00') : ''; };
+    var ddmm = function (f) { var p = partes(f); return p[2] + '/' + p[1]; };
+    var fmtLargo = function (f) {
+        var p = partes(f);
+        return p[2] + '/' + p[1] + '/' + p[0] + (p[3] && hora(f) !== '00:00' ? ' ' + hora(f) : '');
+    };
+    var dinero = function (v) {
+        return '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+    var num = function (v) { return (v === null || v === undefined || v === '') ? null : Number(v); };
+
+    // Crea una fila con estilo base y la agrega. valores: {indiceColumna: valor}; los
+    // numéricos van como {v, z} para que Excel los pueda sumar y filtrar.
+    // sinBorde: para títulos y renglones separadores.
+    var agregarFila = function (valores, estilo, sinBorde) {
+        var fila = [];
+        for (var i = 0; i < N; i++) {
+            var v = valores[i];
+            var celda = { v: '', t: 's', s: $.extend(true, {
+                font: { name: 'Calibri', sz: 10 },
+                alignment: { vertical: 'top', wrapText: i === COL.detalle },
+                border: sinBorde ? {} : { bottom: { style: 'thin', color: { rgb: C.borde } } }
+            }, estilo || {}) };
+            if (v !== null && v !== undefined && v !== '') {
+                if (typeof v === 'object') {
+                    if (v.v !== null && v.v !== undefined) { celda.v = v.v; celda.t = 'n'; celda.z = v.z; }
+                } else {
+                    celda.v = v;
+                }
+            }
+            fila.push(celda);
+        }
+        celdas.push(fila);
+        return fila;
+    };
+
+    // ---- Encabezado del documento ----
+    var titulo = function (texto, sz, bold, color) {
+        var f = agregarFila({ 0: texto }, { font: { sz: sz, bold: bold, color: { rgb: color || '000000' } } }, true);
+        merges.push({ s: { r: celdas.length - 1, c: 0 }, e: { r: celdas.length - 1, c: N - 1 } });
+        return f;
+    };
+    titulo('Reporte de gasolina', 14, true);
+    titulo([veh.placa || 'S/P', [veh.marca, veh.modelo].filter(Boolean).join(' '),
+            veh.efecticard ? 'Tarjeta ' + veh.efecticard : 'Sin tarjeta registrada',
+            veh.usuario_vehiculo ? 'Usuario: ' + veh.usuario_vehiculo : ''].filter(Boolean).join('  ·  '), 11, true);
+    titulo('Saldo actual de la tarjeta: ' + (resp.saldo_actual !== null && resp.saldo_actual !== undefined ? dinero(resp.saldo_actual) : 'sin dato')
+           + '  ·  Generado el ' + fmtLargo(resp.generado), 10, false, C.gris);
+    titulo('Cada crédito va en su sección, del más reciente al más antiguo. Dentro de cada una, en orden cronológico: '
+           + 'recorridos en blanco, cargas de gas en cian y el corte de cada solicitud de renovación.', 9, false, C.gris)
+        [0].s.alignment.wrapText = true;
+    agregarFila({}, null, true);
+
+    agregarFila(ENCABEZADOS.reduce(function (o, h, i) { o[i] = h; return o; }, {}), {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: C.acento } },
+        alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+    });
+    var filaEncabezado = celdas.length - 1;
+
+    var estiloFranja = { font: { bold: true }, fill: { fgColor: { rgb: C.franja } },
+                         border: { top: { style: 'medium', color: { rgb: C.acento } }, bottom: { style: 'thin', color: { rgb: C.borde } } } };
+    var estiloCarga = { fill: { fgColor: { rgb: C.cian } } };
+
+    var filaCarga = function (cg) {
+        var detalle = [cg.cliente, [cg.ciudad, cg.estado].filter(Boolean).join(', ')].filter(Boolean).join(' — ');
+        var v = {};
+        v[COL.fecha] = { v: serialFecha(cg.fecha_carga), z: FMT.fecha };
+        v[COL.hora] = hora(cg.fecha_carga);
+        v[COL.mov] = 'Carga de gas';
+        v[COL.detalle] = detalle;
+        v[COL.ot] = cg.ot || '';
+        v[COL.conductor] = cg.usuario || '';
+        if (num(cg.km_actual)) v[COL.kmFin] = { v: num(cg.km_actual), z: FMT.km };
+        v[COL.gasto] = { v: num(cg.pagos) || 0, z: FMT.dinero };
+        v[COL.saldo] = { v: num(cg.saldo) || 0, z: FMT.dinero };
+        var fila = agregarFila(v, estiloCarga);
+        fila[COL.mov].s.font.bold = true;
+        // La "cinta": borde grueso cian a la izquierda de la fila.
+        fila[0].s.border.left = { style: 'thick', color: { rgb: C.cianFuerte } };
+    };
+
+    var filaRecorrido = function (r) {
+        var inicio = r.fecha_inicio || r.fecha_fin;
+        var horaTxt;
+        if (r.tipo) {
+            horaTxt = hora(inicio);
+        } else {
+            var fin = '';
+            if (r.fecha_fin) {
+                fin = String(r.fecha_fin).split(' ')[0] === String(inicio).split(' ')[0]
+                    ? hora(r.fecha_fin) : ddmm(r.fecha_fin) + ' ' + hora(r.fecha_fin);
+            }
+            horaTxt = (r.fecha_inicio ? hora(r.fecha_inicio) : '…') + ' – ' + (fin || 'sin regreso');
+        }
+        var detalle = r.tipo ? r.tipo : (r.notas_inicio || r.notas_fin || '');
+        var avisos = [];
+        if (!r.fecha_inicio) avisos.push('inició antes del crédito');
+        if (!r.tipo && !r.fecha_fin) avisos.push('sin regreso registrado');
+        if (avisos.length) detalle += (detalle ? ' ' : '') + '(' + avisos.join(', ') + ')';
+
+        var v = {};
+        v[COL.fecha] = { v: serialFecha(inicio), z: FMT.fecha };
+        v[COL.hora] = horaTxt;
+        v[COL.mov] = 'Recorrido';
+        v[COL.detalle] = detalle;
+        v[COL.ot] = r.ot || '';
+        v[COL.conductor] = r.usuario || '';
+        if (r.km_inicio !== null) v[COL.kmIni] = { v: r.km_inicio, z: FMT.km };
+        if (r.km_fin !== null) v[COL.kmFin] = { v: r.km_fin, z: FMT.km };
+        if (r.km_recorridos !== null) v[COL.km] = { v: r.km_recorridos, z: FMT.km };
+        var fila = agregarFila(v);
+        // Los registros incompletos se resaltan en ámbar: son los que hay que revisar.
+        if (avisos.length) fila[COL.detalle].s.font.color = { rgb: 'B8860B' };
+    };
+
+    var filaTotales = function (cargas, recorridos, totalGastado, saldoFinal) {
+        var kmViajes = 0;
+        recorridos.forEach(function (r) { if (r.km_recorridos !== null) kmViajes += Number(r.km_recorridos); });
+        var v = {};
+        v[COL.mov] = 'Totales';
+        v[COL.detalle] = cargas.length + (cargas.length === 1 ? ' carga' : ' cargas')
+                       + ' · ' + recorridos.length + (recorridos.length === 1 ? ' recorrido' : ' recorridos');
+        v[COL.km] = { v: kmViajes, z: FMT.km };
+        v[COL.gasto] = { v: totalGastado, z: FMT.dinero };
+        if (saldoFinal !== null) v[COL.saldo] = { v: saldoFinal, z: FMT.dinero };
+        agregarFila(v, { font: { bold: true }, border: { top: { style: 'thin', color: { rgb: '000000' } } } });
+        agregarFila({}, null, true);
+    };
+
+    var ESTATUS = { PENDIENTE: 'pendiente', PARCIAL: 'parcialidad', APROBADA: 'aprobada', RECHAZADA: 'rechazada' };
+
+    var secciones = Array.isArray(resp.secciones) ? resp.secciones : [];
+    secciones.forEach(function (sec) {
+        var c = sec.ciclo || {};
+        var cargas = Array.isArray(sec.cargas) ? sec.cargas : [];
+        var recorridos = Array.isArray(sec.recorridos) ? sec.recorridos : [];
+        var solicitudes = Array.isArray(sec.solicitudes) ? sec.solicitudes : [];
+
+        // Franja de apertura del crédito.
+        var origen = c.origen === 'INICIAL' ? 'Primer crédito registrado'
+                   : c.origen === 'DETECTADO' ? 'Recarga no registrada (deducida de las cargas)'
+                   : 'Recarga aprobada' + (num(c.monto_abonado) ? ', se abonaron ' + dinero(c.monto_abonado) : '');
+        var cierre = c.fecha_fin ? 'Cerrado el ' + fmtLargo(c.fecha_fin) : 'Crédito vigente';
+        var v = {};
+        v[COL.fecha] = { v: serialFecha(c.fecha_inicio), z: FMT.fecha };
+        v[COL.hora] = hora(c.fecha_inicio) !== '00:00' ? hora(c.fecha_inicio) : '';
+        v[COL.mov] = 'Crédito en la tarjeta';
+        v[COL.detalle] = origen + ' · ' + cierre;
+        v[COL.saldo] = { v: num(c.saldo_inicial) || 0, z: FMT.dinero };
+        agregarFila(v, estiloFranja);
+
+        // Eventos del ciclo en orden. Las fechas de MySQL ordenan bien como texto.
+        var eventos = [];
+        recorridos.forEach(function (r) { eventos.push({ f: r.fecha_inicio || r.fecha_fin, tipo: 'viaje', d: r }); });
+        cargas.forEach(function (cg) { eventos.push({ f: cg.fecha_carga, tipo: 'carga', d: cg }); });
+        solicitudes.forEach(function (so) { eventos.push({ f: so.fecha, tipo: 'corte', d: so }); });
+        eventos.sort(function (a, b) { return a.f < b.f ? -1 : (a.f > b.f ? 1 : 0); });
+
+        if (!eventos.length) {
+            var vacio = {};
+            vacio[COL.detalle] = 'Sin cargas ni recorridos registrados con este crédito.';
+            var fv = agregarFila(vacio);
+            fv[COL.detalle].s.font.italic = true;
+            fv[COL.detalle].s.font.color = { rgb: C.gris };
+        }
+
+        eventos.forEach(function (ev) {
+            if (ev.tipo === 'carga') return filaCarga(ev.d);
+            if (ev.tipo === 'viaje') return filaRecorrido(ev.d);
+            var so = ev.d;
+            var vc = {};
+            vc[COL.fecha] = { v: serialFecha(so.fecha), z: FMT.fecha };
+            vc[COL.hora] = hora(so.fecha);
+            vc[COL.mov] = 'Corte: solicitud';
+            vc[COL.detalle] = 'Solicitud de renovación (' + (ESTATUS[so.estatus] || String(so.estatus).toLowerCase()) + ') · saldo al solicitar';
+            vc[COL.saldo] = { v: num(so.saldo_solicitud) || 0, z: FMT.dinero };
+            agregarFila(vc, estiloFranja);
+        });
+
+        // Saldo con el que terminó: el de la carga más reciente, o el inicial si no hubo.
+        var ultima = cargas.slice().sort(function (a, b) {
+            return a.fecha_carga < b.fecha_carga ? 1 : (a.fecha_carga > b.fecha_carga ? -1 : b.id - a.id);
+        })[0];
+        filaTotales(cargas, recorridos, Number(sec.total_gastado) || 0,
+                    ultima ? Number(ultima.saldo) : (num(c.saldo_inicial) || 0));
+    });
+
+    // Cargas de antes de los ciclos de tarjeta: sin recorridos, no hay crédito que acote.
+    var sinCiclo = Array.isArray(resp.sin_ciclo) ? resp.sin_ciclo : [];
+    if (sinCiclo.length) {
+        var vs = {};
+        vs[COL.mov] = 'Cargas anteriores';
+        vs[COL.detalle] = 'Antes del control de créditos (sin recorridos)';
+        agregarFila(vs, estiloFranja);
+        sinCiclo.slice().sort(function (a, b) { return a.fecha_carga < b.fecha_carga ? -1 : (a.fecha_carga > b.fecha_carga ? 1 : a.id - b.id); })
+            .forEach(filaCarga);
+        filaTotales(sinCiclo, [], sinCiclo.reduce(function (t, cg) { return t + (Number(cg.pagos) || 0); }, 0), null);
+    }
+
+    if (!secciones.length && !sinCiclo.length) {
+        Swal.fire({ icon: 'info', title: 'Sin información', text: 'Este vehículo no tiene cargas ni créditos registrados.' });
+        return;
+    }
+
+    // ---- Hoja ----
+    var ws = {};
+    celdas.forEach(function (fila, r) {
+        fila.forEach(function (celda, c) {
+            ws[XLSX.utils.encode_cell({ r: r, c: c })] = celda;
+        });
+    });
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: celdas.length - 1, c: N - 1 } });
+    ws['!cols'] = ANCHOS.map(function (w) { return { wch: w }; });
+    ws['!merges'] = merges;
+    ws['!rows'] = [];
+    ws['!rows'][0] = { hpt: 22 };
+    ws['!rows'][3] = { hpt: 26 };
+    ws['!rows'][filaEncabezado] = { hpt: 28 };
+    // Filtro sobre el encabezado: permite quedarse solo con cargas o solo con recorridos.
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: filaEncabezado, c: 0 }, e: { r: celdas.length - 1, c: N - 1 } }) };
+
     var wb = XLSX.utils.book_new();
-    var ws = XLSX.utils.table_to_sheet(document.getElementById('tablaGas'));
-    XLSX.utils.book_append_sheet(wb, ws, 'Gasolina');
-    var placa = placaSel ? String(placaSel).replace(/[^A-Za-z0-9_-]/g, '') : ('veh' + idVehSel);
-    XLSX.writeFile(wb, 'Gasolina_' + placa + '.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Reporte de gasolina');
+
+    var placa = veh.placa ? String(veh.placa).replace(/[^A-Za-z0-9_-]/g, '') : ('veh' + idVehSel);
+    var hoy = String(resp.generado || '').split(' ')[0].replace(/-/g, '');
+    XLSX.writeFile(wb, 'Reporte_gasolina_' + placa + (hoy ? '_' + hoy : '') + '.xlsx');
 }
 
 function escHtml(str) {

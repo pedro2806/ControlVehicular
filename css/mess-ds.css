@@ -941,4 +941,11 @@ body.theme-dark .text-primary { color: var(--accent) !important; }
         color: #000 !important;
     }
     .scroll-to-top, .theme-toggle-btn { display: none !important; }
+    /* Capas oscuras de pantalla completa: nunca van al papel. La hoja Carta con los
+       márgenes del navegador mide ~740px, así que al imprimir entra la regla móvil
+       (max-width: 767.98px) y el .sidebar-backdrop — que en escritorio queda activo
+       con el menú abierto (body.sidebar-abierto) — se pintaba negro al 50% encima de
+       cada página: el lote de etiquetas QR salía gris o "en blanco". El backdrop de
+       un modal que se quedó colgado haría lo mismo. */
+    .sidebar-backdrop, .modal-backdrop { display: none !important; }
 }

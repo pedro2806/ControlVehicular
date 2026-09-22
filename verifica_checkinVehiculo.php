@@ -592,6 +592,27 @@ if ($stmtAcc) {
         //contenedorTarjetas.innerHTML = ''; // Limpiar el contenedor antes de agregar nuevas tarjetas
 
         Array.isArray(registros) && registros.forEach(function(registro) {
+            // Mismo criterio que el semáforo (obtenerValidacionesVehiculo en acciones_qr.php).
+            // Antes el chip de presencia leía solo si_no, y el formulario ya no captura si_no
+            // en ninguna sección: todas las tarjetas salían "Ausente", aun con foto. Y el
+            // de estado pintaba "Mal estado" también cuando buen_estado venía vacío (sin
+            // responder), mientras el semáforo daba esa misma sección por buena.
+            const foto = (registro.imagen || '').trim();
+            const tieneFoto = foto !== '' && foto !== 'S-R.jpg' && foto.slice(-3) !== 'S/R';
+            const presente = registro.Si_No == 1 || tieneFoto;
+
+            // 'ok' | 'mal' | 'sin_revisar' | null (la sección no lleva estado)
+            let estado = null;
+            if (registro.Buen_estado !== undefined) {
+                const be = String(registro.Buen_estado ?? '').trim().toUpperCase();
+                if (be === '1' || be === 'SI')   estado = 'ok';
+                else if (be === '0')             estado = 'mal';
+                else                             estado = tieneFoto ? 'ok' : 'sin_revisar';
+            }
+
+            let colorBorde = presente ? 'var(--success)' : 'var(--text-muted)';
+            if (estado === 'mal') colorBorde = 'var(--danger)';
+
             // Crear el div principal de la tarjeta
             const tarjetaDiv = document.createElement('div');
             tarjetaDiv.classList.add('col-lg-3', 'col-md-3', 'col-sm-6', 'col-6');
@@ -599,7 +620,7 @@ if ($stmtAcc) {
             // Crear el div de la card
             const cardDiv = document.createElement('div');
             cardDiv.classList.add('card', 'shadow', 'h-60', 'py-0');
-            cardDiv.style.borderLeft = '4px solid ' + (registro.Si_No == 1 ? '#28a745' : '#fd7e14');
+            cardDiv.style.borderLeft = '4px solid ' + colorBorde;
 
             // Crear el header de la card
             const cardHeaderDiv = document.createElement('div');
@@ -620,24 +641,26 @@ if ($stmtAcc) {
             const chipRow = document.createElement('div');
             chipRow.classList.add('d-flex', 'gap-2', 'mb-2', 'flex-wrap');
 
-            if (registro.Si_No !== undefined) {
+            // Los íconos eran de Bootstrap Icons (bi-*), que esta vista no carga: no se veían.
+            const crearChip = function (color, icono, texto) {
                 const chip = document.createElement('span');
-                const presente = registro.Si_No == 1;
-                chip.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:50rem;font-size:0.85rem;color:#fff;background-color:' + (presente ? '#28a745' : '#fd7e14');
-                chip.innerHTML = presente
-                    ? '<i class="bi bi-check-circle-fill me-1"></i>Presente'
-                    : '<i class="bi bi-x-circle-fill me-1"></i>Ausente';
-                chipRow.appendChild(chip);
+                chip.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:50rem;font-size:0.85rem;color:#fff;background-color:' + color;
+                chip.innerHTML = '<i class="fas ' + icono + ' me-1"></i>' + texto;
+                return chip;
+            };
+
+            if (registro.Si_No !== undefined) {
+                chipRow.appendChild(presente
+                    ? crearChip('var(--success)', 'fa-check-circle', 'Presente')
+                    : crearChip('var(--text-muted)', 'fa-minus-circle', 'Sin evidencia'));
             }
 
-            if (registro.Buen_estado !== undefined) {
-                const chip = document.createElement('span');
-                const bueno = registro.Buen_estado == 1;
-                chip.style.cssText = 'display:inline-block;padding:2px 10px;border-radius:50rem;font-size:0.85rem;color:#fff;background-color:' + (bueno ? '#28a745' : '#fd7e14');
-                chip.innerHTML = bueno
-                    ? '<i class="bi bi-check-circle-fill me-1"></i>Buen estado'
-                    : '<i class="bi bi-exclamation-triangle-fill me-1"></i>Mal estado';
-                chipRow.appendChild(chip);
+            if (estado === 'ok') {
+                chipRow.appendChild(crearChip('var(--success)', 'fa-check-circle', 'Buen estado'));
+            } else if (estado === 'mal') {
+                chipRow.appendChild(crearChip('var(--danger)', 'fa-exclamation-triangle', 'Mal estado'));
+            } else if (estado === 'sin_revisar') {
+                chipRow.appendChild(crearChip('var(--text-muted)', 'fa-minus-circle', 'Sin revisar'));
             }
 
             if (chipRow.children.length > 0) cardBodyDiv.appendChild(chipRow);
@@ -662,25 +685,22 @@ if ($stmtAcc) {
                 }
             }
 
-            // Agregar la imagen (asumiendo que tienes una propiedad que indica la ruta de la imagen)
-            for (const key in registro) {
-                if (key.includes('imagen')) {
-                    if (registro[key].slice(-3) === 'S/R') { // Validar si los últimos 3 caracteres son 'S/R'
-                        const sinImagenLabel = document.createElement('label');
-                        sinImagenLabel.textContent = 'Sin imagen';
-                        sinImagenLabel.classList.add('text-muted', 'd-block', 'mt-1');
-                        cardBodyDiv.appendChild(sinImagenLabel);
-                    } else {
-                        const imagen = document.createElement('img');
-                        imagen.src = registro[key];
-                        imagen.alt = registro.nombre_seccion || 'Imagen';
-                        imagen.classList.add('img-fluid', 'mt-1');
-                        imagen.style.maxHeight = '120px';
-                        imagen.onerror = function() { this.style.display = 'none'; };
-                        cardBodyDiv.appendChild(imagen);
-                    }
-                    break; // Suponiendo que solo hay una imagen por tarjeta
-                }
+            // Antes solo reconocía 'S/R' como "sin foto": con la columna vacía armaba un
+            // <img src=""> invisible, y con NULL (checklist_limpieza lo admite)
+            // registro.imagen.slice() tronaba y la tarjeta no se dibujaba.
+            if (tieneFoto) {
+                const imagen = document.createElement('img');
+                imagen.src = foto;
+                imagen.alt = registro.nombre_seccion || 'Imagen';
+                imagen.classList.add('img-fluid', 'mt-1');
+                imagen.style.maxHeight = '120px';
+                imagen.onerror = function() { this.style.display = 'none'; };
+                cardBodyDiv.appendChild(imagen);
+            } else {
+                const sinImagenLabel = document.createElement('label');
+                sinImagenLabel.textContent = 'Sin imagen';
+                sinImagenLabel.classList.add('text-muted', 'd-block', 'mt-1');
+                cardBodyDiv.appendChild(sinImagenLabel);
             }
 
             cardDiv.appendChild(cardBodyDiv);

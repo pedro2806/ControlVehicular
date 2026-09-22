@@ -15,6 +15,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="css/mess-ds.css" rel="stylesheet">
+    <style>
+        /* Línea de tiempo del detalle. Las cintas van en filas de la misma tabla para que
+           secciones y recorridos compartan columnas, como el separador de ciclos del
+           historial de gas. El color va en --bs-table-bg de la fila: Bootstrap pinta la
+           celda con esa variable y así .table-hover sigue funcionando encima. */
+        .tl-banda > td {
+            --bs-table-bg: var(--accent-soft);
+            border-top: 2px solid var(--accent);
+            font-weight: 600;
+        }
+        /* Cinta de carga de gas: cian de Bootstrap, translúcido para que funcione igual
+           en tema claro y oscuro sin definir otro color. */
+        .tl-carga > td {
+            --bs-table-bg: rgba(var(--bs-info-rgb), .16);
+        }
+        /* La franja solo en la primera celda: Fecha nunca se oculta en celular. */
+        .tl-carga > td:first-child {
+            border-left: 4px solid rgb(var(--bs-info-rgb));
+        }
+        .tl-carga .tl-icono { color: rgb(var(--bs-info-rgb)); }
+    </style>
 </head>
 <body id="page-top">
     <div id="wrapper">
@@ -211,6 +232,29 @@
         return t.replace(/ 00:00$/, '');
     }
 
+    /*
+     * Fechas de la línea de tiempo del detalle: dd/mm/aaaa, igual que el resto del
+     * sistema. Se probó "vie 7 ago" y en la revisión no se entendía. Se arma a mano desde
+     * el texto de MySQL para no depender de la zona horaria del navegador.
+     */
+    function diaTL(f) {
+        if (!f) return '';
+        var p = String(f).split(/[- :]/);
+        return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    function horaTL(f) {
+        var p = String(f || '').split(/[- :]/);
+        return p[3] ? p[3] + ':' + (p[4] || '00') : '';
+    }
+
+    /** Fecha arriba y hora abajo. Sin hora cuando es 00:00 (ciclos del backfill). */
+    function fechaTL(f) {
+        var h = horaTL(f);
+        return '<div>' + diaTL(f) + '</div>'
+            + (h && h !== '00:00' ? '<div class="text-muted">' + h + '</div>' : '');
+    }
+
     /**
      * Liga a los check-ins del vehículo acotados al ciclo de tarjeta.
      *
@@ -264,11 +308,11 @@
             rango = 'No se encontró un ciclo de tarjeta para esta solicitud.';
         } else if (c.origen === 'INICIAL') {
             rango = '<b>Primer crédito registrado</b> del vehículo, desde el ' + fmtFechaCorta(c.fecha_inicio) + '. '
-                  + 'Abajo van todas sus cargas.';
+                  + 'Abajo va todo su uso hasta la solicitud; las cargas de gas van en la cinta cian.';
         } else {
             rango = '<b>Última recarga:</b> ' + fmtFechaCorta(c.fecha_inicio)
                   + (c.monto_abonado ? ', se abonaron <b>' + money(c.monto_abonado) + '</b>' : '')
-                  + '. Abajo van las cargas hechas con ese crédito.'
+                  + '. Abajo va todo el uso del vehículo con ese crédito; las cargas de gas van en la cinta cian.'
                   + (c.origen === 'DETECTADO'
                         ? ' <span class="text-muted">(recarga deducida de las cargas, no capturada al aprobar)</span>'
                         : '');
@@ -278,63 +322,142 @@
         }
 
         var cargas = Array.isArray(d.cargas) ? d.cargas : [];
+        var recorridos = Array.isArray(d.recorridos) ? d.recorridos : [];
 
-        if (!cargas.length) {
+        if (!cargas.length && !recorridos.length) {
             $('#detallesCuerpo').html(
                 identificacion
                 + '<p class="small text-muted">' + rango + '</p>'
                 + '<div class="text-center text-muted py-4">'
                 + '<i class="fas fa-gas-pump fa-2x mb-2 d-block"></i>'
-                + 'No se registraron cargas en este periodo.</div>');
+                + 'No se registraron cargas ni recorridos en este periodo.</div>');
             return;
         }
 
-        var filas = '';
-        cargas.forEach(function (c) {
-            // Se muestra 'pagos' (lo gastado) y no 'monto': monto es el saldo previo a la
-            // carga, o sea el saldo de la fila anterior repetido. Así la columna suma
-            // exactamente el "Total gastado" de arriba y el usuario puede comprobarlo.
-            //
-            // OJO: el orden de estos <td> tiene que ir a la par del <thead> de abajo,
-            // incluidas las clases d-none/d-sm-table-cell de cada columna. Como aquí no
-            // hay nada que ate el dato a su encabezado, mover una columna en un solo
-            // lado deja los valores debajo del título equivocado.
-            // Orden: Registro | Km | Recorridos | Gastado | Saldo | Carga | Destino
-            //
-            // En la celda va solo el nombre corto del cliente y el OT/OV. Cliente completo,
-            // parque industrial y ciudad NO caben en un renglón de tabla (los nombres de
-            // cliente llegan a 45+ caracteres), así que van en un modal chico que se abre
-            // con el botón de información.
-            cargasDelDetalle[c.id] = c;
+        // Línea de tiempo: recorridos y cargas juntos, en orden cronológico. Las fechas
+        // vienen crudas de MySQL ('YYYY-MM-DD HH:MM:SS'), que ordenan bien como texto.
+        var eventos = [];
+        recorridos.forEach(function (r) {
+            eventos.push({ fecha: r.fecha_inicio || r.fecha_fin, tipo: 'viaje', dato: r });
+        });
+        cargas.forEach(function (cg) {
+            eventos.push({ fecha: cg.fecha_carga, tipo: 'carga', dato: cg });
+        });
+        // Corte de la solicitud: se ubica donde cae. Normalmente es el final, pero si el
+        // crédito se siguió usando después (solicitud rechazada) lo posterior queda abajo.
+        if (s.fecha) eventos.push({ fecha: s.fecha, tipo: 'corte' });
+        eventos.sort(function (a, b) {
+            return a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0);
+        });
 
-            var destino = '';
-            if (c.cliente) {
-                destino += '<div class="d-flex align-items-start gap-1">'
-                        +  '<span>' + esc(c.cliente_corto || c.cliente) + '</span>'
-                        +  '<button type="button" class="btn btn-link btn-sm p-0 lh-1 btn-destino"'
-                        +    ' data-id="' + c.id + '" title="Ver destino completo">'
-                        +    '<i class="fas fa-circle-info"></i></button>'
-                        +  '</div>';
-            }
-            if (c.ot) destino += '<div class="text-muted">OT/OV: ' + esc(c.ot) + '</div>';
-            if (!destino) destino = '<span class="text-muted">—</span>';
+        var fmtKm = function (v) {
+            return (v !== null && v !== undefined) ? Number(v).toLocaleString('es-MX') + ' km' : '';
+        };
 
-            filas +=
-                '<tr>'
-                + '<td class="small text-nowrap">' + fmtFecha(c.fecha_registro) + '</td>'
-                + '<td class="text-end small text-nowrap d-none d-sm-table-cell">'
-                +   (c.km_actual ? Number(c.km_actual).toLocaleString('es-MX') + ' km' : '') + '</td>'
-                // null en la primera carga del vehículo: no hay lectura anterior contra
-                // la cual medir, y un 0 se leería como "no se movió".
-                + '<td class="text-end small text-nowrap d-none d-sm-table-cell">'
-                +   (c.km_recorridos !== null && c.km_recorridos !== undefined
-                        ? Number(c.km_recorridos).toLocaleString('es-MX') + ' km'
-                        : '<span class="text-muted">—</span>') + '</td>'
-                + '<td class="text-end small text-nowrap">' + money(c.pagos) + '</td>'
-                + '<td class="text-end small text-nowrap">' + money(c.saldo) + '</td>'
-                + '<td class="small text-nowrap d-none d-sm-table-cell">' + fmtFecha(c.fecha_carga) + '</td>'
-                + '<td class="small d-none d-md-table-cell">' + destino + '</td>'
+        /*
+         * Cada fila, sea recorrido, carga o cinta, llena LAS MISMAS cinco columnas:
+         *   Fecha | Movimiento | Odómetro | Recorrido | Gasto / Saldo
+         * La primera versión tenía encabezados que solo aplicaban a los viajes y las cargas
+         * en una cinta a todo lo ancho con otro acomodo; se leía como dos tablas revueltas.
+         * Así la columna de saldo baja de corrido (4,000 → … → saldo al solicitar) y los
+         * km se comparan en la misma columna.
+         *
+         * OJO: el orden de las celdas tiene que ir a la par del <thead> de abajo, incluidas
+         * las clases d-none/d-*-table-cell.
+         */
+        var fila = function (clase, fecha, movimiento, odometro, recorrido, dinero) {
+            return '<tr class="' + clase + '">'
+                + '<td class="small text-nowrap">' + fecha + '</td>'
+                + '<td class="small">' + movimiento + '</td>'
+                + '<td class="text-end small text-nowrap d-none d-md-table-cell">' + odometro + '</td>'
+                + '<td class="text-end small text-nowrap d-none d-sm-table-cell">' + recorrido + '</td>'
+                + '<td class="text-end small text-nowrap">' + dinero + '</td>'
                 + '</tr>';
+        };
+
+        // Cinta de apertura: el crédito con el que arranca el ciclo.
+        var filas = '';
+        if (c) {
+            filas += fila('tl-banda', fechaTL(c.fecha_inicio),
+                '<i class="fas fa-credit-card me-1"></i>Crédito en la tarjeta', '', '',
+                money(c.saldo_inicial));
+        }
+
+        eventos.forEach(function (ev) {
+            if (ev.tipo === 'corte') {
+                filas += fila('tl-banda', fechaTL(s.fecha),
+                    '<i class="fas fa-scissors me-1"></i>Corte: solicitud de renovación', '', '',
+                    money(s.saldo_solicitud) + '<div class="fw-normal text-muted">saldo al solicitar</div>');
+                return;
+            }
+
+            if (ev.tipo === 'carga') {
+                var cg = ev.dato;
+                // Se guarda por id para que el modal de destino no vuelva a consultar.
+                cargasDelDetalle[cg.id] = cg;
+
+                // Solo el nombre corto del cliente y el OT/OV: cliente completo, parque
+                // industrial y ciudad no caben (hay nombres de 45+ caracteres) y van en
+                // el modal chico del botón de información.
+                var destino = [];
+                if (cg.cliente) {
+                    destino.push(esc(cg.cliente_corto || cg.cliente)
+                        + ' <button type="button" class="btn btn-link btn-sm p-0 lh-1 align-baseline btn-destino"'
+                        + ' data-id="' + cg.id + '" title="Ver destino completo">'
+                        + '<i class="fas fa-circle-info"></i></button>');
+                }
+                if (cg.ot) destino.push('OT/OV: ' + esc(cg.ot));
+
+                // Se muestra 'pagos' (lo gastado) y no 'monto': monto es el saldo previo a
+                // la carga. Así las cargas suman exactamente el "Total gastado" de arriba.
+                filas += fila('tl-carga', fechaTL(cg.fecha_carga),
+                    '<div class="fw-bold"><i class="fas fa-gas-pump tl-icono me-1"></i>Carga de gas</div>'
+                    + (destino.length ? '<div class="text-muted">' + destino.join(' · ') + '</div>' : ''),
+                    fmtKm(cg.km_actual), '',
+                    '<b>−' + money(cg.pagos) + '</b><div class="text-muted">saldo ' + money(cg.saldo) + '</div>');
+                return;
+            }
+
+            var r = ev.dato;
+
+            // Horario de salida y regreso bajo la fecha: "08:30 a 14:10 h". Si regresó
+            // otro día se dice cuál.
+            var horaIni = r.fecha_inicio ? horaTL(r.fecha_inicio) : '';
+            var horaFin = '';
+            if (r.fecha_fin) {
+                horaFin = soloFecha(r.fecha_fin) === soloFecha(r.fecha_inicio || r.fecha_fin)
+                    ? horaTL(r.fecha_fin)
+                    : horaTL(r.fecha_fin) + ' del ' + diaTL(r.fecha_fin);
+            }
+            var fecha = '<div>' + diaTL(r.fecha_inicio || r.fecha_fin) + '</div>'
+                + '<div class="text-muted">'
+                + (r.tipo ? horaIni : (horaIni || '…') + ' a ' + (horaFin || '…'))
+                + '</div>';
+
+            // Título: la nota de salida, que es donde la gente escribe a dónde va. La de
+            // regreso casi siempre la repite ("Regreso de …"), así que solo se usa cuando
+            // no hay salida (viaje que inició antes del crédito).
+            var titulo = r.tipo ? esc(r.tipo) : esc(r.notas_inicio || r.notas_fin || 'Recorrido');
+            var sub = [];
+            if (r.ot) sub.push('OT/OV: ' + esc(r.ot));
+            // El conductor solo se nombra cuando NO es el usuario del vehículo (préstamo):
+            // repetirlo en cada renglón era ruido.
+            if (r.usuario && r.usuario !== s.usuario_vehiculo) sub.push('<i class="fas fa-user me-1"></i>' + esc(r.usuario));
+            if (!r.fecha_inicio) sub.push('<span class="badge bg-secondary">Inició antes del crédito</span>');
+            if (!r.tipo && !r.fecha_fin) sub.push('<span class="badge bg-warning text-dark">Sin regreso</span>');
+
+            var odometro = (r.km_inicio !== null && r.km_fin !== null)
+                ? Number(r.km_inicio).toLocaleString('es-MX') + ' → ' + fmtKm(r.km_fin)
+                : fmtKm(r.km_inicio !== null ? r.km_inicio : r.km_fin);
+
+            filas += fila('', fecha,
+                '<div><i class="fas fa-route text-muted me-1"></i>' + titulo + '</div>'
+                + (sub.length ? '<div class="text-muted">' + sub.join(' · ') + '</div>' : '')
+                // En celular no cabe la columna Recorrido: el dato va aquí debajo.
+                + (r.km_recorridos !== null ? '<div class="d-sm-none text-muted">' + fmtKm(r.km_recorridos) + '</div>' : ''),
+                odometro,
+                r.km_recorridos !== null ? '<b>' + fmtKm(r.km_recorridos) + '</b>' : '<span class="text-muted">—</span>',
+                '');
         });
 
         $('#detallesCuerpo').html(
@@ -343,6 +466,8 @@
             + '<div class="d-flex flex-wrap gap-3 mb-3">'
             +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Cargas</div>'
             +     '<div class="fw-bold">' + cargas.length + '</div></div>'
+            +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Recorridos</div>'
+            +     '<div class="fw-bold">' + recorridos.length + '</div></div>'
             +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Total gastado</div>'
             +     '<div class="fw-bold">' + money(d.total_gastado) + '</div></div>'
             +   '<div class="border rounded px-3 py-2"><div class="small text-muted">Km recorridos</div>'
@@ -363,16 +488,12 @@
             +   '</a>'
             + '</div>'
             + '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">'
-            // Encabezados centrados; las celdas conservan su alineación (cifras a la
-            // derecha, fechas a la izquierda), que es lo que hace comparables las columnas.
             +   '<thead class="table-light"><tr>'
-            +     '<th class="text-center">Registro</th>'
-            +     '<th class="text-center d-none d-sm-table-cell">Km</th>'
-            +     '<th class="text-center d-none d-sm-table-cell">Recorridos</th>'
-            +     '<th class="text-center">Gastado</th>'
-            +     '<th class="text-center">Saldo</th>'
-            +     '<th class="text-center d-none d-sm-table-cell">Carga</th>'
-            +     '<th class="text-center d-none d-md-table-cell">Destino</th>'
+            +     '<th>Fecha</th>'
+            +     '<th>Movimiento</th>'
+            +     '<th class="text-end d-none d-md-table-cell">Odómetro</th>'
+            +     '<th class="text-end d-none d-sm-table-cell">Recorrido</th>'
+            +     '<th class="text-end">Gasto / Saldo</th>'
             +   '</tr></thead><tbody>' + filas + '</tbody></table></div>'
         );
     }

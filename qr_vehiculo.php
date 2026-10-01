@@ -115,7 +115,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                                 </div>
                                 <div class="col-12">
                                     <a class="btn btn-outline-secondary w-100 action-btn"
-                                        href="img/Manual_de_usuario_QRide.pdf" target="_blank">
+                                        href="https://messbook.com.mx/ControlVehicular/img/Manual_de_Usuario_QRide.pdf" target="_blank">
                                         <i class="fas fa-book"></i>
                                         Manual de Usuario
                                     </a>

@@ -113,6 +113,13 @@ if (empty($_COOKIE['noEmpleado'])) {
                                         Anomalía
                                     </button>
                                 </div>
+                                <div class="col-12">
+                                    <a class="btn btn-outline-secondary w-100 action-btn"
+                                        href="img/Manual_de_usuario_QRide.pdf" target="_blank">
+                                        <i class="fas fa-book"></i>
+                                        Manual de Usuario
+                                    </a>
+                                </div>
 
                             </div>
                         </div>
@@ -127,7 +134,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                                     <span class="text-muted small fw-semibold" style="min-width:110px;">Check List:</span>
                                     <span class="badge px-3 py-2" id="badgeChecklist"></span>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2" style="display:none;">
                                     <i class="fas fa-wrench text-muted fa-fw"></i>
                                     <span class="text-muted small fw-semibold" style="min-width:110px;">Mantenimiento:</span>
                                     <span class="badge px-3 py-2" id="badgeMant"></span>

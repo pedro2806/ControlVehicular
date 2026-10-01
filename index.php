@@ -82,7 +82,7 @@
 
         if(isset($_POST['btningresar']))
         {        
-            include 'conn.php';
+            include '../incidencias/conn.php';
             
             $usuario = $_POST['InputEmail'];
             $pass = $_POST['InputPassword'];
@@ -90,13 +90,12 @@
             
             $usuarioEsc = mysqli_real_escape_string($conn, $usuario . '@mess.com.mx');
             $passEsc    = mysqli_real_escape_string($conn, $pass);
-            $Qempresas  = "SELECT cv.*,
+            $Qempresas  = "SELECT rrhh.*,
                                   TRIM(CONCAT(IFNULL(rrhh.nombres,''), ' ', IFNULL(rrhh.apellidos,''))) AS nombre_completo
-                           FROM usuarios cv
-                           LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv.noEmpleado
-                           WHERE cv.usuario = '$usuarioEsc' AND cv.password = '$passEsc' AND cv.estatus = 1";
+                           FROM usuarios rrhh
+                           WHERE rrhh.usuario = '$usuarioEsc' AND rrhh.password_restaurar = '$passEsc' AND rrhh.estatus = 1";
             $res2 = mysqli_query($conn, $Qempresas);
-
+            //echo $Qempresas;
             if (!$res2) {
                 die("Error in query execution: " . mysqli_error($conn));
             }
@@ -108,7 +107,7 @@
                     $nombreEmpleado = ($row2["nombre_completo"] !== '') ? $row2["nombre_completo"] : $row2["nombre"];
                     $noEmpleado = $row2["noEmpleado"];
                     $id_usuario = $row2["id_usuario"];
-                    $rol = $row2["rol"];
+                    $rol = $row2["rol_cv"];
                     $gps = $row2["gps"];
                 }
             }

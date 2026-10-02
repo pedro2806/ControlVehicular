@@ -347,10 +347,11 @@ if ($accion === 'checkInQR') {
     $hayKMEstaSemana = (bool) $stmtSem->get_result()->fetch_assoc();
     $stmtSem->close();
 
-    if (!$hayKMEstaSemana && !(isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK)) {
-        echo json_encode(['error' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.']);
-        exit;
-    }
+    // La foto ya NO es obligatoria (02/10/2026): se comenta la validación.
+    // if (!$hayKMEstaSemana && !(isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK)) {
+    //     echo json_encode(['error' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.']);
+    //     exit;
+    // }
 
     // Auto-cerrar check-in anterior si existe (INICIO sin FINALIZACION posterior)
     $stmtChk = $conn->prepare("

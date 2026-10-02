@@ -108,7 +108,7 @@
                     $noEmpleado = $row2["noEmpleado"];
                     $id_usuario = $row2["id_usuario"];
                     $rol = $row2["rol_cv"];
-                    $gps = $row2["gps"];
+                    //$gps = $row2["gps"];
                 }
             }
 
@@ -126,11 +126,11 @@
                     // Contraseña incorrecta.
                 }
 
-                if ($gps == "1") {                    
+                /*if ($gps == "1") {                    
                     echo '<script>document.cookie = "gps=activo; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 } else {                    
                     echo '<script>document.cookie = "gps=inactivo; expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
-                }
+                }*/
 
                 echo '<script>document.cookie = "id_usuario='.$id_usuario.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';
                 echo '<script>document.cookie = "nombredelusuario='.$nombreEmpleado.';expires=" + new Date(Date.now() + 99900000).toUTCString() + ";SameSite=Lax;";</script>';

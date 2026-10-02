@@ -178,13 +178,14 @@ if($accion == 'CapturaCheckIn'){
             }
         }
 
-        if (!$hayKMEstaSemana && !$traeFoto) {
-            echo json_encode([
-                'status'  => 'error',
-                'message' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.'
-            ]);
-            exit;
-        }
+        // La foto ya NO es obligatoria (02/10/2026): se comenta la validación.
+        // if (!$hayKMEstaSemana && !$traeFoto) {
+        //     echo json_encode([
+        //         'status'  => 'error',
+        //         'message' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.'
+        //     ]);
+        //     exit;
+        // }
     }
 
     // Insertar los datos en la base de datos

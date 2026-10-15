@@ -10,6 +10,8 @@
  *     archivo es el script invocado directamente.
  */
 
+require_once __DIR__ . '/includes/lecturas_odometro.php';
+
 // Cuando la API INEGI falla, usamos haversine (línea recta) y la multiplicamos
 // por este factor para aproximar la ruta real por carretera.
 const HAVERSINE_FACTOR = 1.45;
@@ -383,6 +385,19 @@ function refrescarReporteKm(mysqli $conn, int $idKm = 0): void {
 //   - km_trabajo_calculado:  km calculados por INEGI/API de las actividades de
 //                            trabajo de la semana (de reporte_km, km_valido=1).
 //   - porcentaje_uso_trabajo = km_trabajo_calculado / km_registrado * 100.
+//   - km_fin_semana:         km de ODÓMETRO entre el cierre del viernes
+//                            (lecturas_odometro) y la primera lectura desde el lunes
+//                            siguiente. NULL si falta cualquiera de las dos.
+//   - km_fin_semana_trabajo: de ese total, los tramos check-in -> check-out hechos en
+//                            sábado o domingo (horas extra). Los cierres automáticos
+//                            (detalle_tipo_uso = 'AUTOCIERRE') no cuentan: su km es el
+//                            del check-in siguiente, no el de fin del viaje.
+//   - km_fin_semana_personal = km_fin_semana - km_fin_semana_trabajo.
+//   Los tres quedan en NULL en semanas sin cierre de viernes, para no confundir
+//   "sin dato" con "0 km".
+//
+// El cierre del viernes también entra al odómetro general: solo parte un tramo en
+// dos, así que km_registrado no cambia.
 //
 // El delta de odómetro se descarta si es negativo o > KM_VIAJE_MAX (reseteos de
 // tablero, p. ej. 192k→25k, y typos de captura, p. ej. 95152 entre 29k). Cada
@@ -394,7 +409,7 @@ function refrescarReporteKm(mysqli $conn, int $idKm = 0): void {
 // usar YEAR()+WEEK() por separado. `semana_inicio` es el lunes de esa semana.
 // ---------------------------------------------------------------------------
 
-const COLS_REPORTE_KM_VEHICULO = 'id_vehiculo, anio, semana, semana_inicio, placa, marca, modelo, area, segmentos_odo, km_registrado, actividades_trabajo, km_trabajo_calculado, porcentaje_uso_trabajo';
+const COLS_REPORTE_KM_VEHICULO = 'id_vehiculo, anio, semana, semana_inicio, placa, marca, modelo, area, segmentos_odo, km_registrado, km_fin_semana, km_fin_semana_trabajo, km_fin_semana_personal, actividades_trabajo, km_trabajo_calculado, porcentaje_uso_trabajo';
 
 // Tope de km por tramo (lectura a lectura) para considerar válido el delta de
 // odómetro: descarta reseteos de tablero y errores de captura.
@@ -413,6 +428,9 @@ function crearTablaReporteKmVehiculo(mysqli $conn): void {
         area                   VARCHAR(100) NULL,
         segmentos_odo          INT NOT NULL DEFAULT 0,
         km_registrado          DECIMAL(12,3) NOT NULL DEFAULT 0,
+        km_fin_semana          DECIMAL(12,3) NULL,
+        km_fin_semana_trabajo  DECIMAL(12,3) NULL,
+        km_fin_semana_personal DECIMAL(12,3) NULL,
         actividades_trabajo    INT NOT NULL DEFAULT 0,
         km_trabajo_calculado   DECIMAL(12,3) NOT NULL DEFAULT 0,
         porcentaje_uso_trabajo DECIMAL(6,2) NULL,
@@ -420,6 +438,15 @@ function crearTablaReporteKmVehiculo(mysqli $conn): void {
         UNIQUE KEY uq_veh_periodo (id_vehiculo, anio, semana),
         KEY idx_periodo (anio, semana)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // La tabla ya existe en producción sin estas columnas: CREATE IF NOT EXISTS no las agrega.
+    $nuevas = ['km_fin_semana' => 'km_registrado', 'km_fin_semana_trabajo' => 'km_fin_semana', 'km_fin_semana_personal' => 'km_fin_semana_trabajo'];
+    foreach ($nuevas as $col => $despuesDe) {
+        $r = $conn->query("SHOW COLUMNS FROM reporte_km_vehiculo LIKE '$col'");
+        if ($r && $r->num_rows === 0) {
+            $conn->query("ALTER TABLE reporte_km_vehiculo ADD COLUMN $col DECIMAL(12,3) NULL AFTER $despuesDe");
+        }
+    }
 }
 
 // Agregación vehículo×semana (reconstrucción total). Combina dos fuentes por (vehículo,
@@ -428,20 +455,59 @@ function crearTablaReporteKmVehiculo(mysqli $conn): void {
 // semana puede tener movimiento sin trabajo calculado o viceversa.
 function sqlAggReporteKmVehiculo(): string {
     $max = KM_VIAJE_MAX;
+    // lect: todas las lecturas de odómetro. src 0 = actividad_vehiculo, 1 = cierre del
+    // viernes. Los tipos se pasan a banderas numéricas para no mezclar colaciones en el
+    // UNION.
     return "
-        WITH odo AS (
+        WITH lect AS (
+            SELECT id_vehiculo, fecha_actividad AS fecha, km_actual AS km, 0 AS src, id_actividad AS id,
+                   CASE WHEN tipo_actividad = 'INICIO' THEN 1 ELSE 0 END AS es_inicio,
+                   CASE WHEN tipo_actividad = 'FINALIZACION'
+                         AND COALESCE(detalle_tipo_uso, '') <> 'AUTOCIERRE' THEN 1 ELSE 0 END AS es_checkout
+            FROM actividad_vehiculo
+            WHERE km_actual > 0
+            UNION ALL
+            SELECT id_vehiculo, fecha, km, 1, id, 0, 0
+            FROM lecturas_odometro
+            WHERE km > 0
+        ),
+        odo AS (
             SELECT id_vehiculo, anio, semana, MIN(semana_inicio) AS semana_inicio,
                    SUM(CASE WHEN delta BETWEEN 0 AND $max THEN delta ELSE 0 END) AS km_total,
-                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN 1    ELSE 0 END) AS segmentos
+                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN 1    ELSE 0 END) AS segmentos,
+                   -- Horas extra: check-in de sábado/domingo seguido de su check-out.
+                   SUM(CASE WHEN es_inicio = 1 AND sig_checkout = 1 AND dia IN (5, 6)
+                             AND delta BETWEEN 0 AND $max THEN delta ELSE 0 END) AS km_fds_trabajo
             FROM (
-                SELECT av.id_vehiculo,
-                       FLOOR(YEARWEEK(av.fecha_actividad, 3) / 100) AS anio,
-                       MOD(YEARWEEK(av.fecha_actividad, 3), 100)    AS semana,
-                       DATE_SUB(DATE(av.fecha_actividad), INTERVAL WEEKDAY(av.fecha_actividad) DAY) AS semana_inicio,
-                       (LEAD(av.km_actual) OVER (PARTITION BY av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) - av.km_actual) AS delta
-                FROM actividad_vehiculo av
-                WHERE av.km_actual > 0
+                SELECT id_vehiculo, es_inicio,
+                       FLOOR(YEARWEEK(fecha, 3) / 100) AS anio,
+                       MOD(YEARWEEK(fecha, 3), 100)    AS semana,
+                       DATE_SUB(DATE(fecha), INTERVAL WEEKDAY(fecha) DAY) AS semana_inicio,
+                       WEEKDAY(fecha) AS dia,
+                       (LEAD(km) OVER w - km)  AS delta,
+                       LEAD(es_checkout) OVER w AS sig_checkout
+                FROM lect
+                WINDOW w AS (PARTITION BY id_vehiculo ORDER BY fecha, src, id)
             ) d
+            GROUP BY id_vehiculo, anio, semana
+        ),
+        finde AS (
+            -- Cierre del viernes contra la primera lectura desde el lunes siguiente.
+            -- Sin lectura posterior todavía, el delta es NULL y la semana queda en NULL.
+            SELECT id_vehiculo, anio, semana,
+                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN delta END) AS km_fin_semana
+            FROM (
+                SELECT v.id_vehiculo,
+                       FLOOR(YEARWEEK(v.fecha, 3) / 100) AS anio,
+                       MOD(YEARWEEK(v.fecha, 3), 100)    AS semana,
+                       (SELECT l.km FROM lect l
+                         WHERE l.id_vehiculo = v.id_vehiculo
+                           AND l.fecha >= DATE(v.fecha) + INTERVAL (7 - WEEKDAY(v.fecha)) DAY
+                         ORDER BY l.fecha, l.src, l.id
+                         LIMIT 1) - v.km AS delta
+                FROM lect v
+                WHERE v.src = 1
+            ) f
             GROUP BY id_vehiculo, anio, semana
         ),
         trab AS (
@@ -465,23 +531,40 @@ function sqlAggReporteKmVehiculo(): string {
                i.placa, i.marca, i.modelo, i.area,
                COALESCE(odo.segmentos, 0)   AS segmentos_odo,
                COALESCE(odo.km_total, 0)    AS km_registrado,
+               finde.km_fin_semana,
+               CASE WHEN finde.km_fin_semana IS NULL THEN NULL
+                    ELSE COALESCE(odo.km_fds_trabajo, 0) END AS km_fin_semana_trabajo,
+               CASE WHEN finde.km_fin_semana IS NULL THEN NULL
+                    ELSE GREATEST(finde.km_fin_semana - COALESCE(odo.km_fds_trabajo, 0), 0) END AS km_fin_semana_personal,
                COALESCE(trab.actividades, 0) AS actividades_trabajo,
                COALESCE(trab.km_trabajo, 0)  AS km_trabajo_calculado,
                ROUND(COALESCE(trab.km_trabajo, 0) / NULLIF(odo.km_total, 0) * 100, 2) AS porcentaje_uso_trabajo
         FROM base
         LEFT JOIN odo  USING (id_vehiculo, anio, semana)
         LEFT JOIN trab USING (id_vehiculo, anio, semana)
+        LEFT JOIN finde USING (id_vehiculo, anio, semana)
         LEFT JOIN inventario i ON i.id_vehiculo = base.id_vehiculo";
 }
 
 // Refresca reporte_km_vehiculo (reconstrucción total — es un agregado pequeño).
 // Nunca lanza: el KPI no debe tumbar el flujo de km.
+//
+// DELETE + INSERT van en una transacción: antes, si el INSERT fallaba, el DELETE ya
+// había vaciado la tabla y Power BI se quedaba sin datos hasta el siguiente refresco.
 function refrescarReporteKmVehiculo(mysqli $conn): void {
     try {
         crearTablaReporteKmVehiculo($conn);
+        asegurarTablaLecturasOdometro($conn);
+        $conn->begin_transaction();
         $conn->query("DELETE FROM reporte_km_vehiculo");
-        $conn->query("INSERT INTO reporte_km_vehiculo (" . COLS_REPORTE_KM_VEHICULO . ") " . sqlAggReporteKmVehiculo());
-    } catch (Throwable $e) { /* el KPI nunca debe tumbar el flujo de km */ }
+        if (!$conn->query("INSERT INTO reporte_km_vehiculo (" . COLS_REPORTE_KM_VEHICULO . ") " . sqlAggReporteKmVehiculo())) {
+            throw new RuntimeException($conn->error);
+        }
+        $conn->commit();
+    } catch (Throwable $e) {
+        try { $conn->rollback(); } catch (Throwable $e2) {}
+        error_log('refrescarReporteKmVehiculo: ' . $e->getMessage());
+    }
 }
 
 // Refresca ambos KPIs tras un cambio de km. Lo llama registrarKm en sus dos

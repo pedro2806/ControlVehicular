@@ -53,6 +53,7 @@ register_shutdown_function(function () {
 // archivo aparte porque las VISTAS también la necesitan y no pueden incluir este
 // bootstrap, que manda cabeceras JSON.
 require_once __DIR__ . '/sesion_cookies.php';
+require_once __DIR__ . '/lecturas_odometro.php';
 
 /**
  * Consulta un acceso especial de ctrlVehicular para un empleado.
@@ -105,12 +106,16 @@ function tieneAccesoEspecial($conn, $noEmpleado, $opcion) {
  * la validación de "el km no puede ser menor al último".
  *
  * kilometrajes hoy está vacía; se incluye para el día que se empiece a poblar.
+ * lecturas_odometro es el cierre del viernes (includes/lecturas_odometro.php): sin
+ * ella, el check-in del lunes aceptaría un km menor al que se dejó el viernes.
  *
  * @return int 0 si el vehículo no tiene ninguna lectura.
  */
 function obtenerUltimoKM($conn, $id_vehiculo) {
     $id = intval($id_vehiculo);
     if ($id <= 0) return 0;
+
+    asegurarTablaLecturasOdometro($conn);
 
     // fecha_carga y no fecha_registro para carga_gasolina: la captura en lote deja
     // varias cargas registradas el mismo minuto, y la fecha de carga es cuándo se leyó
@@ -141,12 +146,15 @@ function obtenerUltimoKM($conn, $id_vehiculo) {
              UNION ALL
              SELECT km AS km, fecha AS f
                FROM kilometrajes      WHERE id_vehiculo = ? AND km > 0
+             UNION ALL
+             SELECT km AS km, fecha AS f
+               FROM lecturas_odometro WHERE id_vehiculo = ? AND km > 0
          ) t
          ORDER BY t.f DESC, t.km DESC
          LIMIT 1"
     );
     if (!$stmt) { error_log("obtenerUltimoKM: prepare falló - " . $conn->error); return 0; }
-    $stmt->bind_param("iii", $id, $id, $id);
+    $stmt->bind_param("iiii", $id, $id, $id, $id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();

@@ -32,9 +32,11 @@ function enviarCorreoMess(array $destinatarios, $asunto, $cuerpoHtml) {
         $mail->Port = 465;
         $mail->IsHTML(true);
         $mail->CharSet = 'UTF-8';
-        $mail->Username = "mess.programacion@gmail.com";
-        $mail->Password = "lnevdigasjodzbrq";
-        $mail->SetFrom("mess.programacion@gmail.com", "Notificacion");
+        // Cuenta de Messbook. Hasta el 2026-10-19 era mess.programacion@gmail.com, que
+        // se quedó sin cupo diario de Gmail (la compartían varios sistemas MESS).
+        $mail->Username = "messbook.connect@gmail.com";
+        $mail->Password = "rnptwtmgzipnygdm";
+        $mail->SetFrom("messbook.connect@gmail.com", "Notificacion");
         $mail->Subject = $asunto;
         $mail->Body    = $cuerpoHtml;
         foreach ($validos as $correo) $mail->addAddress($correo);

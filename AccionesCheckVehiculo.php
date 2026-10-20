@@ -77,7 +77,7 @@ if ($opcion == "llenaTVehiculosAsignados") {
         $sql = "SELECT $campos, '' as estatusChecklist
                 FROM inventario i
                 $joinUsuario
-                WHERE i.id_usuario = ? OR i.id_us_asignado = ?";
+                WHERE (i.id_usuario = ? OR i.id_us_asignado = ?) AND i.estatus = 'Activo'";
         $stmtLista = $conn->prepare($sql);
         if ($stmtLista) {
             $idUsr = intval($id_usuario);

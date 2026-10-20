@@ -374,12 +374,11 @@ if ($accion === 'checkInQR') {
         $stmtCierre->bind_param("iiis", $id_vehiculo, $id_usuario_cookie, $km_actual, $coordenadas);
         $stmtCierre->execute();
         $stmtCierre->close();
-
-        $stmtPrest = $conn->prepare("UPDATE prestamos SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW() WHERE id_usuario = ? AND id_vehiculo = ? AND estatus = 'EN CURSO'");
-        $stmtPrest->bind_param("ii", $id_usuario_cookie, $id_vehiculo);
-        $stmtPrest->execute();
-        $stmtPrest->close();
     }
+
+    // El check-in cierra el préstamo anterior del vehículo, sea de quien sea. Antes solo
+    // se cerraba el de este mismo usuario y solo si tenía un check-in abierto.
+    cerrarPrestamosDelVehiculo($conn, $id_vehiculo);
 
     $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
     $ruta_foto = subirFotoKM($placa, 'checkin');

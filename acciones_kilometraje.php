@@ -72,13 +72,17 @@ if ($accion == 'CargarVehiculos'){
             exit;
         }
 
+        // Solo vehículos activos: uno dado de baja seguía saliendo a su último dueño.
+        // Los préstamos que ya no aplican los cierran cancelarPrestamosNoUsados() (en
+        // el bootstrap) y el siguiente check-in del vehículo, así que aquí no se filtra
+        // por fecha.
         $sql = "SELECT id_vehiculo, placa, marca, modelo, color, '' as id_prestamo, '' as estatus
-            FROM inventario Where id_usuario = $idU OR id_us_asignado = $idU
+            FROM inventario Where (id_usuario = $idU OR id_us_asignado = $idU) AND inventario.estatus = 'Activo'
             UNION
             SELECT inv.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, p.id_prestamo, p.estatus
             FROM inventario inv
             INNER JOIN prestamos p ON inv.id_vehiculo = p.id_vehiculo
-            WHERE (p.id_usuario = $idU) AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO')";
+            WHERE (p.id_usuario = $idU) AND (p.estatus = 'AUTORIZADO' OR p.estatus = 'EN CURSO') AND inv.estatus = 'Activo'";
     $result = $conn->query($sql);
 
     if ($result && $result->num_rows > 0) {
@@ -94,12 +98,18 @@ if ($accion == 'CargarVehiculos'){
 }
 
 if ($accion == 'CargarVehiculosPTenencia'){
-    $sql = "SELECT id_vehiculo, placa, marca, modelo
-            FROM inventario
-            WHERE id_usuario = '".$_COOKIE['id_usuario']."' OR id_us_asignado = '".$_COOKIE['id_usuario']."'";
-    
-    $result = $conn->query($sql);
-    
+    // Sentencia preparada: antes la cookie se concatenaba directo al SQL.
+    $idU = intval($_COOKIE['id_usuario'] ?? 0);
+    $stmt = $conn->prepare(
+        "SELECT id_vehiculo, placa, marca, modelo
+         FROM inventario
+         WHERE (id_usuario = ? OR id_us_asignado = ?) AND estatus = 'Activo'"
+    );
+    $stmt->bind_param("ii", $idU, $idU);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+
     if ($result->num_rows > 0) {
         $vehiculos = [];
         while ($row = $result->fetch_assoc()) {
@@ -193,6 +203,9 @@ if($accion == 'CapturaCheckIn'){
             VALUES ('$id_prestamo', '$id_vehiculo', '".$_COOKIE['id_usuario']."', '$km_inicio', '$ruta_destino_inicio', NOW(), 'INICIO', '$notas', '$patron', '$gasActual','$otRelacionada', '$tipoServicio', '$coordenadas', '$ruta', '$costoOv')";
 
     if ($conn->query($sql) === TRUE) {
+        // El check-in cierra el préstamo anterior del vehículo (ya no hay check-out).
+        cerrarPrestamosDelVehiculo($conn, $id_vehiculo, intval($id_prestamo));
+
         //actualizar el estatus del préstamo a 'EN CURSO'
             if (!empty($id_prestamo)) {
                 $updatePrestamo = "UPDATE prestamos SET estatus = 'EN CURSO' WHERE id_prestamo = '$id_prestamo'";

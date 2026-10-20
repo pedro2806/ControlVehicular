@@ -202,6 +202,86 @@ function saldoActualTarjeta($conn, $id_vehiculo) {
     return $ultima ? (float) $ultima['saldo'] : (float) $ciclo['saldo_inicial'];
 }
 
+/**
+ * El nuevo check-in de un vehículo cierra el préstamo anterior.
+ *
+ * Ya no hay check-out (CapturaCheckOut y checkOutQR no los llama nadie): un préstamo
+ * termina cuando alguien vuelve a hacer check-in en ese vehículo, sea el asignado, otro
+ * usuario o la entrega de un préstamo nuevo. Antes solo se cerraba el préstamo del
+ * MISMO usuario, así que si el vehículo cambiaba de manos el préstamo anterior quedaba
+ * EN CURSO para siempre y el vehículo le seguía saliendo a quien lo pidió.
+ *
+ * Nunca debe tumbar el check-in que la dispara: si falla, solo se registra en el log.
+ *
+ * @param int $exceptoPrestamo préstamo que se está iniciando en este check-in.
+ */
+function cerrarPrestamosDelVehiculo($conn, $id_vehiculo, $exceptoPrestamo = 0) {
+    $id      = intval($id_vehiculo);
+    $excepto = intval($exceptoPrestamo);
+    if ($id <= 0) return;
+
+    try {
+        $stmt = $conn->prepare(
+            "UPDATE prestamos
+                SET estatus = 'FINALIZADO', fecha_fin_prestamo = NOW(),
+                    notas_devolucion = LEFT(CONCAT_WS(' | ', NULLIF(notas_devolucion, ''), 'Cerrado por nuevo check-in del vehículo'), 200)
+              WHERE id_vehiculo = ? AND estatus = 'EN CURSO' AND id_prestamo <> ?"
+        );
+        if (!$stmt) { error_log("cerrarPrestamosDelVehiculo: prepare falló - " . $conn->error); return; }
+        $stmt->bind_param("ii", $id, $excepto);
+        $stmt->execute();
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('cerrarPrestamosDelVehiculo: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Cancela los préstamos que nunca arrancaron y cuya fecha ya pasó.
+ *
+ * Un AUTORIZADO o PENDIENTE que nadie usó se quedaba así para siempre, y las listas de
+ * "mis vehículos" (CargarVehiculos, gasolina, siniestros...) lo seguían tomando como
+ * vigente: el vehículo le aparecía a quien lo pidió meses después. No hay cron, así que
+ * se corre en cada petición; la lectura previa hace que casi siempre cueste un SELECT.
+ *
+ * - Fin de día y no la hora exacta: da gracia a quien arranca tarde su propia ventana.
+ * - GREATEST porque hay registros capturados con el fin antes que el inicio.
+ * - Hoy sale de PHP (hora de México): las fechas del préstamo las captura el usuario en
+ *   hora local y el reloj de MySQL puede estar en otra zona.
+ * - Los EN CURSO no se tocan: esos solo los cierra el siguiente check-in.
+ */
+function cancelarPrestamosNoUsados($conn) {
+    $hoy = date('Y-m-d');
+    $condicion = "estatus IN ('AUTORIZADO', 'PENDIENTE', 'PENDIENTEAREA')
+                  AND DATE(GREATEST(fecha_inc_prestamo, fecha_fin_prestamo)) < ?";
+
+    try {
+        $stmt = $conn->prepare("SELECT 1 FROM prestamos WHERE $condicion LIMIT 1");
+        if (!$stmt) { error_log("cancelarPrestamosNoUsados: prepare falló - " . $conn->error); return; }
+        $stmt->bind_param("s", $hoy);
+        $stmt->execute();
+        $hayVencidos = (bool) $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$hayVencidos) return;
+
+        $stmt = $conn->prepare(
+            "UPDATE prestamos
+                SET estatus = 'CANCELADO',
+                    notas_devolucion = LEFT(CONCAT_WS(' | ', NULLIF(notas_devolucion, ''), 'Cancelado automático: pasó la fecha sin usarse'), 200)
+              WHERE $condicion"
+        );
+        if (!$stmt) { error_log("cancelarPrestamosNoUsados: prepare falló - " . $conn->error); return; }
+        $stmt->bind_param("s", $hoy);
+        $stmt->execute();
+        $stmt->close();
+    } catch (Throwable $e) {
+        // Es limpieza de fondo: la petición que la disparó tiene que seguir.
+        error_log('cancelarPrestamosNoUsados: ' . $e->getMessage());
+    }
+}
+
+cancelarPrestamosNoUsados($conn);
+
 $tieneVehiculo = false;
 if (!empty($_COOKIE['noEmpleadoL'])) {
     $connCV = new mysqli("localhost", "mess_incidencias", "Pipmytrade123", "mess_control_vehicular");

@@ -176,7 +176,8 @@ $idVehiculo = intval($_GET['v'] ?? 0);
             fila: function (r) {
                 var color = r.estatus === 'FINALIZADO' ? 'secondary'
                           : r.estatus === 'EN CURSO' ? 'primary'
-                          : r.estatus === 'AUTORIZADO' ? 'success' : 'warning text-dark';
+                          : r.estatus === 'AUTORIZADO' ? 'success'
+                          : r.estatus === 'CANCELADO' ? 'secondary' : 'warning text-dark';
                 return [fecha(r.fecha_registro), badge(r.estatus || 'S/R', color),
                         fecha(r.fecha_inc_prestamo), fecha(r.fecha_fin_prestamo),
                         esc(r.tipo_uso || '—'), esc(r.usuario)];

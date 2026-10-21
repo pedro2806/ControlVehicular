@@ -337,7 +337,12 @@ if($accion == 'ActividadesPendientes'){
 }
 
 /**
- * Vista de gerentes: TODOS los check-in en crudo.
+ * Vista "Check-ins" del menú: los check-in en crudo. La ven todos los usuarios, pero
+ * cada quien solo recibe lo que le corresponde:
+ *   - verTodosVehiculo: toda la flota.
+ *   - El resto: sus propios registros (en cualquier vehículo), todos los de los
+ *     vehículos de los que es dueño o asignado, y los de un vehículo que tenga en
+ *     préstamo AUTORIZADO / EN CURSO, pero solo desde el día en que inició el préstamo.
  *
  * Deliberadamente NO cruza INICIO con FINALIZACION como hace 'Actividades' más abajo.
  * Ese cruce solo devuelve viajes cerrados y los usuarios no cierran la actividad: de
@@ -345,15 +350,18 @@ if($accion == 'ActividadesPendientes'){
  * registros que hay que auditar. Aquí sale una fila por registro, y los INICIO sin
  * cierre posterior se marcan con abierto = 1.
  *
- * El acceso se valida en servidor con accesos_especiales (nunca con la cookie `rol`,
- * que la escribe el cliente). Ver includes/api_bootstrap.php.
- *
- * Se usa verTodosVehiculo y no un permiso propio: ver los check-in de toda la flota
- * implica ver toda la flota, así que separarlos permitiría dar uno sin el otro.
+ * El alcance se decide en servidor con accesos_especiales y el id_usuario de la sesión
+ * (nunca con la cookie `rol`, que la escribe el cliente). Ver includes/api_bootstrap.php.
+ * Como el filtro va en el WHERE, pedir un id_vehiculo ajeno solo devuelve los registros
+ * propios de ese vehículo.
  */
 if ($accion == 'consultarCheckins') {
-    if (!tieneAccesoEspecial($conn, $_COOKIE['noEmpleado'] ?? 0, 'verTodosVehiculo')) {
-        echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a esta vista.']);
+    $verTodos = tieneAccesoEspecial($conn, $_COOKIE['noEmpleado'] ?? 0, 'verTodosVehiculo');
+    // api_bootstrap ya normalizó id_usuario desde id_usuarioL. Sin id no se consulta:
+    // hay préstamos con id_usuario = 0 y un usuario sin id empataría con ellos.
+    $idU = intval($_COOKIE['id_usuario'] ?? 0);
+    if (!$verTodos && $idU <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Tu sesión expiró. Vuelve a iniciar sesión.']);
         exit;
     }
 
@@ -366,7 +374,29 @@ if ($accion == 'consultarCheckins') {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde)) $desde = date('Y-m-d', strtotime('-30 days'));
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta)) $hasta = date('Y-m-d');
 
-    $filtroVeh = $idVeh > 0 ? " AND av.id_vehiculo = ? " : "";
+    $tipos  = "ss";
+    $params = [$desde, $hasta];
+
+    $filtroVeh = "";
+    if ($idVeh > 0) {
+        $filtroVeh = " AND av.id_vehiculo = ? ";
+        $tipos    .= "i";
+        $params[]  = $idVeh;
+    }
+
+    // Del préstamo solo se ve desde el día en que inició, nada del historial anterior.
+    // No se filtra por estatus del vehículo, igual que los feeds de siniestros y anomalías.
+    $filtroUsuario = "";
+    if (!$verTodos) {
+        $filtroUsuario = " AND (av.id_usuario = ?
+                OR av.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = ? OR id_us_asignado = ?)
+                OR EXISTS (SELECT 1 FROM prestamos p
+                           WHERE p.id_vehiculo = av.id_vehiculo AND p.id_usuario = ?
+                             AND p.estatus IN ('AUTORIZADO', 'EN CURSO')
+                             AND av.fecha_actividad >= DATE(p.fecha_inc_prestamo))) ";
+        $tipos .= "iiii";
+        array_push($params, $idU, $idU, $idU, $idU);
+    }
 
     // El JOIN a usuarios usa MAX(id) porque usuarios.id_usuario NO es único; un LEFT
     // JOIN directo multiplicaría las filas del listado.
@@ -390,6 +420,7 @@ if ($accion == 'consultarCheckins') {
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
             WHERE DATE(av.fecha_actividad) BETWEEN ? AND ?
             $filtroVeh
+            $filtroUsuario
             ORDER BY av.fecha_actividad DESC, av.id_actividad DESC";
 
     $stmt = $conn->prepare($sql);
@@ -397,8 +428,7 @@ if ($accion == 'consultarCheckins') {
         echo json_encode(['status' => 'error', 'message' => 'Error al preparar la consulta.']);
         exit;
     }
-    if ($idVeh > 0) $stmt->bind_param("ssi", $desde, $hasta, $idVeh);
-    else            $stmt->bind_param("ss", $desde, $hasta);
+    $stmt->bind_param($tipos, ...$params);
     $stmt->execute();
     $res = $stmt->get_result();
 

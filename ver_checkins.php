@@ -1,10 +1,11 @@
 <?php
-// Vista pura: sin conn.php y sin consultas. La sesión la valida menu.php y el permiso
-// (verTodosVehiculo) lo niega acciones_kilometraje.php en la acción 'consultarCheckins';
-// si no lo tiene, el primer AJAX responde con el error y esta pantalla redirige.
+// Vista pura: sin conn.php y sin consultas. La sesión la valida menu.php. La ven todos
+// los usuarios, y qué registros recibe cada quien lo decide 'consultarCheckins' en
+// acciones_kilometraje.php: verTodosVehiculo ve toda la flota; el resto, lo suyo, lo de
+// sus vehículos y lo del vehículo que tenga en préstamo desde que éste inició.
 //
-// El permiso es verTodosVehiculo y no uno propio: ver los check-in de toda la flota
-// implica ver toda la flota, así que no tiene sentido uno que pueda darse sin el otro.
+// El combo de vehículos solo lista los propios (llenaTVehiculosAsignados). Los registros
+// de un vehículo prestado salen en "Todos" y se encuentran con el buscador por placa.
 ?>
 <!DOCTYPE html>
 <html lang="es">

@@ -22,10 +22,6 @@
     $puedeAutorizarMant = !empty($accesos['autorizaMantenimiento']);
     $puedeVerQR         = !empty($accesos['verQR']);
     $puedeCargarReportes= !empty($accesos['cargarReportes']);
-    // Los check-ins de toda la flota se gobiernan con verTodosVehiculo: quien los ve,
-    // necesariamente ve todos los vehículos. Un permiso propio permitiría concederlo
-    // sin el otro, que no tiene sentido.
-    $puedeVerCheckins   = !empty($accesos['verTodosVehiculo']);
     $puedeVerRecargas   = !empty($accesos['verSolicitudesGas']);
     // Alta, edición y baja de vehículos. Permiso propio: ver toda la flota no implica
     // poder modificarla.
@@ -128,17 +124,15 @@
     </li>
     <?php endif; ?>
 
-    <?php if ($puedeVerCheckins): ?>
-    <!-- Check-ins de TODOS los vehículos. Va con verTodosVehiculo: ver los check-in de
-         toda la flota implica ver toda la flota, así que no tiene sentido un permiso
-         aparte que se pueda dar sin el otro. -->
+    <!-- Check-ins: visible para todos. Qué registros ve cada quien lo decide el servidor
+         (consultarCheckins en acciones_kilometraje.php): verTodosVehiculo ve la flota
+         completa y el resto solo lo suyo. -->
     <li class="nav-item<?= menuActivo('ver_checkins', $paginaActual) ?>">
         <a class="nav-link py-2" href="ver_checkins">
             <i class="fas fa-fw fa-clipboard-list"></i>
             <span>Check-ins</span>
         </a>
     </li>
-    <?php endif; ?>
 
     <!-- Menú CheckIn -->
     <?php if (!empty($accesos['verActividades'])): ?>

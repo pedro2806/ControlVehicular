@@ -112,4 +112,4 @@ INSERT INTO mess_rrhh.accesos_especiales (noEmpleado, sistema, opcion, estatus)
 VALUES ({noEmpleado}, 'ctrlVehicular', '{opcion}', 1);
 ```
 
-El acceso GPS está hardcodeado a `noEmpleado` IN ('19', '183', '276', '191') en `menu.php`.
+El **Mapa de ubicaciones** (`mapa_ubicaciones.php` + `acciones_mapa.php`) usa el acceso especial `verMapaGPS` (19, 183, 191, 276 y 523); lo validan el menú, la página y el endpoint. Reemplazó al Mapa GPS en la retro del 26/10/2026: `mapa_gps.php` solo redirige, y se borraron `obtener_ubicaciones.php` y `obtener_vehiculos_usuario.php`, que respondían sin sesión. Antes el acceso estaba hardcodeado a `noEmpleado` IN ('19', '183', '276', '191') en `menu.php`.

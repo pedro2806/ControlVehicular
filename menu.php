@@ -235,12 +235,14 @@
         </a>
     </li>
 
-    <?php if ($_COOKIE['noEmpleado'] == '19' || $_COOKIE['noEmpleado'] == '183' || $_COOKIE['noEmpleado'] == '276' || $_COOKIE['noEmpleado'] == '191'): ?>
-        <!-- Menú Mapa GPS Tracking -->
-        <li class="nav-item<?= menuActivo('mapa_gps', $paginaActual) ?>">
-            <a class="nav-link py-2" href="mapa_gps">
-                <i class="fas fa-fw fa-map"></i>
-                <span>Mapa GPS</span>
+    <?php if (!empty($accesos['verMapaGPS'])): ?>
+        <!-- Mapa de ubicaciones (reemplazó al Mapa GPS en la retro del 26/10/2026). Antes se
+             mostraba a 4 noEmpleado fijos en el código (19, 183, 276, 191); ahora es el acceso
+             especial verMapaGPS, que también validan la página y acciones_mapa.php. -->
+        <li class="nav-item<?= menuActivo('mapa_ubicaciones', $paginaActual) ?>">
+            <a class="nav-link py-2" href="mapa_ubicaciones">
+                <i class="fas fa-fw fa-map-location-dot"></i>
+                <span>Mapa de ubicaciones</span>
             </a>
         </li>
     <?php endif; ?>

@@ -23,7 +23,7 @@ if ($accion === 'obtenerDatosVehiculo') {
     $stmt = $conn->prepare("
         SELECT i.id_vehiculo, i.placa, i.modelo, i.marca, i.anio, i.color,
                i.usuario, i.area, i.foto_general,
-               i.id_usuario, i.id_us_asignado,
+               i.id_usuario, i.id_us_asignado, i.estatus AS estatus_vehiculo,
                c.id_checklist,
                c.estatus  AS estatus_checklist,
                c.fecha    AS fecha_checklist,
@@ -64,8 +64,16 @@ if ($accion === 'obtenerDatosVehiculo') {
         exit;
     }
 
-    echo json_encode($result->fetch_assoc());
+    // Un vehículo dado de baja no se opera: la vista muestra el error en lugar de la
+    // tarjeta y oculta Check-In, Gasolina y Anomalía.
+    $vehiculo = $result->fetch_assoc();
     $stmt->close();
+    if (trim((string) $vehiculo['estatus_vehiculo']) !== 'Activo') {
+        echo json_encode(['error' => 'Este vehículo está dado de baja.']);
+        exit;
+    }
+
+    echo json_encode($vehiculo);
     exit;
 }
 

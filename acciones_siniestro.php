@@ -127,8 +127,10 @@ if ($accion == "consultarInventario") {
         $stmtReg->close();
     }
 
+    // Solo vehículos activos en todas las variantes: los dados de baja solo se consultan
+    // en la pantalla de Vehículos. Esta lista alimenta los selects de siete pantallas.
     if ($infAdicional === 'TODAS') {
-        $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio, usuario FROM inventario ORDER BY placa";
+        $sqlConsultaVehiculos = "SELECT id_vehiculo, placa, modelo, marca, color, anio, usuario FROM inventario WHERE estatus = 'Activo' ORDER BY placa";
     } else {
         $areas = [];
         $deptos = [];
@@ -145,19 +147,19 @@ if ($accion == "consultarInventario") {
 
         $sqlConsultaVehiculos = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
-                                WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
+                                WHERE (inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario) AND inv.estatus = 'Activo'
                                 UNION
                                 SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM prestamos p
                                 INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
-                                WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO'";
+                                WHERE p.id_usuario = $id_usuario AND p.estatus= 'AUTORIZADO' AND inv.estatus = 'Activo'";
 
         if (!empty($areas)) {
             $areasEsc = implode("','", $areas);
             $sqlConsultaVehiculos .= " UNION
                                 SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
-                                WHERE inv.area IN ('$areasEsc')";
+                                WHERE inv.area IN ('$areasEsc') AND inv.estatus = 'Activo'";
         }
 
         if (!empty($deptos)) {
@@ -166,7 +168,7 @@ if ($accion == "consultarInventario") {
                                 SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
                                 INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario
-                                WHERE us.departamento IN ($deptosEsc)";
+                                WHERE us.departamento IN ($deptosEsc) AND inv.estatus = 'Activo'";
         }
     }
 
@@ -194,29 +196,32 @@ if ($accion == "consultarInventarioGeneral") {
     $rol = $_COOKIE['rol'] ?? null;
     // Default para cualquier rol no contemplado (o cookie vacía): antes se quedaba sin
     // definir $sqlConsultaVehiculosG y el archivo moría en el $conn->query().
+    // Todas las variantes llevan solo vehículos activos: un vehículo dado de baja no se
+    // puede pedir prestado.
     $sqlConsultaVehiculosG = "SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
-                            WHERE inv.id_usuario = $id_usuario OR inv.id_us_asignado = $id_usuario
+                            WHERE (inv.id_usuario = $id_usuario OR inv.id_us_asignado = $id_usuario) AND inv.estatus = 'Activo'
                             ORDER BY inv.usuario";
     if ($rol == '3' || $rol == '4'  || $rol == '2') { // 3: Gerente, 4: Administrador
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
-                            WHERE id_usuario = $id_usuario  OR inv.id_usuario = $id_usuario
+                            WHERE (id_usuario = $id_usuario  OR inv.id_usuario = $id_usuario) AND inv.estatus = 'Activo'
                             UNION
                             SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
                             FROM inventario inv
-                            WHERE inv.id_usuario != $id_usuario";
-    } 
-    if ($rol == '1') { 
+                            WHERE inv.id_usuario != $id_usuario AND inv.estatus = 'Activo'";
+    }
+    if ($rol == '1') {
         $sqlConsultaVehiculosG ="(SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
                             INNER JOIN usuarios u ON $id_usuario = u.id_usuario
-                            WHERE inv.id_usuario = $id_usuario
-                            OR inv.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = u.jefe UNION ALL SELECT id_usuario FROM usuarios WHERE noEmpleado =  u.jefe) ORDER BY inv.usuario)
+                            WHERE (inv.id_usuario = $id_usuario
+                            OR inv.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = u.jefe UNION ALL SELECT id_usuario FROM usuarios WHERE noEmpleado =  u.jefe))
+                            AND inv.estatus = 'Activo' ORDER BY inv.usuario)
                             UNION
                             (SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
                             FROM inventario inv
-                            WHERE inv.id_usuario != $id_usuario ORDER BY inv.usuario)";
+                            WHERE inv.id_usuario != $id_usuario AND inv.estatus = 'Activo' ORDER BY inv.usuario)";
     }
     
 
@@ -235,7 +240,7 @@ if ($accion == "consultarInventarioGeneral") {
 if ($accion == "consultarInventarioAutoriza") {
         $sqlConsultaVehiculosG ="SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
-                            WHERE inv.id_usuario = $id_usuario";
+                            WHERE inv.id_usuario = $id_usuario AND inv.estatus = 'Activo'";
 
 
 
@@ -259,10 +264,12 @@ if ($accion == "obtenerFeedSiniestros") {
     // los siniestros de sus vehículos (propios, asignados o en préstamo autorizado).
     $verTodos = tieneAccesoEspecial($conn, $noEmpleado, 'verHistorialSiniestro');
 
-    $whereClause = '';
+    // Solo siniestros de vehículos activos, también para quien ve todo: los dados de baja
+    // solo se consultan en la pantalla de Vehículos.
+    $whereClause = "WHERE inv.estatus = 'Activo'";
     if (!$verTodos) {
         $idU = intval($id_usuario);
-        $whereClause = "WHERE s.id_vehiculo IN (
+        $whereClause .= " AND s.id_vehiculo IN (
             SELECT inv.id_vehiculo FROM inventario inv WHERE inv.id_us_asignado = $idU OR inv.id_usuario = $idU
             UNION
             SELECT p.id_vehiculo FROM prestamos p WHERE p.id_usuario = $idU AND p.estatus = 'AUTORIZADO'

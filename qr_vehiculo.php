@@ -710,7 +710,10 @@ if (empty($_COOKIE['noEmpleado'])) {
             });
         }
 
-        function guardarCheckinKM() {
+        // kmConfirmado llega en true cuando el usuario ya confirmó un salto grande de km
+        // (confirmarSaltoKm, js/global/utils.js). Se compara con === true porque el click
+        // del botón pasa el evento como primer argumento.
+        function guardarCheckinKM(kmConfirmado) {
             var km   = $('#checkinKM').val().trim();
             var otOv = $('#checkinOT').val().trim();
 
@@ -726,6 +729,15 @@ if (empty($_COOKIE['noEmpleado'])) {
                     text: 'El KM ingresado (' + parseInt(km).toLocaleString('es-MX') + ') es menor al último registrado (' + ultimoKMVehiculo.toLocaleString('es-MX') + ').',
                     confirmButtonText: 'Aceptar'
                 });
+                return;
+            }
+
+            // Un km muy por encima del último suele ser un dígito de más, y una vez guardado
+            // bloquea las siguientes capturas: se pide confirmarlo antes de seguir.
+            if (kmConfirmado !== true) {
+                confirmarSaltoKm(km, ultimoKMVehiculo,
+                    function () { guardarCheckinKM(true); },
+                    function () { $('#checkinKM').trigger('focus').trigger('select'); });
                 return;
             }
 

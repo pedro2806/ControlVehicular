@@ -347,8 +347,13 @@ if($accion == 'ActividadesPendientes'){
  * Deliberadamente NO cruza INICIO con FINALIZACION como hace 'Actividades' más abajo.
  * Ese cruce solo devuelve viajes cerrados y los usuarios no cierran la actividad: de
  * 379 INICIO hay 312 FINALIZACION, así que un listado por pares esconde justo los
- * registros que hay que auditar. Aquí sale una fila por registro, y los INICIO sin
- * cierre posterior se marcan con abierto = 1.
+ * registros que hay que auditar. Aquí sale una fila por registro.
+ *
+ * ultimo_uso = 1 marca el check-in más reciente de cada vehículo: quien lo usó por última
+ * vez. Reemplaza al antiguo 'abierto' (INICIO sin FINALIZACION del mismo usuario), que
+ * dejó de tener sentido al quitar el check-out: casi cualquier entrada salía "Abierto"
+ * para siempre y se leía como un pendiente. Es el mismo criterio con el que se cierran
+ * los préstamos: el siguiente check-in del vehículo, de quien sea.
  *
  * El alcance se decide en servidor con accesos_especiales y el id_usuario de la sesión
  * (nunca con la cookie `rol`, que la escribe el cliente). Ver includes/api_bootstrap.php.
@@ -385,7 +390,6 @@ if ($accion == 'consultarCheckins') {
     }
 
     // Del préstamo solo se ve desde el día en que inició, nada del historial anterior.
-    // No se filtra por estatus del vehículo, igual que los feeds de siniestros y anomalías.
     $filtroUsuario = "";
     if (!$verTodos) {
         $filtroUsuario = " AND (av.id_usuario = ?
@@ -405,13 +409,14 @@ if ($accion == 'consultarCheckins') {
                    av.notas, av.ot, av.patron,
                    inv.placa, inv.marca, inv.modelo,
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario,
+                   -- El desempate por id cubre dos check-ins del mismo segundo.
                    CASE WHEN av.tipo_actividad = 'INICIO' AND NOT EXISTS (
-                            SELECT 1 FROM actividad_vehiculo f
-                            WHERE f.id_vehiculo = av.id_vehiculo
-                              AND f.id_usuario  = av.id_usuario
-                              AND f.tipo_actividad = 'FINALIZACION'
-                              AND f.fecha_actividad > av.fecha_actividad
-                        ) THEN 1 ELSE 0 END AS abierto
+                            SELECT 1 FROM actividad_vehiculo n
+                            WHERE n.id_vehiculo = av.id_vehiculo
+                              AND n.tipo_actividad = 'INICIO'
+                              AND (n.fecha_actividad > av.fecha_actividad
+                                   OR (n.fecha_actividad = av.fecha_actividad AND n.id_actividad > av.id_actividad))
+                        ) THEN 1 ELSE 0 END AS ultimo_uso
             FROM actividad_vehiculo av
             LEFT JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo
             LEFT JOIN usuarios u ON u.id = (
@@ -419,6 +424,10 @@ if ($accion == 'consultarCheckins') {
             )
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
             WHERE DATE(av.fecha_actividad) BETWEEN ? AND ?
+              -- Solo vehículos activos, para todos (también verTodosVehiculo): un vehículo
+              -- dado de baja le seguía saliendo a su último responsable. Los inactivos
+              -- solo se consultan en la pantalla de Vehículos.
+              AND inv.estatus = 'Activo'
             $filtroVeh
             $filtroUsuario
             ORDER BY av.fecha_actividad DESC, av.id_actividad DESC";
@@ -479,6 +488,7 @@ if($accion == 'Actividades'){
             LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE i.tipo_actividad = 'INICIO'
+                AND inv.estatus = 'Activo'
                 AND inv.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = '".$_COOKIE['id_usuario']."')";
     $result = $conn->query($sql);
 
@@ -549,7 +559,7 @@ if($accion == 'ActividadesCalendario'){
         ActividadesOrdenadas ao
     INNER JOIN inventario i ON ao.id_vehiculo = i.id_vehiculo
     INNER JOIN usuarios u ON ao.id_usuario = u.id_usuario
-    WHERE ao.tipo_actividad = 'INICIO'    
+    WHERE ao.tipo_actividad = 'INICIO' AND i.estatus = 'Activo'
     ORDER BY ao.id_usuario, ao.id_vehiculo, ao.fecha_actividad;";
         /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
             FROM actividad_vehiculo av
@@ -577,7 +587,9 @@ if($accion == 'ActividadesCalendarioPlaneadas'){
                 IF(i.marca IS NULL OR i.marca = '', '', i.marca) AS marca
             FROM prestamos p
             INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
-            LEFT JOIN inventario i ON p.id_vehiculo = i.id_vehiculo";
+            LEFT JOIN inventario i ON p.id_vehiculo = i.id_vehiculo
+            -- Se conservan los préstamos sin vehículo ('Vehiculo por asignar').
+            WHERE i.id_vehiculo IS NULL OR i.estatus = 'Activo'";
     $result = $conn->query($sql);
     if ($result && $result->num_rows > 0) {
         $actividades = [];

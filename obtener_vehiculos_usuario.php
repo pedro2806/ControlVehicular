@@ -13,14 +13,15 @@ if ($usuario_esc) {
         SELECT DISTINCT inv.id_vehiculo AS id, inv.placa, inv.marca, inv.modelo, inv.usuario
         FROM actividad_vehiculo av
         JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo
-        WHERE av.id_usuario = '$usuario_esc'
+        WHERE av.id_usuario = '$usuario_esc' AND inv.estatus = 'Activo'
         ORDER BY inv.marca, inv.modelo, inv.placa
     ");
 } else {
-    // Todos los vehículos si no hay usuario
+    // Todos los vehículos activos si no hay usuario
     $res = $conn->query("
         SELECT id_vehiculo AS id, placa, marca, modelo, usuario
         FROM inventario
+        WHERE estatus = 'Activo'
         ORDER BY marca, modelo, placa
     ");
 }

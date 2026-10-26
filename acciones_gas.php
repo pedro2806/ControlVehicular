@@ -54,19 +54,20 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             }
         }
 
+        // Solo vehículos activos: los dados de baja solo se consultan en Vehículos.
         $sql = "SELECT inv.id_vehiculo FROM inventario inv
-                WHERE inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario
+                WHERE (inv.id_us_asignado = $id_usuario OR inv.id_usuario = $id_usuario) AND inv.estatus = 'Activo'
                 UNION
                 SELECT inv.id_vehiculo FROM prestamos p
                 INNER JOIN inventario inv ON p.id_vehiculo = inv.id_vehiculo
-                WHERE p.id_usuario = $id_usuario AND p.estatus = 'AUTORIZADO'";
+                WHERE p.id_usuario = $id_usuario AND p.estatus = 'AUTORIZADO' AND inv.estatus = 'Activo'";
         if (!empty($areas)) {
             $areasEsc = implode("','", $areas);
-            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv WHERE inv.area IN ('$areasEsc')";
+            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv WHERE inv.area IN ('$areasEsc') AND inv.estatus = 'Activo'";
         }
         if (!empty($deptos)) {
             $deptosEsc = implode(',', $deptos);
-            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario WHERE us.departamento IN ($deptosEsc)";
+            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario WHERE us.departamento IN ($deptosEsc) AND inv.estatus = 'Activo'";
         }
 
         $ids = [];
@@ -99,6 +100,103 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
      * y en el diálogo de aprobación de validar_recargas.php: si cambia, cambiarlo en los tres.
      */
     const CREDITO_TARJETA = 4000;
+
+    /**
+     * Parte del crédito por debajo de la cual se permite pedir reposición: 25% = $1,000.
+     * Acordado el 2026-10-26; antes se podía pedir con cualquier saldo (incluso $3,500 de
+     * $4,000) y quien autorizaba recibía solicitudes de $500.
+     */
+    const PORCENTAJE_REPOSICION = 0.25;
+
+    /**
+     * ¿Puede este usuario pedir reposición de crédito para este vehículo?
+     *
+     * Una sola regla para los dos lados: solicitarReposicionGas la aplica y
+     * obtenerHistorialGas la manda a la vista, que solo pinta el resultado. Antes cada
+     * lado tenía la suya: la pantalla bloqueaba la tarjeta llena y a quien no hizo la
+     * última carga, pero el servidor solo revisaba que no hubiera otra solicitud abierta,
+     * así que bastaba mandar la petición directo para saltarse lo demás.
+     *
+     * En orden: vehículo activo → tiene saldo registrado → tarjeta no llena → sin otra
+     * solicitud en trámite → saldo por debajo del umbral → quien pide es el responsable
+     * (dueño o asignado, que siempre puede) o quien hizo la última carga.
+     * La tarjeta llena va ANTES que la solicitud en trámite porque una PARCIAL puede
+     * quedarse abierta aunque el crédito ya se haya completado por otra vía.
+     *
+     * El saldo es el del ciclo abierto (saldoActualTarjeta), nunca el que manda el
+     * navegador: ese puede venir desactualizado o alterado y es el que se guardaba en la
+     * solicitud y se mandaba en el correo.
+     *
+     * @return array{puede: bool, motivo: string, mensaje: string, saldo: ?float, umbral: float}
+     */
+    function evaluarReposicion($conn, $idVeh, $idUsr) {
+        $idVeh  = intval($idVeh);
+        $idUsr  = intval($idUsr);
+        $umbral = round(CREDITO_TARJETA * PORCENTAJE_REPOSICION, 2);
+        $res = function ($puede, $motivo, $mensaje, $saldo = null) use ($umbral) {
+            return ['puede' => $puede, 'motivo' => $motivo, 'mensaje' => $mensaje, 'saldo' => $saldo, 'umbral' => $umbral];
+        };
+
+        $stmt = $conn->prepare(
+            "SELECT id_usuario, id_us_asignado, TRIM(estatus) AS estatus, TRIM(usuario) AS usuario
+             FROM inventario WHERE id_vehiculo = ? LIMIT 1"
+        );
+        $stmt->bind_param("i", $idVeh);
+        $stmt->execute();
+        $veh = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$veh || $veh['estatus'] !== 'Activo') {
+            return $res(false, 'vehiculo', 'El vehículo no existe o está dado de baja.');
+        }
+
+        // Quién hizo la última carga: la de mayor id, el mismo criterio que la vista.
+        $stmt = $conn->prepare(
+            "SELECT id_usuario, saldo FROM carga_gasolina WHERE id_vehiculo = ? ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->bind_param("i", $idVeh);
+        $stmt->execute();
+        $ultima = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        // Sin ciclo de tarjeta se cae al saldo de la última carga, igual que la vista.
+        $saldo = saldoActualTarjeta($conn, $idVeh);
+        if ($saldo === null) {
+            if (!$ultima) return $res(false, 'sin_cargas', 'Este vehículo todavía no tiene cargas registradas.');
+            $saldo = (float) $ultima['saldo'];
+        }
+        $saldo = round((float) $saldo, 2);
+
+        if ($saldo >= CREDITO_TARJETA - 0.01) {
+            return $res(false, 'al_corriente', 'La tarjeta está al corriente: no hay nada que reponer.', $saldo);
+        }
+
+        $stmt = $conn->prepare(
+            "SELECT 1 FROM solicitudes_gas
+             WHERE id_vehiculo = ? AND estatus IN ('PENDIENTE', 'PARCIAL') LIMIT 1"
+        );
+        $stmt->bind_param("i", $idVeh);
+        $stmt->execute();
+        $enTramite = (bool) $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($enTramite) {
+            return $res(false, 'en_tramite', 'Este vehículo ya tiene una solicitud de reposición en trámite.', $saldo);
+        }
+
+        if ($saldo >= $umbral) {
+            return $res(false, 'saldo_suficiente',
+                'Se puede pedir cuando el saldo baje de $' . number_format($umbral, 2) . '.', $saldo);
+        }
+
+        $esResponsable   = $idUsr > 0 && ($idUsr === intval($veh['id_usuario']) || $idUsr === intval($veh['id_us_asignado']));
+        $hizoUltimaCarga = $idUsr > 0 && $ultima && $idUsr === intval($ultima['id_usuario']);
+        if ($esResponsable || $hizoUltimaCarga) {
+            return $res(true, 'ok', '', $saldo);
+        }
+
+        return $res(false, 'no_autorizado',
+            'La solicita el responsable del vehículo' . ($veh['usuario'] !== '' ? ' (' . $veh['usuario'] . ')' : '')
+            . ' o quien hizo la última carga.', $saldo);
+    }
 
     /**
      * Lo que se lleva abonado a una solicitud, sumando todas sus recargas.
@@ -229,6 +327,115 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         }
 
         return intval($abierto['id_ciclo']);
+    }
+
+    /**
+     * ¿La carga que se registra es atrasada? Lo es si el vehículo ya tiene alguna carga
+     * con fecha posterior.
+     *
+     * Se compara en SQL y no como texto en PHP: fecha_carga es DATETIME en producción
+     * pero DATE en algunas copias locales, y MySQL convierte los dos a fecha para comparar.
+     */
+    function esCargaAtrasada($conn, $id_vehiculo, $fecha) {
+        $stmt = $conn->prepare(
+            "SELECT 1 FROM carga_gasolina WHERE id_vehiculo = ? AND fecha_carga > ? LIMIT 1"
+        );
+        if (!$stmt) return false;
+        $stmt->bind_param("is", $id_vehiculo, $fecha);
+        $stmt->execute();
+        $hay = (bool) $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $hay;
+    }
+
+    /**
+     * Ciclo al que pertenece una carga ATRASADA: el que estaba vigente en su fecha.
+     *
+     * No pasa por resolverCicloParaCarga(): su monto viene prellenado con el saldo de HOY,
+     * que no dice nada sobre el saldo de ese día, así que no sirve para detectar abonos.
+     *
+     * Si la fecha es anterior a todos los ciclos, la carga cae en el primero y su inicio
+     * se recorre a esa fecha. El primer ciclo es el INICIAL, que el sistema abrió al
+     * capturar la primera carga con el crédito estándar; una carga anterior quiere decir
+     * que ese crédito ya se venía usando (caso UNF765E, 21/10/2026: tres cargas del 29/09
+     * al 14/10 capturadas después de que el control arrancara el 13/10).
+     *
+     * @return int id_ciclo, o 0 si el vehículo no tiene ciclos.
+     */
+    function cicloParaCargaAtrasada($conn, $id_vehiculo, $fecha) {
+        $stmt = $conn->prepare(
+            "SELECT id_ciclo FROM ciclos_tarjeta
+             WHERE id_vehiculo = ? AND fecha_inicio <= ?
+             ORDER BY fecha_inicio DESC, id_ciclo DESC LIMIT 1"
+        );
+        $stmt->bind_param("is", $id_vehiculo, $fecha);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($row) return intval($row['id_ciclo']);
+
+        $stmt = $conn->prepare(
+            "SELECT id_ciclo FROM ciclos_tarjeta WHERE id_vehiculo = ?
+             ORDER BY fecha_inicio ASC, id_ciclo ASC LIMIT 1"
+        );
+        $stmt->bind_param("i", $id_vehiculo);
+        $stmt->execute();
+        $primero = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$primero) return 0;
+
+        $idPrimero = intval($primero['id_ciclo']);
+        $stmt = $conn->prepare("UPDATE ciclos_tarjeta SET fecha_inicio = ? WHERE id_ciclo = ?");
+        $stmt->bind_param("si", $fecha, $idPrimero);
+        $stmt->execute();
+        $stmt->close();
+        return $idPrimero;
+    }
+
+    /**
+     * Rehace la cadena de saldos de un ciclo en orden de fecha de carga.
+     *
+     * En carga_gasolina cada fila guarda el saldo antes (monto) y después (saldo) de la
+     * carga, y el monto de una es el saldo de la anterior. Una carga capturada días
+     * después se insertaba con el monto de HOY y sin tocar las posteriores: el saldo de
+     * la tarjeta quedaba mal (UNF765E mostraba $2,300 cuando quedaban $200). Aquí la
+     * cadena arranca en el saldo_inicial del ciclo y se recorre carga por carga.
+     *
+     * Solo toca el ciclo indicado. Si la carga atrasada cae en un ciclo ya cerrado, el
+     * siguiente no se recalcula: su saldo_inicial sale del abono que lo abrió, y una
+     * reposición deja la tarjeta en el crédito completo sin importar con cuánto venía.
+     */
+    function recalcularSaldosCiclo($conn, $idCiclo) {
+        $stmt = $conn->prepare("SELECT saldo_inicial FROM ciclos_tarjeta WHERE id_ciclo = ?");
+        $stmt->bind_param("i", $idCiclo);
+        $stmt->execute();
+        $ciclo = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$ciclo) return;
+
+        $stmt = $conn->prepare(
+            "SELECT id, monto, pagos, saldo FROM carga_gasolina
+             WHERE id_ciclo = ? ORDER BY fecha_carga ASC, id ASC"
+        );
+        $stmt->bind_param("i", $idCiclo);
+        $stmt->execute();
+        $cargas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        $upd = $conn->prepare("UPDATE carga_gasolina SET monto = ?, saldo = ? WHERE id = ?");
+        $corriente = round((float) $ciclo['saldo_inicial'], 2);
+        foreach ($cargas as $c) {
+            $monto = $corriente;
+            $saldo = round($monto - (float) $c['pagos'], 2);
+            // Solo se escriben las filas que cambian; el 0.005 es redondeo de DECIMAL(10,2).
+            if (abs($monto - (float) $c['monto']) > 0.005 || abs($saldo - (float) $c['saldo']) > 0.005) {
+                $idCarga = intval($c['id']);
+                $upd->bind_param("ddi", $monto, $saldo, $idCarga);
+                $upd->execute();
+            }
+            $corriente = $saldo;
+        }
+        $upd->close();
     }
 
     /**
@@ -497,7 +704,16 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // $fechaLimpia ya viene con hora. Antes era solo Y-m-d y aquí se le pegaba
         // ' 00:00:00' para que ciclos_tarjeta.fecha_inicio (DATETIME) la aceptara;
         // concatenarlo ahora produciría "2026-09-04 13:20:00 00:00:00", una fecha inválida.
-        $idCiclo = resolverCicloParaCarga($conn, $idVeh, $montoNum, $fechaLimpia, $idUsr);
+        //
+        // Una carga ATRASADA (hay otras con fecha posterior) va al ciclo vigente en su
+        // fecha y después se recalcula la cadena de saldos de ese ciclo: el monto que
+        // trae del formulario es el saldo de hoy, no el de ese día.
+        $esAtrasada = esCargaAtrasada($conn, $idVeh, $fechaLimpia);
+        $idCiclo = $esAtrasada ? cicloParaCargaAtrasada($conn, $idVeh, $fechaLimpia) : 0;
+        if (!$idCiclo) {
+            $esAtrasada = false;
+            $idCiclo = resolverCicloParaCarga($conn, $idVeh, $montoNum, $fechaLimpia, $idUsr);
+        }
 
         // A qué fue el viaje. Los dos son opcionales: no toda carga de gasolina va ligada
         // a una visita. id_cliente se guarda como NULL (no 0) cuando no se eligió, para
@@ -530,10 +746,29 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $stmt->bind_param("iiidddiiss", $idUsr, $idVeh, $idCiclo, $montoNum, $pagosNum, $saldoNum, $km, $idCliente, $otCarga, $fechaLimpia);
         $ok = $stmt->execute();
         $err = $stmt->error;
+        $idCargaNueva = $stmt->insert_id;
         $stmt->close();
 
         if ($ok) {
-            echo json_encode(["status" => "success", "message" => "Carga de gasolina registrada correctamente.", "saldo" => $saldoNum]);
+            // La carga ya quedó guardada: si el recálculo falla, se registra en el log y
+            // no se le dice al usuario que no se guardó.
+            if ($esAtrasada) {
+                try {
+                    recalcularSaldosCiclo($conn, $idCiclo);
+                } catch (Throwable $e) {
+                    error_log("registraGas: recalcularSaldosCiclo($idCiclo) falló - " . $e->getMessage());
+                }
+            }
+            // saldo_tarjeta es el saldo VIGENTE tras guardar. La vista lo usa para avisar
+            // de saldo bajo o agotado; con una carga atrasada difiere del saldo de la fila.
+            echo json_encode([
+                "status"        => "success",
+                "message"       => "Carga de gasolina registrada correctamente.",
+                "saldo"         => $saldoNum,
+                "saldo_tarjeta" => saldoActualTarjeta($conn, $idVeh),
+                "recalculado"   => $esAtrasada,
+                "id_carga"      => $idCargaNueva
+            ]);
         } else {
             echo json_encode(["status" => "error", "message" => "Error al registrar la carga de gasolina: " . $err]);
         }
@@ -662,14 +897,46 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                 $stmtSol->close();
             }
 
+            // Última solicitud de reposición del VEHÍCULO, la haya pedido quien sea: es la
+            // que se muestra en el panel de estado de historial_gasolina.php. Antes solo
+            // viajaba si había una abierta (sí/no), y en qué quedó solo se veía en la
+            // pantalla de quien autoriza.
+            $ultimaSolicitud = null;
+            $stmtUlt = $conn->prepare(
+                "SELECT s.id, s.estatus, s.fecha, s.saldo_solicitud, s.fecha_resuelto, s.notas_resolucion,
+                        (SELECT IFNULL(SUM(ct.monto_abonado), 0)
+                           FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado,
+                        IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS solicitante,
+                        ur.nombre AS resolvio
+                 FROM solicitudes_gas s
+                 LEFT JOIN usuarios u  ON u.id  = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
+                 LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+                 LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
+                 WHERE s.id_vehiculo = ?
+                 ORDER BY s.fecha DESC, s.id DESC LIMIT 1"
+            );
+            if ($stmtUlt) {
+                $stmtUlt->bind_param("i", $idVeh);
+                $stmtUlt->execute();
+                $ultimaSolicitud = $stmtUlt->get_result()->fetch_assoc() ?: null;
+                $stmtUlt->close();
+            }
+
             // credito_tarjeta viaja para que la vista no tenga que hardcodear otro 4000.
             // El número ya está repetido en verPlaca() (js/global/vehiculos.js) y en
             // validar_recargas.php; mandarlo desde aquí evita sumar una cuarta copia.
+            // ciclo_abierto: desde cuándo corre el crédito vigente. No siempre se puede
+            // sacar de los registros: tras una reposición el ciclo nuevo aún no tiene cargas.
             echo json_encode([
                 'status'            => 'success',
                 'registros'         => $registros,
                 'saldo_actual'      => $saldoTarjeta,
                 'solicitud_abierta' => $solicitudAbierta,
+                'ultima_solicitud'  => $ultimaSolicitud,
+                'ciclo_abierto'     => cicloAbiertoTarjeta($conn, $idVeh),
+                // Si este usuario puede pedir reposición y, si no, por qué. La vista no
+                // decide nada: pinta esto, que es lo mismo que valida solicitarReposicionGas.
+                'reposicion'        => evaluarReposicion($conn, $idVeh, $id_usuario),
                 'credito_tarjeta'   => CREDITO_TARJETA
             ]);
         } else {
@@ -715,7 +982,11 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         if ($idElegido) {
             // Ya está: es suyo, así que no hace falta pasar por el filtro de permisos.
         } elseif ($perm['todas']) {
-            $res = $conn->query("SELECT id_vehiculo FROM reporte_km_vehiculo GROUP BY id_vehiculo ORDER BY SUM(km_registrado) DESC LIMIT 1");
+            // El de más km, pero solo entre los activos: uno dado de baja también puede
+            // tener el acumulado más alto.
+            $res = $conn->query("SELECT rk.id_vehiculo FROM reporte_km_vehiculo rk
+                                 INNER JOIN inventario inv ON inv.id_vehiculo = rk.id_vehiculo AND inv.estatus = 'Activo'
+                                 GROUP BY rk.id_vehiculo ORDER BY SUM(rk.km_registrado) DESC LIMIT 1");
             if ($res && ($row = $res->fetch_assoc())) { $idElegido = intval($row['id_vehiculo']); }
             if (!$idElegido) {
                 $res2 = $conn->query("SELECT id_vehiculo FROM inventario WHERE estatus = 'Activo' ORDER BY id_vehiculo LIMIT 1");
@@ -748,31 +1019,26 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
     // Solicitar reposición de crédito de gasolina — envía correo al encargado
     if ($accion == 'solicitarReposicionGas') {
         $id_vehiculo_req = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
-        $saldo_actual    = isset($_POST['saldo'])       ? floatval($_POST['saldo'])       : 0;
         $noEmp           = $_COOKIE['noEmpleado'] ?? '';
 
-        // Una solicitud abierta a la vez por vehículo. En pruebas se mandaron varias
-        // seguidas porque al enviar la primera nada cambiaba en pantalla (el botón seguía
-        // igual), y el encargado recibía correos duplicados de la misma tarjeta. La vista
-        // ya deshabilita el botón, pero la barrera tiene que estar en el servidor: es
-        // quien decide, y el botón se puede reactivar desde el navegador.
-        $stmtDup = $conn->prepare(
-            "SELECT id FROM solicitudes_gas
-             WHERE id_vehiculo = ? AND estatus IN ('PENDIENTE', 'PARCIAL') LIMIT 1"
-        );
-        if ($stmtDup) {
-            $stmtDup->bind_param("i", $id_vehiculo_req);
-            $stmtDup->execute();
-            $yaAbierta = $stmtDup->get_result()->fetch_assoc();
-            $stmtDup->close();
-            if ($yaAbierta) {
-                echo json_encode([
-                    'status'  => 'error',
-                    'message' => 'Este vehículo ya tiene una solicitud de reposición en trámite.'
-                ]);
-                exit;
-            }
+        // Todas las reglas (una abierta a la vez, saldo bajo el 25%, quién puede pedirla)
+        // viven en evaluarReposicion(). La de "una a la vez" salió de pruebas: se mandaban
+        // varias seguidas porque nada cambiaba en pantalla y el encargado recibía correos
+        // duplicados de la misma tarjeta. La barrera tiene que estar aquí y no solo en la
+        // vista: el botón se puede reactivar desde el navegador.
+        $evaluacion = evaluarReposicion($conn, $id_vehiculo_req, $id_usuario);
+        if (!$evaluacion['puede']) {
+            echo json_encode([
+                'status'  => 'error',
+                'motivo'  => $evaluacion['motivo'],
+                'message' => $evaluacion['mensaje']
+            ]);
+            exit;
         }
+
+        // El saldo que se guarda en la solicitud y va en el correo es el que calcula el
+        // servidor. Antes se tomaba el que mandaba el navegador ($_POST['saldo']).
+        $saldo_actual = $evaluacion['saldo'];
 
         $stmt = $conn->prepare("SELECT nombre FROM usuarios WHERE noEmpleado = ?");
         $stmt->bind_param("s", $noEmp);
@@ -952,6 +1218,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                 LEFT JOIN usuarios u  ON u.id  = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
                 LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
                 LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+                WHERE inv.estatus = 'Activo'
                 ORDER BY FIELD(s.estatus,'PENDIENTE','APROBADA','RECHAZADA'), s.fecha DESC";
 
         $res = $conn->query($sql);
@@ -994,7 +1261,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
              FROM solicitudes_gas s
              LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
              LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
-             WHERE s.id_usuario = ?
+             WHERE s.id_usuario = ? AND inv.estatus = 'Activo'
              ORDER BY FIELD(s.estatus,'PENDIENTE','PARCIAL','APROBADA','RECHAZADA'), s.fecha DESC"
         );
         if (!$stmt) {

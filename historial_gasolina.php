@@ -30,110 +30,224 @@ if (empty($_COOKIE['noEmpleado'])) {
          misma secuencia de consumo. -->
     <link rel="stylesheet" href="https://cdn.datatables.net/rowgroup/1.4.1/css/rowGroup.dataTables.min.css">
     <style>
-        /* La banda del separador usa el color de marca y se distingue de las filas
-           normales sin competir con los badges de saldo. */
-        #tablaGas tr.dtrg-group td {
-            background: var(--card-soft, #eef1ff);
-            border-top: 2px solid var(--accent, #050D9E);
-            font-weight: 600;
+        /* Corte entre créditos: banda sólida del color de marca, para que se vea de un
+           vistazo dónde termina un crédito y empieza el siguiente.
+           Se apunta a "> *" y no a "td": RowGroup 1.4 dibuja la celda como <th>. El
+           estilo anterior apuntaba a td y nunca se aplicó; por eso los cortes se veían
+           apagados, con el gris por defecto de la librería. */
+        #tablaGas tr.dtrg-group > * {
+            /* Bootstrap 5 pinta el fondo de las celdas con un box-shadow interior que
+               queda ENCIMA del background (rayado de .table-striped): sin esto la banda
+               se ve gris y el texto claro no se lee. */
+            box-shadow: none;
+            background: var(--accent);
+            color: var(--card-bg);
+            border-top: 3px solid var(--accent-dark);
+            font-weight: 800;
+            font-size: .95rem;
+            padding-top: .6rem;
+            padding-bottom: .6rem;
         }
+        /* Espacio antes de cada corte que no sea el primero: separa los créditos */
+        #tablaGas tbody tr:not(:first-child).dtrg-group > * { border-top-width: 1.25rem; border-top-color: var(--card-bg); }
+        .gas-corte__dato { font-weight: 600; opacity: .9; }
+        /* Recarga hecha fuera del sistema: banda amarilla, para que no pase de largo */
+        #tablaGas tr.dtrg-group:has(.gas-corte--detectado) > * { background: var(--warning); color: var(--text); }
+        .gas-corte__aviso { background: var(--card-bg); color: var(--text); }
+        /* Cargas de antes del control de créditos: gris, son historia */
+        #tablaGas tr.dtrg-group:has(.gas-corte--sin-ciclo) > * { background: var(--text-muted); color: var(--card-bg); }
+
+        /* ── Dos columnas (idea de oktoberMESS: mesa-kits / correo de agradecimiento) ──
+           Izquierda las cargas; derecha el estado de la tarjeta y de la solicitud, que es
+           lo que la gente viene a revisar y antes quedaba al fondo de la página. En
+           celular una sola columna, con el estado ANTES que la tabla. */
+        .gas-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.25rem;
+            align-items: start;
+        }
+        .gas-lado { display: grid; gap: 1rem; order: -1; }
+        .gas-lado .card, .gas-principal .card { margin-bottom: 0; }
+        @media (min-width: 1200px) {
+            .gas-layout { grid-template-columns: minmax(0, 7fr) minmax(22rem, 4fr); }
+            /* El panel se queda a la vista mientras se recorre la tabla */
+            .gas-lado { order: 0; position: sticky; top: 1rem; }
+        }
+        /* #content-wrapper trae overflow-x: hidden (mess-ds.css), que convierte al
+           contenedor en el de scroll y anula el sticky. clip recorta igual sin eso;
+           un navegador que no lo soporte se queda con hidden y el panel solo no se fija. */
+        body.pagina-gas #content-wrapper { overflow-x: clip; }
+
+        .gas-etiqueta { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+        .gas-saldo { font-size: 2.25rem; font-weight: 800; line-height: 1.1; margin: .25rem 0 .5rem; color: var(--text); }
+        .gas-saldo.es-ok      { color: var(--success); }
+        .gas-saldo.es-bajo    { color: var(--warning); }
+        .gas-saldo.es-agotado { color: var(--danger); }
+        .gas-barra { height: .5rem; background: var(--card-soft); }
+        .gas-barra .progress-bar { background: var(--success); }
+        .gas-barra.es-bajo .progress-bar    { background: var(--warning); }
+        .gas-barra.es-agotado .progress-bar { background: var(--danger); }
+
+        /* Bloque de estado de la solicitud: el color lo da el estado */
+        .gas-estado {
+            display: flex; align-items: flex-start; gap: .75rem;
+            padding: .75rem 1rem; border-radius: .5rem;
+            border: 1px solid var(--border); border-left-width: 4px;
+            background: var(--card-soft);
+        }
+        /* Es un botón (abre el detalle colapsado): se le quita el aspecto de botón */
+        button.gas-estado { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+        button.gas-estado:hover { background: var(--accent-soft); }
+        .gas-estado__flecha { align-self: center; color: var(--text-muted); transition: transform .2s; }
+        .gas-estado[aria-expanded="true"] .gas-estado__flecha { transform: rotate(180deg); }
+        /* Doble clase: .gas-accion se declara más abajo y, con la misma especificidad, ganaba */
+        .gas-accion.gas-accion--sola { margin-top: 0; padding-top: 0; border-top: 0; }
+        .gas-estado__icono { font-size: 1.5rem; line-height: 1; color: var(--text-muted); }
+        .gas-estado__titulo { font-weight: 800; color: var(--text); }
+        .gas-estado--pendiente { border-left-color: var(--warning); } .gas-estado--pendiente .gas-estado__icono { color: var(--warning); }
+        .gas-estado--parcial   { border-left-color: var(--info); }    .gas-estado--parcial .gas-estado__icono   { color: var(--info); }
+        .gas-estado--aprobada  { border-left-color: var(--success); } .gas-estado--aprobada .gas-estado__icono  { color: var(--success); }
+        .gas-estado--rechazada { border-left-color: var(--danger); }  .gas-estado--rechazada .gas-estado__icono { color: var(--danger); }
+
+        /* Pasos: Enviada → En revisión → Resuelta */
+        .gas-pasos { list-style: none; display: flex; margin: 1rem 0 .75rem; padding: 0; }
+        .gas-paso { flex: 1; position: relative; text-align: center; font-size: .72rem; color: var(--text-muted); }
+        .gas-paso::before {
+            content: ''; position: absolute; top: .55rem; left: -50%; width: 100%; height: 2px;
+            background: var(--border);
+        }
+        .gas-paso:first-child::before { display: none; }
+        .gas-paso__punto {
+            position: relative; z-index: 1; display: grid; place-items: center;
+            width: 1.2rem; height: 1.2rem; margin: 0 auto .3rem; border-radius: 50%;
+            border: 2px solid var(--border); background: var(--card-bg);
+            font-size: .55rem; color: var(--card-bg);
+        }
+        .gas-paso.es-hecho::before, .gas-paso.es-rechazo::before { background: var(--success); }
+        .gas-paso.es-hecho .gas-paso__punto  { background: var(--success); border-color: var(--success); }
+        .gas-paso.es-actual { color: var(--text); font-weight: 700; }
+        .gas-paso.es-actual .gas-paso__punto { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+        .gas-paso.es-rechazo { color: var(--danger); font-weight: 700; }
+        .gas-paso.es-rechazo .gas-paso__punto { background: var(--danger); border-color: var(--danger); }
+
+        .gas-datos { display: grid; grid-template-columns: auto 1fr; gap: .2rem .75rem; margin: 0; font-size: .85rem; }
+        .gas-datos dt { font-weight: 600; color: var(--text-muted); }
+        .gas-datos dd { margin: 0; color: var(--text); text-align: right; }
+        .gas-accion { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+        .gas-nota { font-size: .82rem; color: var(--text-muted); }
+
+        /* Mis solicitudes: lista compacta; cada una abre su vehículo */
+        .gas-missol .list-group-item { background: transparent; color: var(--text); border-color: var(--border); cursor: pointer; }
+        .gas-missol .list-group-item:hover { background: var(--accent-soft); }
+        .gas-missol .list-group-item.es-actual { border-left: 3px solid var(--accent); }
     </style>
 </head>
-<body id="page-top">
+<body id="page-top" class="pagina-gas">
 <div id="wrapper">
     <?php include 'menu.php'; ?>
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
             <?php include 'encabezado.php'; ?>
             <div class="container-fluid">
-                <div class="d-sm-flex align-items-center justify-content-between mb-3">
+                <div class="mb-3">
                     <h1 class="h3 mb-0 text-gray-800">Historial de Cargas de Gasolina</h1>
-                    <div class="d-flex gap-2">
-                        <button id="btnDescargar" class="btn btn-outline-warning btn-sm" onclick="descargarReporteGas()" disabled>
-                            <i class="fas fa-file-excel me-1"></i> Descargar reporte de gasolina
-                        </button>
+                </div>
+
+                <!-- El vehículo va arriba y a todo lo ancho: manda sobre las dos columnas. -->
+                <div class="card shadow mb-3">
+                    <div class="card-body py-2">
+                        <label class="form-label small mb-1" for="filtroVehiculo">Vehículo (tarjeta de gas)</label>
+                        <select id="filtroVehiculo" class="form-select form-select-sm">
+                            <option value="">Selecciona un vehículo</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-white py-2">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-12 col-md-6">
-                                <label class="form-label small mb-1">Vehículo (tarjeta de gas)</label>
-                                <select id="filtroVehiculo" class="form-select form-select-sm">
-                                    <option value="">Selecciona un vehículo</option>
-                                </select>
+                <div class="gas-layout mb-4">
+                    <div class="gas-principal">
+                        <div class="card shadow">
+                            <!-- El Excel va junto a la tabla que exporta, no en el título de la página. -->
+                            <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between gap-2">
+                                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-gas-pump me-1"></i> Cargas</h6>
+                                <button id="btnDescargar" class="btn btn-outline-success btn-sm" onclick="descargarReporteGas()" disabled>
+                                    <i class="fas fa-file-excel me-1"></i> Descargar Excel
+                                </button>
                             </div>
-                            <!-- Saldo VIGENTE de la tarjeta, que no es el de la última carga:
-                                 una reposición aprobada abre un ciclo nuevo sin registrar carga,
-                                 y hasta que no se cargue gasolina la tabla de abajo sigue
-                                 mostrando el saldo del ciclo anterior. Este badge es el único
-                                 lugar donde se ve el crédito con el que cuenta hoy la tarjeta. -->
-                            <div class="col-12 col-md-6 text-md-end" id="cajaSaldoTarjeta" style="display:none;">
-                                <label class="form-label small mb-1 d-block">Saldo actual de la tarjeta</label>
-                                <span class="badge fs-6" id="badgeSaldoTarjeta">—</span>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tablaGas" class="table table-striped table-bordered w-100">
+                                        <thead>
+                                            <tr>
+                                                <th>Vehículo</th>
+                                                <th>Usuario</th>
+                                                <th>Monto</th>
+                                                <th>Pagos</th>
+                                                <th>Saldo</th>
+                                                <th>Km Actual</th>
+                                                <th>Km Consumidos</th>
+                                                <!-- Cliente y OT/OV juntos: son opcionales y muchas cargas
+                                                     no traen ninguno, así que dos columnas casi vacías no
+                                                     se justifican. -->
+                                                <th>Destino</th>
+                                                <th>Fecha Carga</th>
+                                                <!-- Columna 9, oculta: solo existe para que RowGroup
+                                                     agrupe por ciclo de tarjeta. Acciones se fue al panel
+                                                     de la derecha y Fecha Registro se quitó: la que importa
+                                                     es cuándo se cargó, que ahora trae la hora. -->
+                                                <th>Ciclo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="tablaGas" class="table table-striped table-bordered w-100">
-                                <thead>
-                                    <tr>
-                                        <th>Vehículo</th>
-                                        <th>Usuario</th>
-                                        <th>Monto</th>
-                                        <th>Pagos</th>
-                                        <th>Saldo</th>
-                                        <th>Km Actual</th>
-                                        <th>Km Consumidos</th>
-                                        <!-- Cliente y OT/OV juntos: son opcionales y muchas cargas
-                                             no traen ninguno, así que dos columnas casi vacías no
-                                             se justifican. -->
-                                        <th>Destino</th>
-                                        <th>Fecha Carga</th>
-                                        <th>Fecha Registro</th>
-                                        <th>Acciones</th>
-                                        <!-- Columna 11, oculta: solo existe para que RowGroup
-                                             agrupe por ciclo de tarjeta. Va al final para no
-                                             recorrer los índices de columnDefs. -->
-                                        <th>Ciclo</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Seguimiento de lo que YO pedí. Antes, quien solicitaba una reposición
-                     no tenía forma de saber en qué quedó: el estado solo existía en la
-                     pantalla de quien autoriza, que casi nadie puede abrir.
-                     La card se oculta cuando el usuario nunca ha solicitado nada. -->
-                <div class="card shadow mb-4" id="cardMisSolicitudes" style="display:none;">
-                    <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
-                        <h6 class="m-0 fw-bold text-dark">
-                            <i class="fas fa-clipboard-list me-1"></i> Mis solicitudes de recarga
-                        </h6>
-                        <span class="badge bg-secondary" id="badgeMisSolicitudes"></span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0" id="tablaMisSolicitudes">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="text-center">Fecha</th>
-                                        <th class="text-center">Vehículo</th>
-                                        <th class="text-center">Estado</th>
-                                        <th class="text-center d-none d-md-table-cell">Saldo al pedir</th>
-                                        <th class="text-center">Abonado</th>
-                                        <th class="text-center d-none d-lg-table-cell">Resolución</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
+                    <aside class="gas-lado">
+                        <!-- Saldo VIGENTE de la tarjeta, que no es el de la última carga: una
+                             reposición aprobada abre un ciclo nuevo sin registrar carga, y hasta
+                             que no se cargue gasolina la tabla sigue mostrando el saldo del ciclo
+                             anterior. -->
+                        <div class="card shadow" id="panelTarjeta" style="display:none;">
+                            <div class="card-body">
+                                <div class="gas-etiqueta">Saldo de la tarjeta</div>
+                                <div class="gas-saldo" id="saldoTarjeta">—</div>
+                                <div class="progress gas-barra" id="barraSaldo" role="progressbar"
+                                     aria-label="Crédito disponible" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar"></div>
+                                </div>
+                                <div class="small text-muted mt-2" id="detalleCredito"></div>
+                            </div>
                         </div>
-                    </div>
+
+                        <!-- Estado de la solicitud de reposición DEL VEHÍCULO (la haya pedido
+                             quien sea) y el botón para pedirla. Antes el estado solo se veía en
+                             la pantalla de quien autoriza y el botón vivía escondido en la fila
+                             de la última carga. -->
+                        <div class="card shadow" id="panelSolicitud" style="display:none;">
+                            <div class="card-header bg-white py-2">
+                                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-rotate me-1"></i> Solicitud de reposición</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="estadoSolicitud"></div>
+                                <div class="gas-accion" id="accionReposicion"></div>
+                            </div>
+                        </div>
+
+                        <!-- Seguimiento de lo que YO pedí, de cualquier vehículo. La card se
+                             oculta cuando el usuario nunca ha solicitado nada. -->
+                        <div class="card shadow" id="cardMisSolicitudes" style="display:none;">
+                            <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
+                                <h6 class="m-0 fw-bold text-dark">
+                                    <i class="fas fa-clipboard-list me-1"></i> Mis solicitudes
+                                </h6>
+                                <span class="badge bg-secondary" id="badgeMisSolicitudes"></span>
+                            </div>
+                            <ul class="list-group list-group-flush gas-missol" id="listaMisSolicitudes"></ul>
+                        </div>
+                    </aside>
                 </div>
 
             </div><!-- /.container-fluid -->
@@ -185,39 +299,36 @@ $(document).ready(function () {
         // actuar; el vehículo ya viene del selector de arriba y el usuario casi
         // siempre es uno mismo, así que esos dos son los primeros en esconderse.
         //
-        // OJO: estos índices se corrieron al insertar "Destino" en la posición 7. Si se
-        // agrega o mueve otra columna hay que recorrerlos de nuevo, o el orden por
-        // defecto y la columna no ordenable apuntan a la equivocada.
+        // OJO: si se agrega o mueve una columna hay que recorrer estos índices, o el
+        // orden por defecto y el agrupador apuntan a la equivocada. Se quitaron Acciones
+        // (el botón de reposición pasó al panel) y Fecha Registro.
         // 0 Vehículo · 1 Usuario · 2 Monto · 3 Pagos · 4 Saldo · 5 Km Actual
-        // 6 Km Consumidos · 7 Destino · 8 Fecha Carga · 9 Fecha Registro · 10 Acciones
-        // Agrupa por ciclo de tarjeta. La columna 11 va oculta y solo existe para esto:
-        // se agregó AL FINAL a propósito, para no recorrer los índices de arriba.
+        // 6 Km Consumidos · 7 Destino · 8 Fecha Carga · 9 Ciclo
+        // Agrupa por ciclo de tarjeta. La columna 9 va oculta y solo existe para esto.
         rowGroup: {
-            dataSrc: 11,
+            dataSrc: 9,
             startRender: function (rows, group) {
                 return etiquetaCiclo(group, rows.count());
             }
         },
         columnDefs: [
-            { visible: false, searchable: false, targets: [11] },
-            { orderable: false, targets: [10] },
-            // Fechas: se ordenan y se buscan por el valor crudo de MySQL, que es
-            // cronológico como texto, y se muestran en formato legible.
+            { visible: false, searchable: false, targets: [9] },
+            // Fecha: se ordena y se busca por el valor crudo de MySQL, que es
+            // cronológico como texto, y se muestra en formato legible.
             {
-                targets: [8, 9],
+                targets: [8],
                 render: function (d, type) {
                     if (type === 'sort' || type === 'type') return d || '';
                     return fmtFechaGas(d);
                 }
             },
-            { responsivePriority: 1,  targets: [8, 10] },  // Fecha Carga, Acciones
+            { responsivePriority: 1,  targets: 8 },        // Fecha Carga
             { responsivePriority: 2,  targets: 4 },        // Saldo
             { responsivePriority: 3,  targets: 2 },        // Monto
             { responsivePriority: 4,  targets: 7 },        // Destino
             { responsivePriority: 5,  targets: 3 },        // Pagos
             { responsivePriority: 6,  targets: 5 },        // Km Actual
             { responsivePriority: 7,  targets: 6 },        // Km Consumidos
-            { responsivePriority: 8,  targets: 9 },        // Fecha Registro
             { responsivePriority: 9,  targets: 1 },        // Usuario
             { responsivePriority: 10, targets: 0 }         // Vehículo
         ],
@@ -238,6 +349,21 @@ $(document).ready(function () {
     cargarSelectVehiculos(preseleccionarVehiculo);
 
     $('#filtroVehiculo').on('change', cargarHistorialVehiculo);
+
+    // Tocar una de "Mis solicitudes" abre la tarjeta de ese vehículo. El buscador del
+    // select reconstruye las opciones al filtrar, así que primero se limpia para que la
+    // opción exista.
+    $(document).on('click', '#listaMisSolicitudes .list-group-item', function () {
+        var id = String($(this).data('vehiculo'));
+        var $buscador = $('#filtroVehiculoBuscador');
+        if ($buscador.length && $buscador.val()) $buscador.val('').trigger('input');
+        if (!$('#filtroVehiculo option[value="' + id + '"]').length) {
+            Swal.fire({ icon: 'info', title: 'Vehículo no disponible',
+                text: 'Ese vehículo ya no está en tu lista (puede estar dado de baja o ya no ser tuyo).' });
+            return;
+        }
+        $('#filtroVehiculo').val(id).trigger('change');
+    });
 
     cargarMisSolicitudes();
 });
@@ -276,51 +402,48 @@ function cargarMisSolicitudes() {
 
             $('#badgeMisSolicitudes').text(
                 lista.length + (lista.length === 1 ? ' solicitud' : ' solicitudes')
-                + (abiertas ? ' · ' + abiertas + ' sin cerrar' : '')
+                + (abiertas ? ' · ' + abiertas + ' en trámite' : '')
             );
 
-            var $tb = $('#tablaMisSolicitudes tbody').empty();
+            // Lista compacta para la columna derecha. Cada una abre su vehículo arriba.
+            var $ul = $('#listaMisSolicitudes').empty();
             lista.forEach(function (s) {
                 var abonado = Number(s.abonado_acumulado || 0);
                 var falta = Math.max(0, credito - Number(s.saldo_solicitud || 0) - abonado);
 
-                // Solo interesa lo abonado cuando hubo abono; y el "faltan" solo mientras
-                // siga abierta, porque en una cerrada ya no hay nada que esperar.
-                var celdaAbonado = '<span class="text-muted">—</span>';
-                if (abonado > 0) {
-                    celdaAbonado = '$' + abonado.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-                    if (s.estatus === 'PARCIAL' && falta > 0) {
-                        celdaAbonado += '<div class="small text-muted">faltan $'
-                            + falta.toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</div>';
-                    }
-                }
+                // Lo abonado solo cuando hubo abono, y el "faltan" solo mientras siga
+                // abierta: en una cerrada ya no hay nada que esperar.
+                var detalle = 'saldo al pedir ' + fmtMoneda(s.saldo_solicitud);
+                if (abonado > 0) detalle += ' · abonado ' + fmtMoneda(abonado);
+                if (s.estatus === 'PARCIAL' && falta > 0) detalle += ' · faltan ' + fmtMoneda(falta);
 
-                var resolucion = '<span class="text-muted">—</span>';
-                if (s.fecha_resuelto) {
-                    resolucion = '<div class="small">' + escHtml(s.resolvio || 'S/R') + '</div>'
-                        + '<div class="small text-muted">' + escHtml(s.fecha_resuelto) + '</div>'
-                        + (s.notas_resolucion
-                            ? '<div class="small fst-italic">' + escHtml(s.notas_resolucion) + '</div>'
-                            : '');
-                }
-
-                $tb.append(
-                    '<tr' + (s.estatus === 'PARCIAL' ? ' class="table-info"' : '') + '>'
-                    + '<td class="small text-nowrap">' + escHtml(s.fecha) + '</td>'
-                    + '<td class="small">' + escHtml(s.placa || 'S/P')
-                    +   '<div class="text-muted d-lg-none">' + escHtml([s.marca, s.modelo].filter(Boolean).join(' ')) + '</div></td>'
-                    + '<td class="text-center">' + badgeSolicitud(s.estatus) + '</td>'
-                    + '<td class="text-end small text-nowrap d-none d-md-table-cell">$'
-                    +   Number(s.saldo_solicitud || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }) + '</td>'
-                    + '<td class="text-end small text-nowrap">' + celdaAbonado + '</td>'
-                    + '<td class="small d-none d-lg-table-cell">' + resolucion + '</td>'
-                    + '</tr>'
-                );
+                $ul.append($('<li class="list-group-item py-2" title="Ver la tarjeta de este vehículo">')
+                    .attr('data-vehiculo', s.id_vehiculo)
+                    .html(
+                        '<div class="d-flex justify-content-between align-items-center gap-2">'
+                        +   '<span class="fw-bold">' + escHtml(s.placa || 'S/P') + '</span>' + badgeSolicitud(s.estatus)
+                        + '</div>'
+                        + '<div class="small text-muted">' + escHtml(fmtFechaGas(s.fecha)) + ' · ' + detalle + '</div>'
+                        + (s.notas_resolucion ? '<div class="small fst-italic">' + escHtml(s.notas_resolucion) + '</div>' : '')
+                    ));
             });
 
+            marcarSolicitudActual();
             $('#cardMisSolicitudes').show();
         }
     });
+}
+
+/** Resalta en "Mis solicitudes" las del vehículo que está abierto arriba. */
+function marcarSolicitudActual() {
+    $('#listaMisSolicitudes .list-group-item').each(function () {
+        $(this).toggleClass('es-actual', String($(this).data('vehiculo')) === String(idVehSel));
+    });
+}
+
+/** '$1,234.50' */
+function fmtMoneda(n) {
+    return '$' + (Number(n) || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Llena el select con consultarInventario (asignados / todos), como mantenimiento
@@ -394,7 +517,11 @@ function fmtFechaGas(f) {
     if (!f) return '—';
     var p = String(f).split(/[- :]/);
     if (p.length < 3) return String(f);
-    return p[2] + '/' + p[1] + '/' + p[0] + (p[3] ? ' ' + p[3] + ':' + (p[4] || '00') : '');
+    // fecha_carga era DATE: las cargas de antes de pasarla a DATETIME quedaron a las
+    // 00:00:00 porque su hora nunca se guardó. Se muestra solo la fecha en vez de una
+    // medianoche inventada (mismo criterio que fechaTL de validar_recargas.php).
+    var conHora = p[3] !== undefined && !(p[3] === '00' && (p[4] || '00') === '00' && (p[5] || '00') === '00');
+    return p[2] + '/' + p[1] + '/' + p[0] + (conHora ? ' ' + p[3] + ':' + (p[4] || '00') : '');
 }
 
 /**
@@ -408,35 +535,38 @@ function fmtFechaGas(f) {
 function etiquetaCiclo(clave, cuantas) {
     var plural = cuantas === 1 ? '1 carga' : cuantas + ' cargas';
 
+    // La clase del span marca el tipo de corte; el CSS pinta la banda completa con
+    // :has(), porque RowGroup arma el <tr> y solo deja poner su contenido.
     if (clave === 'sin-ciclo') {
-        return '<i class="fas fa-clock-rotate-left me-2"></i>Cargas anteriores al control de créditos'
-             + ' <span class="fw-normal text-muted">· ' + plural + '</span>';
+        return '<span class="gas-corte gas-corte--sin-ciclo"><i class="fas fa-clock-rotate-left me-2"></i>'
+             + 'Cargas anteriores al control de créditos <span class="gas-corte__dato">· ' + plural + '</span></span>';
     }
 
     var info = infoCiclos[clave] || {};
     var monto = parseFloat(info.saldoInicial);
     var partes = [];
-    if (!isNaN(monto)) partes.push('$' + monto.toFixed(2));
+    if (!isNaN(monto)) partes.push(fmtMoneda(monto));
     if (info.fechaInicio) partes.push('desde ' + fmtFechaGas(info.fechaInicio));
     partes.push(plural);
 
     // DETECTADO = el abono no pasó por una solicitud, se dedujo de una carga cuyo monto
     // subió. Vale la pena distinguirlo: significa que alguien recargó fuera del sistema.
-    var aviso = (info.origen === 'DETECTADO')
-        ? ' <span class="badge bg-warning text-dark ms-2">Recarga no registrada</span>'
-        : '';
-
-    return '<i class="fas fa-credit-card me-2"></i>Crédito'
-         + ' <span class="fw-normal text-muted">· ' + partes.join(' · ') + '</span>' + aviso;
+    var detectado = info.origen === 'DETECTADO';
+    return '<span class="gas-corte' + (detectado ? ' gas-corte--detectado' : '') + '">'
+         + '<i class="fas fa-credit-card me-2"></i>Crédito <span class="gas-corte__dato">· ' + partes.join(' · ') + '</span>'
+         + (detectado ? ' <span class="badge gas-corte__aviso ms-2">Recarga no registrada</span>' : '')
+         + '</span>';
 }
 
 function cargarHistorialVehiculo() {
     idVehSel = parseInt($('#filtroVehiculo').val()) || 0;
     placaSel = $('#filtroVehiculo option:selected').data('placa') || '';
+    marcarSolicitudActual();
 
     if (!idVehSel) {
         tabla.clear().draw();
         toggleBotones(false);
+        $('#panelTarjeta, #panelSolicitud').hide();
         return;
     }
 
@@ -446,8 +576,9 @@ function cargarHistorialVehiculo() {
         data: { accion: 'obtenerHistorialGas', id_vehiculo: idVehSel },
         dataType: 'json',
         success: function (resp) {
-            // El endpoint devuelve {registros, saldo_actual, solicitud_abierta}. Se valida
-            // el array aparte porque ante un error responde un objeto sin 'registros'.
+            // El endpoint devuelve {registros, saldo_actual, solicitud_abierta,
+            // ultima_solicitud, ciclo_abierto}. Se valida el array aparte porque ante un
+            // error responde un objeto sin 'registros'.
             var data = (resp && Array.isArray(resp.registros)) ? resp.registros : [];
             var solicitudAbierta = !!(resp && resp.solicitud_abierta);
             // El crédito estándar lo manda el servidor (constante CREDITO_TARJETA de
@@ -458,8 +589,12 @@ function cargarHistorialVehiculo() {
             // Se reinicia con cada vehículo: los ciclos del anterior no aplican.
             infoCiclos = {};
 
-            // La carga más reciente (mayor id) muestra el botón de reposición si es del usuario actual
-            var currentUserId = getCookie('id_usuario') || getCookie('id_usuarioL') || '';
+            // El buscador del select reconstruye las opciones sin su data-placa; en ese
+            // caso la placa se toma de las cargas.
+            if (!placaSel && data.length) placaSel = data[0].placa || '';
+
+            // La carga más reciente (mayor id): su saldo es el respaldo cuando el vehículo
+            // no tiene ciclo de tarjeta.
             var latest = null;
             data.forEach(function (r) {
                 if (!latest || parseInt(r.id) > parseInt(latest.id)) latest = r;
@@ -469,21 +604,11 @@ function cargarHistorialVehiculo() {
             // una reposición aprobada el ciclo nuevo ya tiene el crédito aunque todavía no
             // exista una carga que lo refleje. Solo se cae al saldo de la última carga
             // cuando el vehículo no tiene ningún ciclo (null).
-            var saldoTarjeta = (resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined)
+            var haySaldoCiclo = resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined;
+            var saldoTarjeta = haySaldoCiclo
                 ? parseFloat(resp.saldo_actual)
                 : (latest ? parseFloat(latest.saldo) : NaN);
             if (isNaN(saldoTarjeta)) saldoTarjeta = 0;
-
-            if (data.length || (resp && resp.saldo_actual !== null && resp.saldo_actual !== undefined)) {
-                $('#cajaSaldoTarjeta').show();
-                $('#badgeSaldoTarjeta')
-                    .text('$' + saldoTarjeta.toFixed(2))
-                    .attr('class', 'badge fs-6 ' + (saldoTarjeta <= 0
-                        ? 'bg-danger'
-                        : (saldoTarjeta < 500 ? 'bg-warning text-dark' : 'bg-success')));
-            } else {
-                $('#cajaSaldoTarjeta').hide();
-            }
 
             data.forEach(function (r) {
                 var saldo   = parseFloat(r.saldo) || 0;
@@ -500,34 +625,6 @@ function cargarHistorialVehiculo() {
                     ? '<span class="text-primary fw-bold">' + kmCons.toLocaleString() + ' km</span>'
                     : '<span class="text-muted">—</span>';
 
-                var esUltimoPropio = latest && String(r.id) === String(latest.id)
-                    && String(r.id_usuario) === String(currentUserId);
-                // El estado de la tarjeta manda sobre el de la solicitud, y en ese orden:
-                //
-                // 1. Tarjeta al crédito completo -> no hay nada que reponer, punto. Se mira
-                //    ANTES que la solicitud porque una PARCIAL puede quedarse abierta aunque
-                //    el crédito ya se haya completado por otra vía, y entonces la pantalla
-                //    decía "Solicitud enviada" con la tarjeta llena.
-                // 2. Solicitud en trámite y tarjeta sin llenar -> se avisa y se bloquea: en
-                //    pruebas se mandaban varias seguidas porque el botón no cambiaba.
-                // 3. Lo normal -> se ofrece pedir la reposición.
-                //
-                // El monto que viaja es saldoTarjeta (el del ciclo abierto), no el saldo
-                // histórico de la fila, que tras una reposición ya está desactualizado.
-                var btnRepos = '';
-                if (esUltimoPropio && saldoTarjeta >= CREDITO_TARJETA - 0.01) {
-                    btnRepos = '<span class="text-muted small">Tarjeta al corriente</span>';
-                } else if (esUltimoPropio && solicitudAbierta) {
-                    btnRepos = '<button class="btn btn-outline-secondary btn-sm" disabled '
-                        + 'title="Ya hay una solicitud en trámite para este vehículo">'
-                        + '<i class="fas fa-hourglass-half me-1"></i>Solicitud enviada</button>';
-                } else if (esUltimoPropio) {
-                    btnRepos = '<button class="btn btn-outline-primary btn-sm" '
-                        + 'onclick="solicitarReposicion(' + r.id_vehiculo + ',' + saldoTarjeta.toFixed(2) + ',\'' + escHtml(placaSel) + '\')" '
-                        + 'title="Solicitar reposición de crédito">'
-                        + '<i class="fas fa-redo me-1"></i>Reposición de crédito</button>';
-                }
-
                 // Cliente y OT/OV en una sola celda. Cuando no hay ninguno se pone un guion
                 // en vez de dejarla vacía, para que se lea como "sin dato" y no como error.
                 var destino = '';
@@ -535,6 +632,8 @@ function cargarHistorialVehiculo() {
                 if (r.ot) destino += (destino ? '<div class="text-muted small">' : '<span class="text-muted small">')
                                    + 'OT/OV: ' + escHtml(r.ot) + (destino ? '</div>' : '</span>');
                 if (!destino) destino = '<span class="text-muted">—</span>';
+
+                var claveCiclo = (r.id_ciclo === null || r.id_ciclo === undefined) ? 'sin-ciclo' : String(r.id_ciclo);
 
                 tabla.row.add([
                     escHtml(r.Vehiculo),
@@ -551,16 +650,13 @@ function cargarHistorialVehiculo() {
                     // al perderse el orden cronológico las cargas de un mismo ciclo dejaban
                     // de ser contiguas y el separador se repetía varias veces.
                     r.fecha_carga || '',
-                    r.fecha_registro || '',
-                    btnRepos,
                     // Columna oculta que agrupa. Las cargas anteriores a los ciclos de
                     // tarjeta no tienen id_ciclo; se juntan todas bajo la misma etiqueta.
-                    (r.id_ciclo === null || r.id_ciclo === undefined) ? 'sin-ciclo' : String(r.id_ciclo)
+                    claveCiclo
                 ]);
 
                 // Datos para rotular el separador. Se guardan aparte porque RowGroup solo
                 // recibe el valor de la columna que agrupa, no la fila completa.
-                var claveCiclo = (r.id_ciclo === null || r.id_ciclo === undefined) ? 'sin-ciclo' : String(r.id_ciclo);
                 if (!infoCiclos[claveCiclo]) {
                     infoCiclos[claveCiclo] = {
                         saldoInicial: r.ciclo_saldo_inicial,
@@ -572,6 +668,15 @@ function cargarHistorialVehiculo() {
 
             tabla.draw(false);
             toggleBotones(data.length > 0);
+
+            pintarPanelTarjeta((data.length || haySaldoCiclo) ? saldoTarjeta : null,
+                CREDITO_TARJETA, resp ? resp.ciclo_abierto : null);
+            pintarPanelSolicitud(resp ? resp.ultima_solicitud : null, {
+                credito:    CREDITO_TARJETA,
+                // Si se puede pedir y por qué no: lo decide el servidor con la misma regla
+                // que aplica al recibir la solicitud (evaluarReposicion en acciones_gas.php).
+                reposicion: resp ? resp.reposicion : null
+            });
         },
         error: function () {
             Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el historial.' });
@@ -579,14 +684,131 @@ function cargarHistorialVehiculo() {
     });
 }
 
-function toggleBotones(activo, solicitudAbierta) {
+function toggleBotones(activo) {
     $('#btnDescargar').prop('disabled', !activo);
-    // El de reposición además se bloquea mientras haya una solicitud en trámite, igual
-    // que el botón de la fila. El servidor la rechaza de todos modos, pero el usuario
-    // debe ver por qué antes de mandarla.
-    $('#btnReposicion')
-        .prop('disabled', !activo || !!solicitudAbierta)
-        .attr('title', solicitudAbierta ? 'Ya hay una solicitud en trámite para este vehículo' : '');
+}
+
+/**
+ * Panel de la tarjeta: saldo vigente en grande y cuánto queda del crédito.
+ * saldo null = el vehículo no tiene tarjeta registrada (ni cargas ni ciclo).
+ */
+function pintarPanelTarjeta(saldo, credito, ciclo) {
+    if (saldo === null) { $('#panelTarjeta').hide(); return; }
+
+    // Mismos cortes que los badges de la tabla: agotado, menos de $500, el resto.
+    var nivel = saldo <= 0 ? 'es-agotado' : (saldo < 500 ? 'es-bajo' : 'es-ok');
+    var pct = credito > 0 ? Math.max(0, Math.min(100, saldo / credito * 100)) : 0;
+
+    $('#saldoTarjeta').text(fmtMoneda(saldo)).attr('class', 'gas-saldo ' + nivel);
+    $('#barraSaldo').attr('class', 'progress gas-barra ' + nivel).attr('aria-valuenow', Math.round(pct))
+        .find('.progress-bar').css('width', pct + '%');
+
+    var detalle = fmtMoneda(saldo) + ' de ' + fmtMoneda(credito);
+    if (ciclo && ciclo.fecha_inicio) detalle += ' · crédito vigente desde ' + fmtFechaGas(ciclo.fecha_inicio);
+    $('#detalleCredito').text(detalle);
+    $('#panelTarjeta').show();
+}
+
+// Cómo se presenta cada estado. Mismos colores que badgeSolicitud y validar_recargas.php.
+var ESTADOS_SOLICITUD = {
+    PENDIENTE: { clase: 'pendiente', icono: 'fa-hourglass-half',     titulo: 'Pendiente de autorizar' },
+    PARCIAL:   { clase: 'parcial',   icono: 'fa-circle-half-stroke', titulo: 'Abono parcial' },
+    APROBADA:  { clase: 'aprobada',  icono: 'fa-circle-check',       titulo: 'Aprobada' },
+    RECHAZADA: { clase: 'rechazada', icono: 'fa-circle-xmark',       titulo: 'Rechazada' }
+};
+
+/**
+ * Panel de la solicitud de reposición: en qué va la última del vehículo (la haya pedido
+ * quien sea) y, abajo, el botón para pedir una nueva o el motivo por el que no se puede.
+ * Antes el estado solo se veía en la pantalla de quien autoriza y el botón vivía en la
+ * fila de la última carga, donde casi nadie lo encontraba.
+ */
+function pintarPanelSolicitud(s, ctx) {
+    // El estado solo se muestra cuando hay algo que seguir: Pendiente, Parcialidad o
+    // Rechazada. Una aprobada ya cumplió y "Sin solicitudes" no dice nada, así que
+    // ocupaban espacio sin aportar. Y va colapsado: una línea con el estado, y el
+    // detalle (pasos y datos) solo si se despliega.
+    var html = '';
+    if (s && s.estatus !== 'APROBADA') {
+        var e = ESTADOS_SOLICITUD[s.estatus] || ESTADOS_SOLICITUD.PENDIENTE;
+        var abonado = Number(s.abonado_acumulado || 0);
+        var falta = Math.max(0, ctx.credito - Number(s.saldo_solicitud || 0) - abonado);
+
+        var sub;
+        if (s.estatus === 'PENDIENTE')      sub = 'Enviada el ' + fmtFechaGas(s.fecha) + '. Falta que la autoricen.';
+        else if (s.estatus === 'PARCIAL')   sub = 'Se abonaron ' + fmtMoneda(abonado) + (falta > 0 ? '; faltan ' + fmtMoneda(falta) + '.' : '.');
+        else                                sub = 'Se rechazó el ' + fmtFechaGas(s.fecha_resuelto) + '.';
+
+        html = '<button type="button" class="gas-estado gas-estado--' + e.clase + ' collapsed" '
+             +   'data-bs-toggle="collapse" data-bs-target="#detalleSolicitud" '
+             +   'aria-expanded="false" aria-controls="detalleSolicitud" title="Ver detalle de la solicitud">'
+             +   '<i class="fas ' + e.icono + ' gas-estado__icono"></i>'
+             +   '<span class="flex-grow-1"><span class="gas-estado__titulo d-block">' + e.titulo + '</span>'
+             +   '<span class="small text-muted d-block">' + escHtml(sub) + '</span></span>'
+             +   '<i class="fas fa-chevron-down gas-estado__flecha"></i>'
+             + '</button>'
+             + '<div class="collapse" id="detalleSolicitud">'
+             +   pasosSolicitud(s.estatus)
+             +   '<dl class="gas-datos">'
+             +     '<dt>Solicitó</dt><dd>' + escHtml(s.solicitante || 'S/R') + '</dd>'
+             +     '<dt>Fecha</dt><dd>' + escHtml(fmtFechaGas(s.fecha)) + '</dd>'
+             +     '<dt>Saldo al pedir</dt><dd>' + fmtMoneda(s.saldo_solicitud) + '</dd>'
+             +     (abonado > 0 ? '<dt>Abonado</dt><dd>' + fmtMoneda(abonado) + '</dd>' : '')
+             +     (s.fecha_resuelto ? '<dt>Resolvió</dt><dd>' + escHtml(s.resolvio || 'S/R') + '</dd>' : '')
+             +     (s.notas_resolucion ? '<dt>Notas</dt><dd class="fst-italic">' + escHtml(s.notas_resolucion) + '</dd>' : '')
+             +   '</dl>'
+             + '</div>';
+    }
+
+    // El botón (o el motivo por el que no se puede pedir) se queda aunque no haya estado
+    // que mostrar: tras una aprobada, el responsable tiene que poder pedir la siguiente.
+    var accion = accionReposicion(ctx.reposicion);
+    $('#estadoSolicitud').html(html).toggle(html !== '');
+    $('#accionReposicion').html(accion).toggle(accion !== '')
+        // Sin estado arriba, la acción no lleva la línea divisoria.
+        .toggleClass('gas-accion--sola', html === '');
+    $('#panelSolicitud').toggle(html !== '' || accion !== '');
+}
+
+/** Los tres pasos: Enviada → En revisión (o Abono parcial) → Aprobada / Rechazada. */
+function pasosSolicitud(estatus) {
+    var resuelta = estatus === 'APROBADA' || estatus === 'RECHAZADA';
+    var pasos = [
+        { texto: 'Enviada', clase: 'es-hecho' },
+        { texto: estatus === 'PARCIAL' ? 'Abono parcial' : 'En revisión', clase: resuelta ? 'es-hecho' : 'es-actual' },
+        { texto: estatus === 'RECHAZADA' ? 'Rechazada' : (estatus === 'APROBADA' ? 'Aprobada' : 'Resuelta'),
+          clase: estatus === 'RECHAZADA' ? 'es-rechazo' : (estatus === 'APROBADA' ? 'es-hecho' : '') }
+    ];
+    return '<ol class="gas-pasos" aria-label="Avance de la solicitud">' + pasos.map(function (p) {
+        var icono = p.clase === 'es-hecho' ? '<i class="fas fa-check"></i>'
+                  : (p.clase === 'es-rechazo' ? '<i class="fas fa-xmark"></i>' : '');
+        return '<li class="gas-paso ' + p.clase + '"><span class="gas-paso__punto">' + icono + '</span>' + p.texto + '</li>';
+    }).join('') + '</ol>';
+}
+
+/**
+ * Botón o aviso de la reposición. No decide nada: pinta la evaluación que manda el
+ * servidor (evaluarReposicion en acciones_gas.php), que es la misma que valida al
+ * recibir la solicitud. Antes esta función tenía su propia regla y no coincidía con
+ * la del servidor.
+ */
+function accionReposicion(r) {
+    // Sin cargas o vehículo no disponible: no hay nada que ofrecer.
+    if (!r || r.motivo === 'sin_cargas' || r.motivo === 'vehiculo') return '';
+
+    if (r.puede) {
+        return '<button id="btnReposicion" class="btn btn-primary w-100" '
+             +   'onclick="solicitarReposicion(' + idVehSel + ',' + Number(r.saldo).toFixed(2) + ',\'' + escHtml(placaSel) + '\')">'
+             +   '<i class="fas fa-paper-plane me-1"></i>Solicitar reposición de crédito</button>';
+    }
+    if (r.motivo === 'en_tramite') {
+        return '<button class="btn btn-outline-secondary w-100" disabled>'
+             +   '<i class="fas fa-hourglass-half me-1"></i>Solicitud en trámite</button>'
+             + '<div class="gas-nota mt-2">Cuando se resuelva podrás pedir otra.</div>';
+    }
+    var iconos = { al_corriente: 'fa-check', saldo_suficiente: 'fa-gauge-high', no_autorizado: 'fa-lock' };
+    return '<div class="gas-nota"><i class="fas ' + (iconos[r.motivo] || 'fa-circle-info') + ' me-1"></i>'
+         + escHtml(r.mensaje) + '</div>';
 }
 
 function solicitarReposicion(id_vehiculo, saldo, placa) {

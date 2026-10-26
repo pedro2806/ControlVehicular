@@ -556,7 +556,8 @@
                 + fila('Parque industrial', c.parque_industrial)
                 + fila('Ciudad', ciudad)
                 + fila('OT / OV / Otro', c.ot)
-                + fila('Fecha de carga', fmtFecha(c.fecha_carga))
+                // fmtFechaCorta: las cargas viejas quedaron a las 00:00 (su hora no se guardó).
+                + fila('Fecha de carga', fmtFechaCorta(c.fecha_carga))
             );
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDestino')).show();
         });

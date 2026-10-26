@@ -19,7 +19,8 @@ if ($_POST['accion'] == 'ver_inventario') {
         $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuarios.nombre as usuario, color
                 FROM inventario 
                 INNER JOIN usuarios ON inventario.id_usuario = usuarios.id_usuario     
-                WHERE inventario.id_usuario = $id_usuario OR inventario.id_us_asignado = $id_usuario"; 
+                WHERE (inventario.id_usuario = $id_usuario OR inventario.id_us_asignado = $id_usuario)
+                  AND inventario.estatus = 'Activo'";
             
     $result = $conn->query($sql);
 
@@ -157,9 +158,11 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
         $stmtAcc->close();
     }
 
+    // Solo vehículos activos, también con acceso total: los dados de baja solo se
+    // consultan en la pantalla de Vehículos.
     $whereClause = $tieneAccesoTotal
-        ? ""
-        : "WHERE inv.id_usuario = $id_usuario_int OR inv.id_us_asignado = $id_usuario_int";
+        ? "WHERE inv.estatus = 'Activo'"
+        : "WHERE (inv.id_usuario = $id_usuario_int OR inv.id_us_asignado = $id_usuario_int) AND inv.estatus = 'Activo'";
 
     $sql = "SELECT doc.id, doc.id_vehiculo, doc.fecha_registro, doc.id_usuario_registro, doc.contacto,
                    doc.fecha_prox, doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo, doc.verificacion_vigente,
@@ -192,7 +195,7 @@ if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
             LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
             LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
-            WHERE mant.solicitante = $id_usuario AND mant.VoBo_jefe = '$estatus'
+            WHERE mant.solicitante = $id_usuario AND mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
             ORDER BY mant.fecha_registro DESC";
     $result = $conn->query($sql);
 

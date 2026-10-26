@@ -92,7 +92,8 @@ $id_usuario = $_POST["id_usuario"];
             $id_usuario = $rowUsuario['id_usuario'];
 
             // 2. Obtener placa desde la tabla inventario usando id_usuario
-            $sqlPlaca = "SELECT placa FROM inventario WHERE id_usuario = $id_usuario ORDER BY id_vehiculo DESC LIMIT 1";
+            // Solo vehículos activos: uno dado de baja seguía saliendo como "su" placa.
+            $sqlPlaca = "SELECT placa FROM inventario WHERE id_usuario = $id_usuario AND estatus = 'Activo' ORDER BY id_vehiculo DESC LIMIT 1";
             $resultPlaca = $conn->query($sqlPlaca);
 
             if ($resultPlaca && $resultPlaca->num_rows > 0) {

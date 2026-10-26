@@ -59,7 +59,7 @@ if ($con_vehiculo_esc === '' || $con_vehiculo_esc === '1') {
     FROM actividad_vehiculo av1
     JOIN usuarios u ON u.id_usuario = av1.id_usuario
     JOIN inventario inv ON inv.id_vehiculo = av1.id_vehiculo
-    WHERE av1.tipo_actividad = 'INICIO'
+    WHERE av1.tipo_actividad = 'INICIO' AND inv.estatus = 'Activo'
         " . ($usuario_esc ? " AND av1.id_usuario = '$usuario_esc' " : '') . "
         $whereVehiculo
     ORDER BY av1.fecha_actividad

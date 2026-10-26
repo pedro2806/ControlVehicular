@@ -131,6 +131,9 @@ if ($accion == "consultarPrestamos") {
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE $whereRol
+                  -- Fuera los préstamos de vehículos dados de baja, pero se conservan los
+                  -- que aún no tienen vehículo asignado (inv nulo por el LEFT JOIN).
+                  AND (inv.id_vehiculo IS NULL OR inv.estatus = 'Activo')
                 ORDER BY prest.id_prestamo DESC";
                 //WHERE $whereRol AND prest.estatus IN ($estatusStr)
         //echo $sqlConsulta; // Para depuración, puedes eliminarlo después

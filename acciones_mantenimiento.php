@@ -154,8 +154,10 @@ if ($accion == "verificarAccesoAutorizar") {
 }
 
 //Consulta de Mantenimientos
+// Todas las variantes filtran inv.estatus = 'Activo': los vehículos dados de baja solo se
+// consultan en la pantalla de Vehículos.
 if ($accion == "consultarMantenimientos") {
-    
+
     $infAdicionalAut = null;
     $tieneAccesoAut = false;
     $stmtAut = $conn->prepare("SELECT inf_adicional FROM mess_rrhh.accesos_especiales WHERE noEmpleado = ? AND sistema = 'ctrlVehicular' AND opcion = 'autorizaMantenimiento' AND estatus = 1 LIMIT 1");
@@ -176,7 +178,7 @@ if ($accion == "consultarMantenimientos") {
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                         INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                        WHERE mant.VoBo_jefe = '$estatus'
+                        WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
                         ORDER BY mant.fecha_registro DESC";
     } elseif ($tieneAccesoAut && $infAdicionalAut) {
         $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), array_map('trim', explode(',', $infAdicionalAut))));
@@ -185,7 +187,7 @@ if ($accion == "consultarMantenimientos") {
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                         INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                        WHERE mant.VoBo_jefe = '$estatus' AND inv.area IN ('$areasEsc')
+                        WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND inv.area IN ('$areasEsc')
                         ORDER BY mant.fecha_registro DESC";
     } else {
 
@@ -207,7 +209,7 @@ if ($accion == "consultarMantenimientos") {
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                             INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                            WHERE mant.VoBo_jefe = '$estatus'
+                            WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
                             ORDER BY mant.fecha_registro DESC";
         } elseif ($infAdicional) {
             $areas = [];
@@ -237,7 +239,7 @@ if ($accion == "consultarMantenimientos") {
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                             INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                            WHERE mant.VoBo_jefe = '$estatus' AND ($whereExtra)
+                            WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND ($whereExtra)
                             ORDER BY mant.fecha_registro DESC";
         } else {
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
@@ -245,7 +247,7 @@ if ($accion == "consultarMantenimientos") {
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
                             INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
-                            WHERE mant.VoBo_jefe = '$estatus' AND inv.id_usuario = '$id_usuario'
+                            WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND inv.id_usuario = '$id_usuario'
                             ORDER BY mant.fecha_registro DESC";
         }
     }

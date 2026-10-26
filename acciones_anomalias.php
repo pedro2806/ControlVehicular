@@ -83,10 +83,12 @@ if ($accion === 'obtenerFeedAnomalias') {
     $noEmpleado = $_COOKIE['noEmpleado'] ?? 0;
     $verTodas   = tieneAccesoEspecial($conn, $noEmpleado, 'verHistorialSiniestro');
 
-    $where = '';
+    // Solo anomalías de vehículos activos, también para quien ve todo: los dados de baja
+    // solo se consultan en la pantalla de Vehículos.
+    $where = "WHERE inv.estatus = 'Activo'";
     if (!$verTodas) {
         $idU = intval($id_usuario);
-        $where = "WHERE a.id_vehiculo IN (
+        $where .= " AND a.id_vehiculo IN (
             SELECT inv.id_vehiculo FROM inventario inv WHERE inv.id_us_asignado = $idU OR inv.id_usuario = $idU
             UNION
             SELECT p.id_vehiculo FROM prestamos p WHERE p.id_usuario = $idU AND p.estatus = 'AUTORIZADO'

@@ -90,7 +90,10 @@ $idVehiculo = intval($_GET['v'] ?? 0);
         if (!f) return '—';
         var p = String(f).split(/[- :]/);
         if (p.length < 3) return String(f);
-        return p[2] + '/' + p[1] + '/' + p[0] + (p[3] ? ' ' + p[3] + ':' + (p[4] || '00') : '');
+        // Las cargas de gasolina de antes de pasar fecha_carga a DATETIME quedaron a las
+        // 00:00:00 porque su hora no se guardó: se muestra solo la fecha.
+        var conHora = p[3] !== undefined && !(p[3] === '00' && (p[4] || '00') === '00' && (p[5] || '00') === '00');
+        return p[2] + '/' + p[1] + '/' + p[0] + (conHora ? ' ' + p[3] + ':' + (p[4] || '00') : '');
     }
 
     function badge(txt, color) { return '<span class="badge bg-' + color + '">' + esc(txt) + '</span>'; }

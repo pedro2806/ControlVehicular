@@ -145,13 +145,17 @@
         return p[2] + '/' + p[1] + '/' + p[0] + ' ' + (p[3] || '00') + ':' + (p[4] || '00');
     }
 
-    // Cada tipo con su color, para poder barrer la tabla de un vistazo. Un INICIO sin
-    // FINALIZACION posterior sale como "Abierto": es el caso que hay que perseguir,
-    // porque el usuario nunca cerró la actividad.
+    // Cada tipo con su color, para poder barrer la tabla de un vistazo.
+    //
+    // "Último check-in" reemplaza al antiguo "Abierto" (INICIO sin salida del mismo
+    // usuario), que confundía: ya no hay check-out, así que casi cualquier entrada salía
+    // "Abierto" para siempre y se leía como un pendiente. Ahora marca el check-in más
+    // reciente de cada vehículo: quién lo usó por última vez. Ver consultarCheckins en
+    // acciones_kilometraje.php.
     function badgeTipo(f) {
         if (f.tipo_actividad === 'INICIO') {
-            return f.abierto == 1
-                ? '<span class="badge bg-warning text-dark">Abierto</span>'
+            return f.ultimo_uso == 1
+                ? '<span class="badge bg-primary" title="Es el check-in más reciente de este vehículo: nadie ha registrado entrada después">Último check-in</span>'
                 : '<span class="badge bg-success">Entrada</span>';
         }
         if (f.tipo_actividad === 'FINALIZACION') return '<span class="badge bg-secondary">Salida</span>';
@@ -198,7 +202,7 @@
                 : '<span class="text-muted">&mdash;</span>';
 
             $tb.append(
-                '<tr' + (f.abierto == 1 ? ' class="table-warning"' : '') + '>' +
+                '<tr>' +
                 '<td class="text-nowrap small">' + fmtFecha(f.fecha_actividad) + '</td>' +
                 '<td class="small">' + vehiculo + '</td>' +
                 '<td class="small d-none d-lg-table-cell">' + esc(f.usuario || 'S/R') + '</td>' +
@@ -215,8 +219,9 @@
         });
 
         $('#sinResultados').toggle(mostradas === 0);
-        var abiertos = filas.filter(function (f) { return f.abierto == 1; }).length;
-        $('#badgeTotal').text(mostradas + ' registros' + (abiertos ? ' · ' + abiertos + ' sin cerrar' : ''));
+        // Sin el antiguo "· N sin cerrar": contaba entradas a las que nunca les seguiría
+        // una salida, porque el check-out ya no existe.
+        $('#badgeTotal').text(mostradas + ' registros');
     }
 
     function cargar() {

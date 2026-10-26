@@ -22,6 +22,7 @@ function prepararModalGas() {
         verPlaca('vehiculoAsignadoGas', 'kmActualGas', 'saldo');
     } else {
         $('#monto, #kmActualGas, #saldo').val('');
+        $('#kmActualGas').removeData('ultimoKm');
     }
     $('#pagos').val('');
     // Cliente y OT se limpian siempre: son de la carga que se está capturando, no del
@@ -129,7 +130,8 @@ $(function () {
 // modal), y cada llamada de más es una carga de gasolina duplicada en la BD.
 var _guardandoGas = false;
 
-function registrarGas() {
+// kmConfirmado: true cuando el usuario ya confirmó un salto grande de km.
+function registrarGas(kmConfirmado) {
     if (_guardandoGas) return;
 
     var id_vehiculo = $('#vehiculoAsignadoGas').val();
@@ -158,6 +160,16 @@ function registrarGas() {
 
     if (parseFloat($('#kmActualGas').val()) < 0) {
         Swal.fire({ icon: 'warning', title: 'Km inválido', text: 'El kilometraje no puede ser negativo.', confirmButtonText: 'Aceptar' });
+        return;
+    }
+
+    // Un km muy por encima del último suele ser un dígito de más: se pide confirmarlo.
+    // ultimoKm lo deja verPlaca() (js/global/vehiculos.js) al elegir el vehículo. Una
+    // carga atrasada trae un km menor al último, así que no dispara la pregunta.
+    if (kmConfirmado !== true) {
+        confirmarSaltoKm($('#kmActualGas').val(), $('#kmActualGas').data('ultimoKm'),
+            function () { registrarGas(true); },
+            function () { $('#kmActualGas').trigger('focus').trigger('select'); });
         return;
     }
 
@@ -222,7 +234,15 @@ function _enviarRegistroGas(id_vehiculo) {
                 return;
             }
 
-            var saldoNum = parseFloat(saldo) || 0;
+            // Se avisa con el saldo VIGENTE de la tarjeta que regresa el servidor. Con una
+            // carga atrasada el del formulario no sirve: el servidor recalcula el crédito
+            // en orden de fecha (recalcularSaldosCiclo en acciones_gas.php).
+            var saldoNum = (resp.saldo_tarjeta !== null && resp.saldo_tarjeta !== undefined)
+                ? parseFloat(resp.saldo_tarjeta)
+                : (parseFloat(saldo) || 0);
+            var avisoRecalculo = resp.recalculado
+                ? '<br><span class="small text-muted">Es de una fecha anterior: se recalculó el saldo del crédito.</span>'
+                : '';
 
             var modalEl = document.getElementById('capturaGasModal');
             var finalizar = function () {
@@ -236,7 +256,7 @@ function _enviarRegistroGas(id_vehiculo) {
                     Swal.fire({
                         icon: 'success',
                         title: '¡Guardado!',
-                        html: 'Carga registrada correctamente.<br><span class="text-danger fw-bold">Saldo agotado ($' + saldoNum.toFixed(2) + ')</span>. ¿Deseas solicitar reposición de crédito?',
+                        html: 'Carga registrada correctamente.<br><span class="text-danger fw-bold">Saldo agotado ($' + saldoNum.toFixed(2) + ')</span>. ¿Deseas solicitar reposición de crédito?' + avisoRecalculo,
                         showCancelButton: true,
                         confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Solicitar reposición',
                         cancelButtonText: 'No por ahora',
@@ -250,16 +270,17 @@ function _enviarRegistroGas(id_vehiculo) {
                     Swal.fire({
                         icon: 'success',
                         title: '¡Guardado!',
-                        html: 'Carga registrada correctamente.<br><span class="text-warning fw-bold">Saldo bajo: $' + saldoNum.toFixed(2) + '</span>',
-                        timer: 2500,
+                        html: 'Carga registrada correctamente.<br><span class="text-warning fw-bold">Saldo bajo: $' + saldoNum.toFixed(2) + '</span>' + avisoRecalculo,
+                        // Con el aviso de recálculo hay más que leer: se da más tiempo.
+                        timer: resp.recalculado ? 5000 : 2500,
                         timerProgressBar: true
                     });
                 } else {
                     Swal.fire({
                         title: '¡Guardado!',
-                        text: 'Carga de gasolina registrada correctamente.',
+                        html: 'Carga de gasolina registrada correctamente.' + avisoRecalculo,
                         icon: 'success',
-                        timer: 1500,
+                        timer: resp.recalculado ? 5000 : 1500,
                         timerProgressBar: true
                     });
                 }

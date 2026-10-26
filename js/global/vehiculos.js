@@ -37,6 +37,10 @@ function verPlaca(selectVehiculo, inputKm, saldo) {
         primerValor = primerValor.replace("Seleccione un vehículo", "");
         document.getElementById("placaElegida").value = primerValor;
 
+        // Se olvida el último km del vehículo anterior mientras llega el del nuevo, para
+        // que la confirmación de salto de km no compare contra otro vehículo.
+        $('#' + inputKm).removeData('ultimoKm');
+
         $.ajax({
             url: 'acciones_kilometraje.php',
             method: 'POST',
@@ -47,6 +51,8 @@ function verPlaca(selectVehiculo, inputKm, saldo) {
                 // km y gasolina se prellenan si hay actividad previa; si no, vacío
                 // (captura manual). Nunca dejar el literal "null" en el input.
                 $('#' + inputKm).val(r.kmMax != null ? r.kmMax : '');
+                // Referencia para confirmarSaltoKm (js/global/utils.js) al guardar.
+                $('#' + inputKm).data('ultimoKm', r.kmMax != null ? parseInt(r.kmMax, 10) : 0);
                 $('#gasActual').val(r.gasolina_actual != null ? r.gasolina_actual : '');
                 // Monto = saldo que arrastra la carga anterior; si no hay saldo previo
                 // o quedó en 0, la tarjeta arranca con el crédito de 4000.

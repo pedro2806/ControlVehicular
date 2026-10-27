@@ -332,12 +332,25 @@ if ($accion === 'checkInQR') {
     if (!$id_vehiculo) { echo json_encode(['error' => 'ID inválido.']); exit; }
     $id_usuario_cookie = intval($_COOKIE['id_usuario'] ?? 0);
     $ot        = trim($_POST['ot'] ?? '');
+    // "Volver a la sede": el trayecto de aquí a la nave del usuario cuenta como km de
+    // trabajo (ver procesarKmRegresoSede en calcular_ruta.php). No lleva OT/OV y se puede
+    // usar en cualquier check-in, sin límite por día.
+    $esRegreso = ($_POST['regreso_sede'] ?? '') === '1';
 
     // Validar que el KM no sea menor al ultimo registrado
     $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
     if ($km_actual > 0 && $ultimoKM > 0 && $km_actual < $ultimoKM) {
         echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al ultimo registrado ($ultimoKM)."]);
         exit;
+    }
+
+    if ($esRegreso) {
+        // Sin ubicación no hay trayecto que calcular.
+        if (strpos($coordenadas, ',') === false) {
+            echo json_encode(['error' => 'Se necesita tu ubicación para registrar el regreso a la sede.']);
+            exit;
+        }
+        $ot = '';
     }
 
     // La foto del odómetro es OBLIGATORIA en el primer registro de KM de la semana: es la
@@ -391,8 +404,11 @@ if ($accion === 'checkInQR') {
     $placa     = obtenerPlacaVehiculo($conn, $id_vehiculo);
     $ruta_foto = subirFotoKM($placa, 'checkin');
 
-    $stmt = $conn->prepare("INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, foto_url, coordenadas, ot, fecha_actividad, tipo_actividad) VALUES (?, ?, ?, ?, ?, ?, NOW(), 'INICIO')");
-    $stmt->bind_param("iiisss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot);
+    // detalle_tipo_uso = 'REGRESO_SEDE' identifica el regreso (badge en la vista
+    // Check-ins); en un check-in normal va NULL, como hasta ahora.
+    $detalle = $esRegreso ? 'REGRESO_SEDE' : null;
+    $stmt = $conn->prepare("INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, foto_url, coordenadas, ot, detalle_tipo_uso, fecha_actividad, tipo_actividad) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'INICIO')");
+    $stmt->bind_param("iiissss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot, $detalle);
 
     if ($stmt->execute()) {
         $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-in
@@ -406,7 +422,28 @@ if ($accion === 'checkInQR') {
             $stmtKm->execute();
             $stmtKm->close();
         }
-        echo json_encode(['success' => true, 'id_actividad' => $id_actividad]);
+
+        // El km del regreso se calcula aquí y no con la llamada aparte que hace la vista
+        // para los check-ins normales: así no depende de lo que mande el navegador y la
+        // respuesta ya trae los km y la nave para mostrárselos al usuario. Nunca debe
+        // tumbar el check-in, que ya quedó guardado.
+        $regreso = null;
+        if ($esRegreso) {
+            try {
+                require_once __DIR__ . '/calcular_ruta.php';
+                $c = array_map('trim', explode(',', $coordenadas));
+                $regreso = procesarKmRegresoSede($conn, (float) $c[0], (float) $c[1],
+                    $id_usuario_cookie ?: null, $noEmpleado, (int) $id_actividad);
+            } catch (Throwable $e) {
+                error_log("checkInQR regreso a sede ($id_actividad): " . $e->getMessage());
+                // Aunque el km no se haya calculado, queda marcado para que la
+                // reconciliación de km no lo tome como un check-in de actividad OTROS.
+                $m = $conn->prepare("UPDATE actividad_vehiculo SET order_code = 'REGRESO_SEDE' WHERE id_actividad = ?");
+                if ($m) { $m->bind_param("i", $id_actividad); $m->execute(); $m->close(); }
+            }
+        }
+
+        echo json_encode(['success' => true, 'id_actividad' => $id_actividad, 'regreso' => $regreso]);
     } else {
         echo json_encode(['error' => 'Error al registrar check-in.']);
     }

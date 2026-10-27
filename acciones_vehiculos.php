@@ -308,21 +308,22 @@ if ($accion === 'historialVehiculo') {
         exit;
     }
 
-    // Cada consulta se acota con LIMIT: un vehículo con años de uso puede tener cientos
-    // de check-ins y la pantalla solo muestra los más recientes.
+    // La vista pagina cada tabla (historial_vehiculo.php), así que se manda el historial
+    // completo. Antes el LIMIT era 50 y se perdía lo anterior: hay vehículos con 183
+    // check-ins y con 74 préstamos. El LIMIT 500 queda solo como tope de seguridad.
     $bloques = [
         'checklists' => "SELECT c.id_checklist, c.fecha, c.estatus, c.motivo,
                                 IFNULL(u.nombre,'S/R') AS usuario
                          FROM checklist c
                          LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = c.id_usuario)
-                         WHERE c.id_vehiculo = ? ORDER BY c.fecha DESC LIMIT 50",
+                         WHERE c.id_vehiculo = ? ORDER BY c.fecha DESC LIMIT 500",
 
         'checkins'   => "SELECT a.id_actividad, a.tipo_actividad, a.fecha_actividad, a.km_actual,
                                 a.gasolina_actual, a.ot, a.coordenadas, a.notas,
                                 IFNULL(u.nombre,'S/R') AS usuario
                          FROM actividad_vehiculo a
                          LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = a.id_usuario)
-                         WHERE a.id_vehiculo = ? ORDER BY a.fecha_actividad DESC LIMIT 50",
+                         WHERE a.id_vehiculo = ? ORDER BY a.fecha_actividad DESC LIMIT 500",
 
         'cargas'     => "SELECT cg.id, cg.fecha_carga, cg.fecha_registro, cg.monto, cg.pagos, cg.saldo,
                                 cg.km_actual, cg.ot, cg.id_ciclo, cli.CLIENTE AS cliente,
@@ -330,30 +331,30 @@ if ($accion === 'historialVehiculo') {
                          FROM carga_gasolina cg
                          LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
                          LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
-                         WHERE cg.id_vehiculo = ? ORDER BY cg.fecha_carga DESC LIMIT 50",
+                         WHERE cg.id_vehiculo = ? ORDER BY cg.fecha_carga DESC LIMIT 500",
 
         'solicitudes'=> "SELECT s.id, s.fecha, s.estatus, s.saldo_solicitud, s.km_actual,
                                 s.notas_resolucion, s.fecha_resuelto
                          FROM solicitudes_gas s
-                         WHERE s.id_vehiculo = ? ORDER BY s.fecha DESC LIMIT 50",
+                         WHERE s.id_vehiculo = ? ORDER BY s.fecha DESC LIMIT 500",
 
         'mantenimientos' => "SELECT m.id_mantenimiento, m.fecha_registro, m.VoBo_jefe AS estatus,
                                     m.tipo_mantenimiento, m.descripcion, m.kilometraje
                              FROM mantenimientos m
-                             WHERE m.id_vehiculo = ? ORDER BY m.fecha_registro DESC LIMIT 50",
+                             WHERE m.id_vehiculo = ? ORDER BY m.fecha_registro DESC LIMIT 500",
 
         'anomalias'  => "SELECT an.id, an.fecha, an.descripcion, an.foto_ruta, an.coordenadas,
                                 IFNULL(u.nombre,'S/R') AS usuario
                          FROM anomalias an
                          LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = an.id_usuario)
-                         WHERE an.id_vehiculo = ? ORDER BY an.fecha DESC LIMIT 50",
+                         WHERE an.id_vehiculo = ? ORDER BY an.fecha DESC LIMIT 500",
 
         'prestamos'  => "SELECT p.id_prestamo, p.fecha_registro, p.fecha_inc_prestamo, p.fecha_fin_prestamo,
                                 p.estatus, p.tipo_uso, p.motivo_us,
                                 IFNULL(u.nombre,'S/R') AS usuario
                          FROM prestamos p
                          LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = p.id_usuario)
-                         WHERE p.id_vehiculo = ? ORDER BY p.fecha_registro DESC LIMIT 50",
+                         WHERE p.id_vehiculo = ? ORDER BY p.fecha_registro DESC LIMIT 500",
     ];
 
     foreach ($bloques as $clave => $sql) {
@@ -375,7 +376,7 @@ if ($accion === 'historialVehiculo') {
     $stmtSin = $conn->prepare(
         "SELECT s.id_siniestro, s.fecha, s.hora, s.lugar, s.descripcion,
                 s.coordenadas, s.kilometraje
-         FROM siniestros s WHERE s.id_vehiculo = ? ORDER BY s.fecha DESC LIMIT 50"
+         FROM siniestros s WHERE s.id_vehiculo = ? ORDER BY s.fecha DESC LIMIT 500"
     );
     if ($stmtSin) {
         $stmtSin->bind_param("i", $idVeh);

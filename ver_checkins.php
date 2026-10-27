@@ -153,6 +153,12 @@
     // reciente de cada vehículo: quién lo usó por última vez. Ver consultarCheckins en
     // acciones_kilometraje.php.
     function badgeTipo(f) {
+        // Volver a la sede: el trayecto de ese punto a la nave del usuario se contó como km
+        // de trabajo (checkInQR + procesarKmRegresoSede). Va antes que "Último check-in".
+        if (f.tipo_actividad === 'INICIO' && f.detalle_tipo_uso === 'REGRESO_SEDE') {
+            return '<span class="badge bg-dark" title="El regreso a su nave cuenta como km de trabajo">'
+                 + '<i class="fas fa-house-flag me-1"></i>Volver a la sede</span>';
+        }
         if (f.tipo_actividad === 'INICIO') {
             return f.ultimo_uso == 1
                 ? '<span class="badge bg-primary" title="Es el check-in más reciente de este vehículo: nadie ha registrado entrada después">Último check-in</span>'

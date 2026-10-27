@@ -79,6 +79,10 @@ $idVehiculo = intval($_GET['v'] ?? 0);
     var idVehiculo = <?= $idVehiculo ?>;
     var datos = null;
     var seccionActiva = '';
+    // Paginación de las tablas: el servidor manda el historial completo (hasta 500 por
+    // sección) y aquí se muestra de 10 en 10. Cada pestaña recuerda en qué página iba.
+    var POR_PAGINA = 10;
+    var paginaDe = {};
 
     function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
     function money(v) { return '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }); }
@@ -229,13 +233,18 @@ $idVehiculo = intval($_GET['v'] ?? 0);
         else $('#contenidoHistorial').html('<p class="text-muted text-center py-5 mb-0 fs-5">Este vehículo todavía no tiene registros.</p>');
     }
 
-    function mostrarSeccion(clave) {
+    function mostrarSeccion(clave, pagina) {
         seccionActiva = clave;
         $('#tabsHistorial .nav-link').removeClass('active');
         $('#tabsHistorial .nav-link[data-seccion="' + clave + '"]').addClass('active');
 
         var def = SECCIONES[clave];
-        var filas = datos[clave] || [];
+        var todas = datos[clave] || [];
+        var totalPaginas = Math.max(1, Math.ceil(todas.length / POR_PAGINA));
+        var p = Math.min(Math.max(1, pagina || paginaDe[clave] || 1), totalPaginas);
+        paginaDe[clave] = p;
+        var inicio = (p - 1) * POR_PAGINA;
+        var filas = todas.slice(inicio, inicio + POR_PAGINA);
 
         // Sin table-sm y sin .small en las celdas: esta pantalla se consulta para revisar
         // el historial de un vehículo, no para meter cien filas en la pantalla, así que
@@ -258,7 +267,42 @@ $idVehiculo = intval($_GET['v'] ?? 0);
         });
 
         html += '</tbody></table></div>';
+        html += paginador(p, totalPaginas, inicio + 1, inicio + filas.length, todas.length);
         $('#contenidoHistorial').html(html);
+    }
+
+    /**
+     * Barra de páginas bajo la tabla: "Mostrando 11–20 de 183" y los botones. Con muchas
+     * páginas se muestran la primera, la última y las vecinas de la actual, con "…" entre
+     * medio, para que no se desborde en celular. Con una sola página no se pinta.
+     */
+    function paginador(actual, total, desde, hasta, registros) {
+        if (total <= 1) return '';
+
+        function boton(num, texto, deshabilitado, activo, etiqueta) {
+            return '<li class="page-item' + (deshabilitado ? ' disabled' : '') + (activo ? ' active' : '') + '">'
+                 + '<button type="button" class="page-link" data-pagina="' + num + '"'
+                 + (deshabilitado ? ' disabled' : '') + (activo ? ' aria-current="page"' : '')
+                 + (etiqueta ? ' aria-label="' + etiqueta + '"' : '') + '>' + texto + '</button></li>';
+        }
+
+        var numeros = [1, total, actual - 1, actual, actual + 1]
+            .filter(function (n, i, arr) { return n >= 1 && n <= total && arr.indexOf(n) === i; })
+            .sort(function (a, b) { return a - b; });
+
+        var items = [boton(actual - 1, '&laquo;', actual === 1, false, 'Anterior')];
+        numeros.forEach(function (n, i) {
+            if (i > 0 && n - numeros[i - 1] > 1) {
+                items.push('<li class="page-item disabled"><span class="page-link">…</span></li>');
+            }
+            items.push(boton(n, n, false, n === actual));
+        });
+        items.push(boton(actual + 1, '&raquo;', actual === total, false, 'Siguiente'));
+
+        return '<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-3 border-top">'
+             + '<span class="text-muted">Mostrando ' + desde + '–' + hasta + ' de ' + registros + '</span>'
+             + '<nav aria-label="Páginas"><ul class="pagination mb-0">' + items.join('') + '</ul></nav>'
+             + '</div>';
     }
 
     $(document).ready(function () {
@@ -288,6 +332,11 @@ $idVehiculo = intval($_GET['v'] ?? 0);
         // Delegado: las pestañas se generan después de que responde el AJAX.
         $(document).on('click', '#tabsHistorial .nav-link', function () {
             mostrarSeccion($(this).data('seccion'));
+        });
+
+        // Delegado: la barra de páginas se vuelve a pintar con cada cambio.
+        $(document).on('click', '#contenidoHistorial .page-link[data-pagina]', function () {
+            mostrarSeccion(seccionActiva, parseInt($(this).data('pagina'), 10));
         });
     });
 </script>

@@ -406,7 +406,7 @@ if ($accion == 'consultarCheckins') {
     // JOIN directo multiplicaría las filas del listado.
     $sql = "SELECT av.id_actividad, av.id_vehiculo, av.tipo_actividad, av.fecha_actividad,
                    av.km_actual, av.gasolina_actual, av.coordenadas, av.foto_url,
-                   av.notas, av.ot, av.patron,
+                   av.notas, av.ot, av.patron, av.detalle_tipo_uso,
                    inv.placa, inv.marca, inv.modelo,
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario,
                    -- El desempate por id cubre dos check-ins del mismo segundo.
@@ -428,6 +428,17 @@ if ($accion == 'consultarCheckins') {
               -- dado de baja le seguía saliendo a su último responsable. Los inactivos
               -- solo se consultan en la pantalla de Vehículos.
               AND inv.estatus = 'Activo'
+              -- Fuera las Salidas automáticas: checkInQR cierra el viaje anterior del
+              -- mismo usuario en ese vehículo insertando una FINALIZACION con la misma hora,
+              -- km y ubicación que la entrada nueva, y en la lista se veía cada check-in
+              -- duplicado. Se ocultan solo aquí; los datos siguen y los usan los
+              -- recorridos (entrada -> salida) del detalle de recargas.
+              AND NOT (av.tipo_actividad = 'FINALIZACION' AND EXISTS (
+                    SELECT 1 FROM actividad_vehiculo ini
+                    WHERE ini.tipo_actividad = 'INICIO'
+                      AND ini.id_usuario = av.id_usuario
+                      AND ini.id_vehiculo = av.id_vehiculo
+                      AND ini.fecha_actividad = av.fecha_actividad))
             $filtroVeh
             $filtroUsuario
             ORDER BY av.fecha_actividad DESC, av.id_actividad DESC";

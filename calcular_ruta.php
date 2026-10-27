@@ -109,17 +109,79 @@ function obtenerSedes(mysqli $conn): array {
     static $sedes = null;
     if ($sedes !== null) return $sedes;
     $sedes = [];
-    $r = @$conn->query("SELECT lat, lng, radio_km FROM sedes");
+    $r = @$conn->query("SELECT id, nombre, lat, lng, radio_km FROM sedes");
     if ($r) {
         while ($s = $r->fetch_assoc()) {
             $sedes[] = [
-                'lat'   => floatval($s['lat']),
-                'lng'   => floatval($s['lng']),
-                'radio' => floatval($s['radio_km']) > 0 ? floatval($s['radio_km']) : 3.0,
+                'id'     => intval($s['id']),
+                'nombre' => $s['nombre'],
+                'lat'    => floatval($s['lat']),
+                'lng'    => floatval($s['lng']),
+                'radio'  => floatval($s['radio_km']) > 0 ? floatval($s['radio_km']) : 3.0,
             ];
         }
     }
     return $sedes;
+}
+
+/**
+ * Nave de RRHH (mess_rrhh.nave.idNave) -> sede con coordenadas (sedes.id).
+ *
+ * RRHH tiene 17 naves y solo 7 tienen sede con coordenadas. Las que no están aquí
+ * (Messen, Conmed, Nave 26, Valeo, CMA, SJR, CDMX, León, DCM) y los usuarios sin nave
+ * usan la sede más cercana al punto del check-in. Si se da de alta una sede nueva en
+ * `sedes`, agregar aquí su nave.
+ */
+const NAVE_A_SEDE = [
+    1  => 1,   // Mess            -> Nave Principal Qro
+    6  => 2,   // SFG             -> Nave SFG Qro
+    5  => 3,   // San Luis Potosí -> Nave SLP
+    4  => 4,   // Zona Norte      -> Nave MTY
+    8  => 5,   // Aguascalientes  -> Nave AGS
+    16 => 6,   // Guadalajara     -> Nave Guadalajara
+    13 => 6,   // Jalisco         -> Nave Guadalajara
+    14 => 7,   // Nave 6          -> Nave 6 (dada de alta el 27/10/2026)
+];
+
+/**
+ * Sede a la que "vuelve" un usuario con el botón "Volver a la sede": la de su nave de
+ * RRHH o, si su nave no tiene sede, la más cercana al punto del check-in.
+ *
+ * La nave se busca por noEmpleado y no por id_usuario, que no es único (hay ids
+ * duplicados entre personas distintas en mess_rrhh.usuarios).
+ *
+ * @return array{id:int,nombre:string,lat:float,lng:float,fuente:string}|null
+ */
+function sedeDeRegreso(mysqli $conn, int $noEmpleado, float $lat, float $lng): ?array {
+    $sedes = obtenerSedes($conn);
+    if (!$sedes) return null;
+
+    $idNave = 0;
+    $stmt = $conn->prepare("SELECT nave FROM mess_rrhh.usuarios WHERE noEmpleado = ? AND estatus = 1 LIMIT 1");
+    if ($stmt) {
+        $ne = (string) $noEmpleado;
+        $stmt->bind_param("s", $ne);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $idNave = intval($row['nave'] ?? 0);
+    }
+
+    if (isset(NAVE_A_SEDE[$idNave])) {
+        foreach ($sedes as $s) {
+            if ($s['id'] === NAVE_A_SEDE[$idNave]) {
+                return ['id' => $s['id'], 'nombre' => $s['nombre'], 'lat' => $s['lat'], 'lng' => $s['lng'], 'fuente' => 'nave'];
+            }
+        }
+    }
+
+    $cercana = null;
+    $distMin = INF;
+    foreach ($sedes as $s) {
+        $d = haversineRectaKm($lat, $lng, $s['lat'], $s['lng']);
+        if ($d < $distMin) { $distMin = $d; $cercana = $s; }
+    }
+    return ['id' => $cercana['id'], 'nombre' => $cercana['nombre'], 'lat' => $cercana['lat'], 'lng' => $cercana['lng'], 'fuente' => 'cercana'];
 }
 
 /** Distancia en línea recta (sin factor), para el chequeo de radio de sede. */
@@ -497,7 +559,8 @@ function refrescarKpiKm(mysqli $conn, int $idKm): void {
  * la fila en km_calculados. Reutilizable por el endpoint y por el batch.
  * @return array{km:?float,tiempo_min:?float,metodo:string,estatus:string,aviso:?string}
  */
-function calcularYRegistrar(mysqli $conn, $ov_ot, int $id_cliente, float $oLat, float $oLng, array $destino, ?int $id_usuario, int $id_actividad = 0): array {
+// $id_cliente es null en "Volver a la sede": el destino es una nave, no un cliente.
+function calcularYRegistrar(mysqli $conn, $ov_ot, ?int $id_cliente, float $oLat, float $oLng, array $destino, ?int $id_usuario, int $id_actividad = 0): array {
     $key   = tokenInegi();
     $dLat  = $destino['lat'];
     $dLng  = $destino['lng'];
@@ -689,6 +752,40 @@ function procesarKmCheckin(mysqli $conn, string $ov_ot, ?float $oLat, ?float $oL
         'metodo'     => $r['metodo'],
         'aviso'      => $r['aviso'],
         'id_cliente' => $id_cliente,
+    ];
+}
+
+/**
+ * Km de "Volver a la sede": del punto del check-in a la nave del usuario.
+ *
+ * Al terminar las visitas la gente se va directo a su casa, y ese regreso caía como km
+ * personal porque el check-in no tenía destino. Con este botón el trayecto hasta la nave
+ * cuenta como trabajo aunque no pasen por ella (petición del 26/10/2026). Se puede usar
+ * en cualquier check-in, sin límite por día.
+ *
+ * El check-in se marca con order_code = 'REGRESO_SEDE': reconciliarKmPendientes() vuelve
+ * a calcular todo INICIO con order_code NULL y, sin la marca, contaría este trayecto dos
+ * veces al encontrar la actividad OTROS del día.
+ *
+ * @return array{status:string,km?:?float,sede?:string,fuente?:string,message?:string}
+ */
+function procesarKmRegresoSede(mysqli $conn, float $oLat, float $oLng, ?int $id_usuario, int $noEmpleado, int $id_actividad): array {
+    // La marca va PRIMERO: si el cálculo falla (INEGI caído, sin sedes), el check-in
+    // igual queda fuera de la reconciliación y no se le asigna una actividad OTROS.
+    marcarCheckin($conn, $id_actividad, ['order_code' => 'REGRESO_SEDE', 'detalle' => 'REGRESO_SEDE']);
+
+    $sede = sedeDeRegreso($conn, $noEmpleado, $oLat, $oLng);
+    if ($sede === null) {
+        return ['status' => 'error', 'message' => 'No hay sedes registradas'];
+    }
+
+    $r = calcularYRegistrar($conn, 'REGRESO SEDE', null, $oLat, $oLng, $sede, $id_usuario, $id_actividad);
+
+    return [
+        'status' => 'success',
+        'km'     => $r['km'] !== null ? round((float) $r['km'], 1) : null,
+        'sede'   => $sede['nombre'],
+        'fuente' => $sede['fuente'],
     ];
 }
 

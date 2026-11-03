@@ -30,6 +30,19 @@ if (empty($_COOKIE['noEmpleado'])) {
     <link href="css/mess-ds.css" rel="stylesheet">
 
     <link href="css/app.css" rel="stylesheet">
+    <style>
+        /* Aviso sobre el botón "Volver a la sede": qué hace, a qué nave y cuántos km. */
+        .aviso-regreso {
+            font-size: .85rem;
+            color: var(--text-muted);
+            background: var(--card-soft);
+            border: 1px solid var(--border);
+            border-radius: .5rem;
+            padding: .5rem .75rem;
+            margin: 0;
+        }
+        .aviso-regreso strong { color: var(--text); }
+    </style>
 </head>
 <body id="page-top">
     <div id="wrapper">
@@ -182,18 +195,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     <input type="number" class="form-control mb-3" id="checkinKM" min="0" placeholder="Ej. 45320">
 
                     <label class="form-label fw-semibold mb-1" for="checkinOT">OT / OV / Otro:</label>
-                    <!-- "Volver a la sede": el trayecto de aquí a su nave cuenta como km de trabajo
-                         aunque se vaya directo a su casa. Lo calcula el servidor en checkInQR y se
-                         puede usar en cualquier check-in, sin límite por día. -->
-                    <div class="input-group mb-1">
-                        <input type="text" class="form-control" id="checkinOT" placeholder="Número de OT u OV">
-                        <input type="checkbox" class="btn-check" id="checkinRegreso" autocomplete="off">
-                        <label class="btn btn-outline-secondary" for="checkinRegreso"
-                            title="El trayecto de aquí a tu nave cuenta como km de trabajo">
-                            <i class="fas fa-house-flag me-1"></i>Volver a la sede
-                        </label>
-                    </div>
-                    <div class="small text-muted mb-3" id="checkinRegresoNota" style="min-height:.5rem;"></div>
+                    <input type="text" class="form-control mb-3" id="checkinOT" placeholder="Número de OT u OV">
 
                     <div id="checkinFotoSection" style="display:none;">
                         <div class="foto-captura" onclick="document.getElementById('checkinFoto').click()">
@@ -213,11 +215,26 @@ if (empty($_COOKIE['noEmpleado'])) {
                         <input type="file" id="checkinFoto" accept="image/*" capture="environment" style="display:none;">
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-1">
-                    <button type="button" class="btn btn-primary fw-semibold px-4"
-                        id="btnGuardarCheckinKM" disabled>
-                        Verificando...
-                    </button>
+                <!-- "Volver a la sede": el trayecto de aquí a su nave cuenta como km de trabajo
+                     aunque se vaya directo a su casa. Registra el check-in con un solo clic, sin
+                     OT/OV; el aviso de arriba dice a qué nave y cuántos km para evitar errores.
+                     Es opcional y se puede usar en cualquier check-in, sin límite por día. -->
+                <div class="modal-footer border-0 pt-1 flex-column align-items-stretch gap-2">
+                    <div class="aviso-regreso" id="avisoRegreso">
+                        <i class="fas fa-house-flag me-1"></i>
+                        <strong>Volver a la sede</strong> registra tu check-in y cuenta como km de
+                        trabajo el trayecto de aquí a <span id="avisoRegresoDestino">tu nave</span>.
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 m-0">
+                        <button type="button" class="btn btn-outline-secondary fw-semibold"
+                            id="btnRegresoSede" disabled>
+                            <i class="fas fa-house-flag me-1"></i>Volver a la sede
+                        </button>
+                        <button type="button" class="btn btn-primary fw-semibold px-4"
+                            id="btnGuardarCheckinKM" disabled>
+                            Verificando...
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -277,6 +294,14 @@ if (empty($_COOKIE['noEmpleado'])) {
         var vehiculoQR = { id: 0, placa: '', modelo: '' };
         var checkinEstado = { tieneCheckinActivo: false };
         var ultimoKMVehiculo = 0;
+        // De dónde salió ese último km: 'checkin' o 'carga'. No se deja repetir el km de un
+        // check-in, pero sí el de una carga de gasolina (ver checkInQR).
+        var fuenteUltimoKM = null;
+        // Ubicación del check-in, pedida al ABRIR el modal para que el GPS resuelva mientras
+        // el usuario captura el km. Antes se pedía al presionar "Registrar", con alta
+        // precisión y sin aceptar una lectura reciente: ahí se iban hasta 15 s de espera.
+        var ubicacionCheckin = null;      // { lat, lng, t }
+        var promesaUbicacion = null;      // petición en curso
         // Coordenadas de la anomalía que se está capturando. Se llena al ABRIR el modal
         // (shown.bs.modal) para que el GPS resuelva mientras el usuario escribe, y se
         // limpia al cerrarlo para no heredarla al siguiente reporte.
@@ -308,13 +333,16 @@ if (empty($_COOKIE['noEmpleado'])) {
                 $('#modalCheckinKMLabel').text('Check-In');
                 $('#checkinMensaje').text('Verificando estado...');
                 $('#btnGuardarCheckinKM').prop('disabled', true).text('Verificando...');
-                ponerModoRegreso(false);
+                $('#btnRegresoSede').prop('disabled', true);
+                pintarAvisoRegreso(null);
+                // Con la ubicación ya se puede decir a qué nave y cuántos km sería el regreso.
+                pedirUbicacionCheckin().then(cargarVistaRegreso);
 
                 var ajaxListo = { estado: false, km: false };
                 function habilitarSiListo() {
                     if (ajaxListo.estado && ajaxListo.km) {
-                        $('#btnGuardarCheckinKM').prop('disabled', false);
-                        actualizarTextosModo();
+                        habilitarBotonesCheckin();
+                        $('#checkinMensaje').text('¿Confirmas tu entrada para este vehículo?');
                     }
                 }
 
@@ -325,8 +353,6 @@ if (empty($_COOKIE['noEmpleado'])) {
                     data: { accion: 'verificarEstadoCheckin', id_vehiculo: idVehiculo },
                     success: function (resp) {
                         checkinEstado = resp;
-                        // Título, mensaje y botón los pone habilitarSiListo() según el modo
-                        // (entrada normal o "Volver a la sede").
                         $('#checkinFotoSection').toggle(resp.primerKMDeLaSemana === true);
                         ajaxListo.estado = true;
                         habilitarSiListo();
@@ -344,6 +370,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     data: { accion: 'obtenerUltimoKM', id_vehiculo: idVehiculo },
                     success: function (resp) {
                         ultimoKMVehiculo = parseInt(resp.ultimoKM) || 0;
+                        fuenteUltimoKM = resp.fuente || null;
                         if (ultimoKMVehiculo > 0) {
                             $('#checkinKM').attr('min', ultimoKMVehiculo).val(ultimoKMVehiculo);
                         } else {
@@ -379,14 +406,21 @@ if (empty($_COOKIE['noEmpleado'])) {
                 $('#checkinKM').val('').removeAttr('min');
                 $('#checkinOT').val('');
                 $('#checkinFoto').val('');
-                ponerModoRegreso(false);
+                pintarAvisoRegreso(null);
+                vistaRegreso = null;
                 ultimoKMVehiculo = 0;
+                fuenteUltimoKM = null;
+                ubicacionCheckin = null;
+                promesaUbicacion = null;
             });
 
             // Botón guardar checkin
             document.getElementById('btnGuardarCheckinKM').addEventListener('click', guardarCheckinKM);
 
-            $('#checkinRegreso').on('change', function () { ponerModoRegreso(this.checked); });
+            // "Volver a la sede" registra directo: sin modo intermedio ni confirmación.
+            document.getElementById('btnRegresoSede').addEventListener('click', function () {
+                guardarCheckinKM(false, true);
+            });
 
             // Placeholder dinámico OT/OV — efecto typewriter
             (function () {
@@ -394,8 +428,6 @@ if (empty($_COOKIE['noEmpleado'])) {
                 var idx = 0, pos = 0, borrando = false;
                 var input = document.getElementById('checkinOT');
                 function tick() {
-                    // En "Volver a la sede" el campo no aplica y lleva su propio placeholder.
-                    if (input.disabled) { setTimeout(tick, 500); return; }
                     var texto = ejemplos[idx];
                     if (!borrando) {
                         pos++;
@@ -726,44 +758,53 @@ if (empty($_COOKIE['noEmpleado'])) {
             });
         }
 
+        /**
+         * Nave y km estimados del regreso ({ sede, km }), o null mientras no se sepan.
+         * Solo informan al usuario: el km que cuenta lo calcula el servidor después de
+         * guardar, con la ubicación registrada (calcularRegresoAsync).
+         */
+        var vistaRegreso = null;
+
+        /** Pide a calcular_ruta.php la nave y los km de aquí a ella (solo lectura). */
+        function cargarVistaRegreso(u) {
+            if (!u) return;
+            // INEGI tarda de 1 a 7 s según la distancia: mientras, se avisa que va en camino.
+            $('#avisoRegresoDestino').html('tu nave <span class="text-nowrap">(calculando km…)</span>');
+            $.ajax({
+                url: 'calcular_ruta.php',
+                method: 'POST',
+                dataType: 'json',
+                data: { vista_regreso: 1, lat: u.lat, lng: u.lng },
+                success: function (resp) {
+                    // El modal pudo cerrarse mientras INEGI contestaba.
+                    if (!ubicacionCheckin) return;
+                    if (resp && resp.status === 'success') vistaRegreso = { sede: resp.sede, km: resp.km };
+                    pintarAvisoRegreso(vistaRegreso);
+                },
+                error: function () { if (ubicacionCheckin) pintarAvisoRegreso(null); }
+            });
+        }
+
+        function pintarAvisoRegreso(v) {
+            $('#avisoRegresoDestino').html(v
+                ? '<strong>' + $('<div>').text(v.sede).html() + '</strong> (≈ '
+                  + Number(v.km).toLocaleString('es-MX') + ' km)'
+                : 'tu nave');
+        }
+
+        function habilitarBotonesCheckin() {
+            $('#btnGuardarCheckinKM').prop('disabled', false).text('Registrar Entrada');
+            $('#btnRegresoSede').prop('disabled', false)
+                .html('<i class="fas fa-house-flag me-1"></i>Volver a la sede');
+        }
+
         // kmConfirmado llega en true cuando el usuario ya confirmó un salto grande de km
         // (confirmarSaltoKm, js/global/utils.js). Se compara con === true porque el click
-        // del botón pasa el evento como primer argumento.
-        /**
-         * Modo "Volver a la sede" del modal: sin OT/OV y con su propio texto. El checkbox
-         * se sincroniza aquí para que también sirva al resetear el modal.
-         */
-        function ponerModoRegreso(activo) {
-            $('#checkinRegreso').prop('checked', activo);
-            $('#checkinOT').val('').prop('disabled', activo)
-                .attr('placeholder', activo ? 'No aplica: volver a la sede' : 'Número de OT u OV');
-            $('#checkinRegresoNota').text(activo
-                ? 'Se registra el trayecto de aquí a tu nave como km de trabajo.'
-                : '');
-            actualizarTextosModo();
-        }
-
-        /**
-         * Título, mensaje y botón según el modo. Mientras se verifica el estado el botón
-         * está deshabilitado y el mensaje es "Verificando...": eso no se toca.
-         */
-        function actualizarTextosModo() {
-            var regreso = $('#checkinRegreso').is(':checked');
-            $('#modalCheckinKMLabel').text(regreso ? 'Volver a la sede' : 'Check-In');
-            if (!$('#btnGuardarCheckinKM').prop('disabled')) {
-                $('#btnGuardarCheckinKM').text(textoGuardar());
-                $('#checkinMensaje').text(regreso ? '¿Confirmas tu check-in de regreso a la sede?'
-                                                  : '¿Confirmas tu entrada para este vehículo?');
-            }
-        }
-
-        function textoGuardar() {
-            return $('#checkinRegreso').is(':checked') ? 'Registrar regreso' : 'Registrar Entrada';
-        }
-
-        function guardarCheckinKM(kmConfirmado) {
+        // del botón pasa el evento como primer argumento. esRegreso: lo llamó el botón
+        // "Volver a la sede", que registra sin OT/OV.
+        function guardarCheckinKM(kmConfirmado, esRegreso) {
+            esRegreso = esRegreso === true;
             var km   = $('#checkinKM').val().trim();
-            var esRegreso = $('#checkinRegreso').is(':checked');
             var otOv = esRegreso ? '' : $('#checkinOT').val().trim();
 
             if (!km || isNaN(km) || parseInt(km) <= 0) {
@@ -781,11 +822,26 @@ if (empty($_COOKIE['noEmpleado'])) {
                 return;
             }
 
+            // El campo viene prellenado con el último km: si nadie lo cambia se guardaba el
+            // mismo valor aunque el vehículo se hubiera movido. No se permite repetir el km
+            // de un check-in; el de una carga de gasolina sí (mismo punto). El servidor
+            // valida lo mismo.
+            if (ultimoKMVehiculo > 0 && parseInt(km) === ultimoKMVehiculo && fuenteUltimoKM !== 'carga') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Captura el km actual',
+                    text: 'El km (' + ultimoKMVehiculo.toLocaleString('es-MX') + ') es igual al del último check-in. Revisa el odómetro y captura la lectura actual.',
+                    confirmButtonText: 'Aceptar',
+                    returnFocus: false
+                }).then(function () { $('#checkinKM').trigger('focus').trigger('select'); });
+                return;
+            }
+
             // Un km muy por encima del último suele ser un dígito de más, y una vez guardado
             // bloquea las siguientes capturas: se pide confirmarlo antes de seguir.
             if (kmConfirmado !== true) {
                 confirmarSaltoKm(km, ultimoKMVehiculo,
-                    function () { guardarCheckinKM(true); },
+                    function () { guardarCheckinKM(true, esRegreso); },
                     function () { $('#checkinKM').trigger('focus').trigger('select'); });
                 return;
             }
@@ -803,7 +859,10 @@ if (empty($_COOKIE['noEmpleado'])) {
             //     return;
             // }
 
-            $('#btnGuardarCheckinKM').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
+            // Los dos botones se bloquean: un segundo clic en el otro duplicaría el check-in.
+            $(esRegreso ? '#btnRegresoSede' : '#btnGuardarCheckinKM')
+                .html('<span class="spinner-border spinner-border-sm me-1"></span> Guardando...');
+            $('#btnGuardarCheckinKM, #btnRegresoSede').prop('disabled', true);
 
             function enviar(latNum, lngNum) {
                 var coordenadas = (latNum != null && lngNum != null) ? (latNum + ',' + lngNum) : '';
@@ -833,11 +892,15 @@ if (empty($_COOKIE['noEmpleado'])) {
                             var modalEl = document.getElementById('modalCheckinKM');
                             var msg = 'Entrada registrada correctamente.';
                             if (esRegreso) {
-                                // El servidor ya calculó el trayecto a la nave (resp.regreso).
-                                var c = resp.regreso;
-                                msg = (c && c.status === 'success' && c.km !== null)
-                                    ? 'Regreso a la sede: ' + Number(c.km).toLocaleString('es-MX') + ' km hasta ' + c.sede + '.'
-                                    : 'Regreso a la sede registrado.';
+                                // El servidor responde de inmediato con la nave; los km se
+                                // calculan en segundo plano (calcularRegresoAsync). Si ya se
+                                // habían estimado para esa misma nave, se muestran.
+                                var sede = resp.regreso && resp.regreso.sede;
+                                msg = sede ? 'Regreso registrado hacia ' + sede : 'Regreso a la sede registrado';
+                                if (sede && vistaRegreso && vistaRegreso.sede === sede) {
+                                    msg += ' (≈ ' + Number(vistaRegreso.km).toLocaleString('es-MX') + ' km de trabajo)';
+                                }
+                                msg += '.';
                             }
                             modalEl.addEventListener('hidden.bs.modal', function () {
                                 document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
@@ -851,8 +914,11 @@ if (empty($_COOKIE['noEmpleado'])) {
                             // Con GPS registramos km en paralelo. Si hay OV/OT se usa ese cliente;
                             // si no, calcular_ruta.php cae a la actividad del usuario (tabla otros).
                             // id_actividad liga el km a este check-in (marca order_code).
-                            // "Volver a la sede" no: su km ya lo calculó checkInQR.
-                            if (!esRegreso && latNum != null && lngNum != null) {
+                            // "Volver a la sede" tiene su propia llamada: el destino es la
+                            // nave y el servidor toma el origen del registro guardado.
+                            if (esRegreso) {
+                                calcularRegresoAsync(resp.id_actividad);
+                            } else if (latNum != null && lngNum != null) {
                                 calcularRutaAsync(otOv, latNum, lngNum, resp.id_actividad);
                             }
 
@@ -864,9 +930,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                     error: function () {
                         Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.', confirmButtonText: 'Aceptar' });
                     },
-                    complete: function () {
-                        $('#btnGuardarCheckinKM').prop('disabled', false).text(textoGuardar());
-                    }
+                    complete: habilitarBotonesCheckin
                 });
                 }); // fin promesaFoto.then
             }
@@ -879,15 +943,60 @@ if (empty($_COOKIE['noEmpleado'])) {
                     text: 'No pudimos obtener tu ubicación, y es obligatoria para registrar el check-in.',
                     confirmButtonText: 'Reintentar'
                 });
-                $('#btnGuardarCheckinKM').prop('disabled', false).text(textoGuardar());
+                habilitarBotonesCheckin();
             }
 
-            if (!navigator.geolocation) { gpsFallo(); return; }
-            navigator.geolocation.getCurrentPosition(
-                function (pos) { enviar(pos.coords.latitude, pos.coords.longitude); },
-                function () { gpsFallo(); },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
+            // Normalmente la ubicación ya llegó mientras se capturaba el km.
+            obtenerUbicacionCheckin().then(function (u) {
+                if (u) enviar(u.lat, u.lng);
+                else gpsFallo();
+            });
+        }
+
+        /**
+         * Pide la ubicación del check-in al abrir el modal. Acepta una lectura de hasta 30 s
+         * de antigüedad: la que ya consiguió obtenerCoordenadas() (encabezado.php) al cargar
+         * la página suele servir y llega al instante.
+         */
+        function pedirUbicacionCheckin() {
+            ubicacionCheckin = null;
+            if (!navigator.geolocation) { promesaUbicacion = Promise.resolve(null); return promesaUbicacion; }
+            promesaUbicacion = new Promise(function (resolve) {
+                navigator.geolocation.getCurrentPosition(
+                    function (pos) {
+                        ubicacionCheckin = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: Date.now() };
+                        resolve(ubicacionCheckin);
+                    },
+                    function () { resolve(null); },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+                );
+            });
+            return promesaUbicacion;
+        }
+
+        /**
+         * Ubicación para guardar: la ya obtenida si tiene menos de 2 minutos; si la
+         * petición sigue en curso, la espera; si falló o no hay, pide una nueva (así
+         * "Reintentar" después de un fallo vuelve a intentarlo de verdad).
+         */
+        function obtenerUbicacionCheckin() {
+            if (ubicacionCheckin && Date.now() - ubicacionCheckin.t < 120000) return Promise.resolve(ubicacionCheckin);
+            if (!promesaUbicacion) return pedirUbicacionCheckin();
+            return promesaUbicacion.then(function (u) { return u || pedirUbicacionCheckin(); });
+        }
+
+        /** Km de "Volver a la sede" en segundo plano (calcular_ruta.php, regreso=1). */
+        function calcularRegresoAsync(idActividad) {
+            if (!idActividad) return;
+            $.ajax({
+                url: 'calcular_ruta.php',
+                method: 'POST',
+                data: { regreso: 1, id_actividad: idActividad },
+                error: function () {
+                    // Si falla, reconciliarKmPendientes() lo calcula en la siguiente importación.
+                    console.warn('No se pudo calcular el regreso a la sede de la actividad ' + idActividad);
+                }
+            });
         }
 
         function calcularRutaAsync(otOv, lat, lng, idActividad) {

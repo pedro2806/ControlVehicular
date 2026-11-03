@@ -561,24 +561,31 @@ function refrescarKpiKm(mysqli $conn, int $idKm): void {
  */
 // $id_cliente es null en "Volver a la sede": el destino es una nave, no un cliente.
 function calcularYRegistrar(mysqli $conn, $ov_ot, ?int $id_cliente, float $oLat, float $oLng, array $destino, ?int $id_usuario, int $id_actividad = 0): array {
-    $key   = tokenInegi();
-    $dLat  = $destino['lat'];
-    $dLng  = $destino['lng'];
-    $metodo = 'inegi'; $estatus = 'ok'; $error = null; $km = null; $tiempo = null;
+    $r = calcularKmRuta($oLat, $oLng, $destino['lat'], $destino['lng']);
+    registrarKm($conn, $ov_ot, $id_cliente, $oLat, $oLng, $destino['lat'], $destino['lng'],
+        $r['km'], $r['tiempo_min'], $r['metodo'], $r['estatus'], $r['aviso'], $id_usuario, $id_actividad);
+    return $r;
+}
 
+/**
+ * Km por carretera entre dos puntos: INEGI y, si no hay ruta, haversine. No escribe
+ * nada; lo comparten calcularYRegistrar() y la vista previa de "Volver a la sede".
+ * @return array{km:float,tiempo_min:?float,metodo:string,estatus:string,aviso:?string}
+ */
+function calcularKmRuta(float $oLat, float $oLng, float $dLat, float $dLng): array {
+    $key  = tokenInegi();
     $ruta = $key ? rutaInegiCascada($oLat, $oLng, $dLat, $dLng, $key) : null;
 
     if ($ruta !== null) {
-        $km     = $ruta['km'];
-        $tiempo = $ruta['tiempo'];
-    } else {
-        $metodo = 'haversine'; $estatus = 'error_api';
-        $error  = $key === '' ? 'Token INEGI ausente' : 'INEGI sin ruta en ninguna escala';
-        $km     = haversineKm($oLat, $oLng, $dLat, $dLng);
+        return ['km' => $ruta['km'], 'tiempo_min' => $ruta['tiempo'], 'metodo' => 'inegi', 'estatus' => 'ok', 'aviso' => null];
     }
-
-    registrarKm($conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dLng, $km, $tiempo, $metodo, $estatus, $error, $id_usuario, $id_actividad);
-    return ['km' => $km, 'tiempo_min' => $tiempo, 'metodo' => $metodo, 'estatus' => $estatus, 'aviso' => $error];
+    return [
+        'km'         => haversineKm($oLat, $oLng, $dLat, $dLng),
+        'tiempo_min' => null,
+        'metodo'     => 'haversine',
+        'estatus'    => 'error_api',
+        'aviso'      => $key === '' ? 'Token INEGI ausente' : 'INEGI sin ruta en ninguna escala',
+    ];
 }
 
 /**
@@ -590,10 +597,21 @@ function calcularYRegistrar(mysqli $conn, $ov_ot, ?int $id_cliente, float $oLat,
  * Cubre el caso en que el chofer sube su registro de actividad después del
  * check-in. Los check-ins de OV/OT se ignoran (ya se calculan en vivo).
  *
- * @return array contadores: revisados, calculados, sin_actividad, sin_destino, ovot
+ * Por lotes: cada check-in que empareja hace varias llamadas a INEGI, y en el
+ * hosting una sola petición que tarde minutos se corta (ERR_CONNECTION_RESET).
+ * Con $limiteSeg > 0 se detiene al agotar el tiempo y devuelve 'terminado' => false
+ * y los cursores (último id_actividad revisado de cada fase) para que la siguiente
+ * llamada continúe donde quedó. Sin límite (CLI) procesa todo de una vez.
+ *
+ * @return array contadores: revisados, calculados, sin_actividad, sin_destino, ovot,
+ *               regresos, terminado, desde_checkin, desde_regreso
  */
-function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30): array {
-    $res = ['revisados' => 0, 'calculados' => 0, 'sin_actividad' => 0, 'sin_destino' => 0, 'ovot' => 0];
+function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30, int $desdeCheckin = 0, int $desdeRegreso = 0, float $limiteSeg = 0): array {
+    $res = ['revisados' => 0, 'calculados' => 0, 'sin_actividad' => 0, 'sin_destino' => 0, 'ovot' => 0,
+            'regresos' => 0, 'terminado' => false, 'desde_checkin' => $desdeCheckin, 'desde_regreso' => $desdeRegreso];
+    $vence = $limiteSeg > 0 ? microtime(true) + $limiteSeg : INF;
+    $procesados = 0;   // al menos uno por llamada, para que siempre avance
+    $agotado = function () use (&$procesados, $vence) { return $procesados > 0 && microtime(true) > $vence; };
 
     $stmt = $conn->prepare("SELECT id_actividad, id_usuario, coordenadas, ot, fecha_actividad
         FROM actividad_vehiculo
@@ -601,14 +619,18 @@ function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30): array {
           AND tipo_actividad = 'INICIO'
           AND coordenadas IS NOT NULL AND coordenadas <> ''
           AND fecha_actividad >= (NOW() - INTERVAL ? DAY)
+          AND id_actividad > ?
         ORDER BY id_actividad");
-    if (!$stmt) return $res;
-    $stmt->bind_param("i", $diasAtras);
+    if (!$stmt) { $res['terminado'] = true; return $res; }
+    $stmt->bind_param("ii", $diasAtras, $desdeCheckin);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
     foreach ($rows as $row) {
+        if ($agotado()) return $res;
+        $procesados++;
+        $res['desde_checkin'] = (int) $row['id_actividad'];
         $res['revisados']++;
 
         $partes = explode(',', (string) $row['coordenadas']);
@@ -638,6 +660,40 @@ function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30): array {
         ]);
         $res['calculados']++;
     }
+
+    // Red de seguridad de "Volver a la sede": su km lo pide la vista en segundo plano
+    // (calcular_ruta.php con regreso=1). Si esa llamada no llegó (se cerró la página,
+    // se cayó la red), el regreso quedaría sin km; aquí se calcula. Los que ya tienen su
+    // fila en km_calculados no se tocan. El noEmpleado sale de usuarios con MAX(id)
+    // porque id_usuario no es único.
+    // Fase de check-ins terminada: el cursor queda al tope para que la siguiente
+    // llamada vaya directo a los regresos.
+    $res['desde_checkin'] = 2147483647;   // tope de id_actividad (INT)
+    $stmtR = $conn->prepare("SELECT av.id_actividad, av.id_usuario, av.coordenadas,
+            (SELECT u.noEmpleado FROM usuarios u WHERE u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario)) AS noEmpleado
+        FROM actividad_vehiculo av
+        WHERE av.detalle_tipo_uso = 'REGRESO_SEDE' AND av.tipo_actividad = 'INICIO'
+          AND av.fecha_actividad >= (NOW() - INTERVAL ? DAY)
+          AND av.id_actividad > ?
+          AND NOT EXISTS (SELECT 1 FROM km_calculados k WHERE k.id_actividad = av.id_actividad)
+        ORDER BY av.id_actividad");
+    if ($stmtR) {
+        $stmtR->bind_param("ii", $diasAtras, $desdeRegreso);
+        $stmtR->execute();
+        $regresos = $stmtR->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmtR->close();
+        foreach ($regresos as $r) {
+            if ($agotado()) return $res;
+            $procesados++;
+            $res['desde_regreso'] = (int) $r['id_actividad'];
+            $c = array_map('trim', explode(',', (string) $r['coordenadas']));
+            if (count($c) < 2 || !is_numeric($c[0]) || !is_numeric($c[1])) continue;
+            procesarKmRegresoSede($conn, (float) $c[0], (float) $c[1], intval($r['id_usuario']) ?: null,
+                intval($r['noEmpleado']), (int) $r['id_actividad']);
+            $res['regresos']++;
+        }
+    }
+    $res['terminado'] = true;
     return $res;
 }
 
@@ -803,6 +859,64 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
     $origen_lng   = isset($_POST['lng'])   ? floatval($_POST['lng']) : null;
     $id_actividad = isset($_POST['id_actividad']) ? intval($_POST['id_actividad']) : 0;
     $id_usuario   = intval($_COOKIE['id_usuarioL'] ?? $_COOKIE['id_usuario'] ?? 0) ?: null;
+
+    // Vista previa de "Volver a la sede": a qué nave y cuántos km, para el aviso del modal
+    // de check-in antes de que el usuario presione el botón. Solo lectura.
+    if (($_POST['vista_regreso'] ?? '') === '1') {
+        $noEmpleado = intval($_COOKIE['noEmpleado'] ?? 0);
+        if ($noEmpleado <= 0 || $origen_lat === null || $origen_lng === null) {
+            echo json_encode(['status' => 'error', 'message' => 'Parámetros incompletos']);
+            exit;
+        }
+        $sede = sedeDeRegreso($conn, $noEmpleado, $origen_lat, $origen_lng);
+        if ($sede === null) {
+            echo json_encode(['status' => 'error', 'message' => 'No hay sedes registradas']);
+            exit;
+        }
+        $r = calcularKmRuta($origen_lat, $origen_lng, $sede['lat'], $sede['lng']);
+        echo json_encode([
+            'status' => 'success',
+            'sede'   => $sede['nombre'],
+            'km'     => round((float) $r['km'], 1),
+        ]);
+        exit;
+    }
+
+    // "Volver a la sede": el km se calcula aquí, en segundo plano, después de que
+    // checkInQR ya respondió. El origen sale del registro guardado (no del POST) y solo
+    // se procesa un check-in REGRESO_SEDE de este mismo usuario que aún no tenga su km,
+    // así que repetir la llamada no duplica nada.
+    if (($_POST['regreso'] ?? '') === '1') {
+        $stmt = $conn->prepare(
+            "SELECT av.coordenadas,
+                    EXISTS (SELECT 1 FROM km_calculados k WHERE k.id_actividad = av.id_actividad) AS ya_calculado
+             FROM actividad_vehiculo av
+             WHERE av.id_actividad = ? AND av.id_usuario = ? AND av.detalle_tipo_uso = 'REGRESO_SEDE'
+             LIMIT 1"
+        );
+        $idUsr = intval($id_usuario);
+        $stmt->bind_param("ii", $id_actividad, $idUsr);
+        $stmt->execute();
+        $act = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$act) {
+            echo json_encode(['status' => 'error', 'message' => 'Check-in de regreso no encontrado']);
+            exit;
+        }
+        if ($act['ya_calculado']) {
+            echo json_encode(['status' => 'success', 'message' => 'Ya calculado']);
+            exit;
+        }
+        $c = array_map('trim', explode(',', (string) $act['coordenadas']));
+        if (count($c) < 2 || !is_numeric($c[0]) || !is_numeric($c[1])) {
+            echo json_encode(['status' => 'error', 'message' => 'El check-in no tiene coordenadas']);
+            exit;
+        }
+        echo json_encode(procesarKmRegresoSede($conn, (float) $c[0], (float) $c[1], $id_usuario,
+            intval($_COOKIE['noEmpleado'] ?? 0), $id_actividad));
+        exit;
+    }
 
     if ($origen_lat === null || $origen_lng === null) {
         echo json_encode(['status' => 'error', 'message' => 'Parámetros incompletos']);

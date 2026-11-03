@@ -14,6 +14,12 @@ $idVehiculo = intval($_GET['v'] ?? 0);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="css/mess-ds.css" rel="stylesheet">
+    <style>
+        /* Columnas de ancho parejo; un texto largo sin espacios se parte en vez de
+           empujar la tabla fuera de la tarjeta. */
+        .tabla-historial { table-layout: fixed; }
+        .tabla-historial td { overflow-wrap: anywhere; }
+    </style>
 </head>
 <body id="page-top">
 <div id="wrapper">
@@ -83,6 +89,8 @@ $idVehiculo = intval($_GET['v'] ?? 0);
     // sección) y aquí se muestra de 10 en 10. Cada pestaña recuerda en qué página iba.
     var POR_PAGINA = 10;
     var paginaDe = {};
+    // Cantidades: van a la derecha para que las cifras se comparen columna abajo.
+    var COLS_NUMERICAS = ['Km', 'Gastado', 'Saldo', 'Saldo al pedir'];
 
     function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
     function money(v) { return '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 }); }
@@ -249,19 +257,28 @@ $idVehiculo = intval($_GET['v'] ?? 0);
         // Sin table-sm y sin .small en las celdas: esta pantalla se consulta para revisar
         // el historial de un vehículo, no para meter cien filas en la pantalla, así que
         // se prioriza que se lea cómodo. py-3 le da aire a cada renglón.
-        var html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0 fs-6">'
-                 + '<thead class="table-light"><tr>';
-        def.cols.forEach(function (c, i) {
+        // Encabezado y celdas comparten la alineación de su columna: antes el encabezado iba
+        // centrado y el dato a la izquierda, y cada columna se veía chueca. table-layout
+        // fixed reparte el ancho en partes iguales, así la tabla no cambia de forma con lo
+        // largo de cada registro ni al pasar de una pestaña a otra.
+        var clases = def.cols.map(function (c, i) {
             // De la tercera columna en adelante se esconden en móvil: no caben y las dos
             // primeras (fecha y estado) son las que identifican el registro.
-            html += '<th class="text-center py-3' + (i >= 2 ? ' d-none d-md-table-cell' : '') + '">' + c + '</th>';
+            return 'py-3 px-3' + (COLS_NUMERICAS.indexOf(c) >= 0 ? ' text-end' : ' text-start')
+                 + (i >= 2 ? ' d-none d-md-table-cell' : '');
+        });
+
+        var html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0 fs-6 tabla-historial">'
+                 + '<thead class="table-light"><tr>';
+        def.cols.forEach(function (c, i) {
+            html += '<th class="' + clases[i] + '">' + c + '</th>';
         });
         html += '</tr></thead><tbody>';
 
         filas.forEach(function (r) {
             html += '<tr>';
             def.fila(r).forEach(function (celda, i) {
-                html += '<td class="py-3' + (i >= 2 ? ' d-none d-md-table-cell' : '') + '">' + celda + '</td>';
+                html += '<td class="' + clases[i] + '">' + celda + '</td>';
             });
             html += '</tr>';
         });

@@ -310,7 +310,13 @@ function obtenerUltimoKMVehiculo(mysqli $conn, int $id_vehiculo): int {
 // Endpoint: ultimo KM registrado para el vehiculo
 if ($accion === 'obtenerUltimoKM') {
     if (!$id_vehiculo) { echo json_encode(['error' => 'ID invalido.']); exit; }
-    echo json_encode(['ultimoKM' => obtenerUltimoKMVehiculo($conn, $id_vehiculo)]);
+    // fuente: 'checkin' o 'carga'. La vista no deja repetir el km de un check-in, pero sí
+    // el de una carga de gasolina (misma regla que valida checkInQR).
+    $lectura = ultimaLecturaKm($conn, $id_vehiculo);
+    echo json_encode([
+        'ultimoKM' => $lectura ? $lectura['km'] : 0,
+        'fuente'   => $lectura ? $lectura['fuente'] : null
+    ]);
     exit;
 }
 
@@ -338,9 +344,19 @@ if ($accion === 'checkInQR') {
     $esRegreso = ($_POST['regreso_sede'] ?? '') === '1';
 
     // Validar que el KM no sea menor al ultimo registrado
-    $ultimoKM = obtenerUltimoKMVehiculo($conn, $id_vehiculo);
+    $lectura  = ultimaLecturaKm($conn, $id_vehiculo);
+    $ultimoKM = $lectura ? $lectura['km'] : 0;
     if ($km_actual > 0 && $ultimoKM > 0 && $km_actual < $ultimoKM) {
         echo json_encode(['error' => "El KM ingresado ($km_actual) es menor al ultimo registrado ($ultimoKM)."]);
+        exit;
+    }
+
+    // Tampoco puede repetir el km de un check-in: el campo viene prellenado con el último
+    // km y se guardaba igual aunque el vehículo se hubiera movido (dos "Volver a la sede"
+    // de un día a otro con 1,901 km). Sí se acepta igual a una carga de gasolina: es
+    // normal cargar y hacer check-in en el mismo punto.
+    if ($km_actual > 0 && $lectura && $km_actual === $lectura['km'] && $lectura['fuente'] !== 'carga') {
+        echo json_encode(['error' => 'El km (' . number_format($km_actual) . ') es igual al del último check-in. Captura la lectura actual del odómetro.']);
         exit;
     }
 
@@ -405,10 +421,13 @@ if ($accion === 'checkInQR') {
     $ruta_foto = subirFotoKM($placa, 'checkin');
 
     // detalle_tipo_uso = 'REGRESO_SEDE' identifica el regreso (badge en la vista
-    // Check-ins); en un check-in normal va NULL, como hasta ahora.
-    $detalle = $esRegreso ? 'REGRESO_SEDE' : null;
-    $stmt = $conn->prepare("INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, foto_url, coordenadas, ot, detalle_tipo_uso, fecha_actividad, tipo_actividad) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'INICIO')");
-    $stmt->bind_param("iiissss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot, $detalle);
+    // Check-ins); en un check-in normal va NULL, como hasta ahora. order_code se marca
+    // desde aquí para que reconciliarKmPendientes() nunca lo tome como actividad OTROS,
+    // aunque su km todavía se esté calculando en segundo plano.
+    $detalle   = $esRegreso ? 'REGRESO_SEDE' : null;
+    $orderCode = $esRegreso ? 'REGRESO_SEDE' : null;
+    $stmt = $conn->prepare("INSERT INTO actividad_vehiculo (id_vehiculo, id_usuario, km_actual, foto_url, coordenadas, ot, detalle_tipo_uso, order_code, fecha_actividad, tipo_actividad) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'INICIO')");
+    $stmt->bind_param("iiisssss", $id_vehiculo, $id_usuario_cookie, $km_actual, $ruta_foto, $coordenadas, $ot, $detalle, $orderCode);
 
     if ($stmt->execute()) {
         $id_actividad = $stmt->insert_id; // para ligar el km calculado a este check-in
@@ -423,23 +442,20 @@ if ($accion === 'checkInQR') {
             $stmtKm->close();
         }
 
-        // El km del regreso se calcula aquí y no con la llamada aparte que hace la vista
-        // para los check-ins normales: así no depende de lo que mande el navegador y la
-        // respuesta ya trae los km y la nave para mostrárselos al usuario. Nunca debe
-        // tumbar el check-in, que ya quedó guardado.
+        // El km del regreso NO se calcula aquí: la ruta INEGI tarda de 1 a 3 s (o mucho más
+        // si INEGI está lento) y el usuario se quedaba esperando. La vista lo pide en
+        // segundo plano a calcular_ruta.php (regreso=1), que toma el origen de este
+        // registro y no del navegador; si esa llamada no llega, reconciliarKmPendientes()
+        // lo calcula después. Aquí solo se resuelve la sede para el mensaje (consulta local).
         $regreso = null;
         if ($esRegreso) {
             try {
                 require_once __DIR__ . '/calcular_ruta.php';
                 $c = array_map('trim', explode(',', $coordenadas));
-                $regreso = procesarKmRegresoSede($conn, (float) $c[0], (float) $c[1],
-                    $id_usuario_cookie ?: null, $noEmpleado, (int) $id_actividad);
+                $sede = sedeDeRegreso($conn, $noEmpleado, (float) $c[0], (float) $c[1]);
+                if ($sede) $regreso = ['sede' => $sede['nombre'], 'fuente' => $sede['fuente']];
             } catch (Throwable $e) {
                 error_log("checkInQR regreso a sede ($id_actividad): " . $e->getMessage());
-                // Aunque el km no se haya calculado, queda marcado para que la
-                // reconciliación de km no lo tome como un check-in de actividad OTROS.
-                $m = $conn->prepare("UPDATE actividad_vehiculo SET order_code = 'REGRESO_SEDE' WHERE id_actividad = ?");
-                if ($m) { $m->bind_param("i", $id_actividad); $m->execute(); $m->close(); }
             }
         }
 

@@ -840,10 +840,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                     CONCAT(inv.placa, ' - ', inv.modelo, ' ', inv.marca) AS Vehiculo,
                     inv.placa,
                     IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), u.nombre) AS nombre_usuario,
+                    -- km desde la carga anterior EN FECHA, no en captura: una carga registrada
+                    -- tarde (fecha_carga atrasada) se comparaba contra la última capturada y
+                    -- salía en negativo. El id desempata las cargas viejas, que comparten la
+                    -- medianoche como hora.
                     (cg.km_actual - IFNULL(
-                        (SELECT prev.km_actual FROM carga_gasolina prev
-                         WHERE prev.id_vehiculo = cg.id_vehiculo AND prev.id < cg.id
-                         ORDER BY prev.id DESC LIMIT 1),
+                        LAG(cg.km_actual) OVER (PARTITION BY cg.id_vehiculo ORDER BY cg.fecha_carga, cg.id),
                         cg.km_actual
                     )) AS km_consumidos,
                     cli.CLIENTE AS cliente,
@@ -852,7 +854,11 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                     ct.origen        AS ciclo_origen
                  FROM carga_gasolina cg
                  INNER JOIN inventario inv ON inv.id_vehiculo = cg.id_vehiculo
-                 LEFT JOIN usuarios u ON u.id_usuario = cg.id_usuario
+                 -- MAX(id) porque usuarios.id_usuario no es único: el join directo duplicaba
+                 -- la carga, y LAG tomaba la copia como carga anterior (0 km consumidos).
+                 LEFT JOIN usuarios u ON u.id = (
+                     SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario
+                 )
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
                  LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
                  -- Datos del ciclo al que pertenece la carga. Alimentan el separador que la

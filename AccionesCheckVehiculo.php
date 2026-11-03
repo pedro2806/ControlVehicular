@@ -39,44 +39,50 @@ if ($opcion == "llenaTVehiculosAsignados") {
                i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca,
                u.nombre as asignado, '' as tipo, '' as referencia";
 
-    if ($tieneAccesoTotal) {
-        // El checklist que cuenta es el más reciente QUE TENGA DATOS, no el más reciente
-        // a secas. Una cabecera sin filas de subárea marcaba el vehículo en verde como si
-        // estuviera revisado: pasaba con checklists cuyas secciones se borraron y con
-        // cabeceras creadas a mano. Es el mismo criterio que usa el semáforo del QR
-        // (obtenerValidacionesVehiculo en acciones_qr.php).
-        //
-        // Se arma con un EXISTS por tabla unidos con OR, NO con un UNION: las tablas de
-        // subárea no comparten colación (checklist_graficas difiere) y un UNION entre
-        // ellas revienta con "Illegal mix of collations".
-        $tablasConDatos = [
-            'checklist_asientos', 'checklist_espejos_ventanas', 'checklist_estereos_aire',
-            'checklist_faros', 'checklist_golpes_exterior', 'checklist_graficas',
-            'checklist_limpiaparabrisas', 'checklist_llantas', 'checklist_placas',
-            'checklist_puertas_llave'
-        ];
-        $tieneDatos = implode(' OR ', array_map(function ($t) {
-            return "EXISTS (SELECT 1 FROM $t s WHERE s.id_checklist = ch.id_checklist)";
-        }, $tablasConDatos));
-
-        $sql = "SELECT $campos, c.estatus as estatusChecklist
-                FROM inventario i
-                $joinUsuario
-                LEFT JOIN checklist c ON c.id_checklist = (
+    // El checklist que cuenta es el más reciente QUE TENGA DATOS, no el más reciente
+    // a secas. Una cabecera sin filas de subárea marcaba el vehículo en verde como si
+    // estuviera revisado: pasaba con checklists cuyas secciones se borraron y con
+    // cabeceras creadas a mano. Es el mismo criterio que usa el semáforo del QR
+    // (obtenerValidacionesVehiculo en acciones_qr.php).
+    //
+    // Se arma con un EXISTS por tabla unidos con OR, NO con un UNION: las tablas de
+    // subárea no comparten colación (checklist_graficas difiere) y un UNION entre
+    // ellas revienta con "Illegal mix of collations".
+    //
+    // Va en las dos consultas. La de usuarios sin verTodosVehiculo devolvía el estado
+    // vacío fijo, así que el dueño veía "S/R" en todos sus vehículos aunque tuvieran el
+    // checklist completo (caso Martin Becerra, 28/10/2026).
+    $tablasConDatos = [
+        'checklist_asientos', 'checklist_espejos_ventanas', 'checklist_estereos_aire',
+        'checklist_faros', 'checklist_golpes_exterior', 'checklist_graficas',
+        'checklist_limpiaparabrisas', 'checklist_llantas', 'checklist_placas',
+        'checklist_puertas_llave'
+    ];
+    $tieneDatos = implode(' OR ', array_map(function ($t) {
+        return "EXISTS (SELECT 1 FROM $t s WHERE s.id_checklist = ch.id_checklist)";
+    }, $tablasConDatos));
+    $joinChecklist = "LEFT JOIN checklist c ON c.id_checklist = (
                     SELECT ch.id_checklist FROM checklist ch
                     WHERE ch.id_vehiculo = i.id_vehiculo AND ($tieneDatos)
                     ORDER BY ch.fecha DESC, ch.id_checklist DESC
                     LIMIT 1
-                )
+                )";
+
+    if ($tieneAccesoTotal) {
+        $sql = "SELECT $campos, c.estatus as estatusChecklist
+                FROM inventario i
+                $joinUsuario
+                $joinChecklist
                 WHERE i.estatus = 'Activo'";
         $stmtLista = $conn->prepare($sql);
     } else {
         // Sentencia preparada: antes el id_usuario de la cookie se concatenaba entre
         // comillas directo al SQL. Esa cookie la escribe el cliente, así que era una
         // inyección — la misma que ya se cerró en acciones_siniestro.php.
-        $sql = "SELECT $campos, '' as estatusChecklist
+        $sql = "SELECT $campos, c.estatus as estatusChecklist
                 FROM inventario i
                 $joinUsuario
+                $joinChecklist
                 WHERE (i.id_usuario = ? OR i.id_us_asignado = ?) AND i.estatus = 'Activo'";
         $stmtLista = $conn->prepare($sql);
         if ($stmtLista) {

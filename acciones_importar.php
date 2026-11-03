@@ -163,38 +163,53 @@ if ($accion === 'ejecutar') {
         exit;
     }
 
-    // --- Geocodificacion (opcional) ---
-    $resumen['geo'] = null;
-    if (($_POST['geocodificar'] ?? '0') === '1') {
-        try {
-            $resumen['geo'] = geocodificarClientesNuevos($conn);
-        } catch (Throwable $e) {
-            $resumen['geo'] = ['error' => $e->getMessage(), 'ok' => 0, 'cp' => 0, 'err' => 0];
-        }
-    }
-
     // --- Importar Actividades (OTROS) a la tabla `otros` ---
-    // El km en vivo se calcula al hacer check-in por QR (calcular_ruta.php). Aquí,
-    // tras importar, se reconcilian los check-ins que quedaron sin km porque la
-    // actividad se subió después.
+    // El km en vivo se calcula al hacer check-in por QR (calcular_ruta.php). La
+    // geocodificación y la reconciliación de km NO se hacen aquí: llaman a APIs
+    // externas y tardan minutos, y el hosting corta la petición (ERR_CONNECTION_RESET).
+    // La vista las pide después por lotes con las acciones 'geocodificar' y 'reconciliar'.
     $resumen['otros'] = null;
-    $resumen['reconciliacion'] = null;
     if ($rutaOtros !== null) {
         try {
             $resumen['otros'] = importarOtros($conn, $rutaOtros);
         } catch (Throwable $e) {
             $resumen['otros'] = ['error' => $e->getMessage(), 'ok' => 0, 'ignoradas' => 0, 'dup' => 0, 'err' => 0];
         }
-        try {
-            $resumen['reconciliacion'] = reconciliarKmPendientes($conn);
-        } catch (Throwable $e) {
-            $resumen['reconciliacion'] = ['error' => $e->getMessage()];
-        }
     }
 
     $resumen['success']  = true;
     $resumen['duracion'] = round(microtime(true) - $inicio, 1);
     echo json_encode($resumen);
+    exit;
+}
+
+// =====================================================================
+// 3) ETAPAS LENTAS, POR LOTES
+// Cada llamada trabaja como maximo LOTE_SEG segundos y dice si falta; la vista
+// repite la llamada hasta terminar. Asi ninguna peticion se acerca al limite
+// de tiempo del hosting.
+// =====================================================================
+const LOTE_SEG = 20;
+
+if ($accion === 'geocodificar' || $accion === 'reconciliar') {
+    if (!tieneAccesoCargarReportes($conn, $noEmpleado)) {
+        echo json_encode(['success' => false, 'error' => 'Sin permisos para esta accion.']);
+        exit;
+    }
+    @set_time_limit(LOTE_SEG + 120);
+
+    try {
+        if ($accion === 'geocodificar') {
+            $r = geocodificarClientesNuevos($conn, LOTE_SEG);
+        } else {
+            $r = reconciliarKmPendientes($conn, 30,
+                intval($_POST['desde_checkin'] ?? 0), intval($_POST['desde_regreso'] ?? 0), LOTE_SEG);
+        }
+        $r['success'] = true;
+        echo json_encode($r);
+    } catch (Throwable $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
     exit;
 }
 
@@ -222,13 +237,16 @@ function importarCsvWeb(string $archivo, string $separador, callable $callback, 
     return ['ok' => $ok, 'err' => $err];
 }
 
-function geocodificarClientesNuevos(mysqli $conn): array {
+// Geocodifica clientes sin coordenadas. Con $limiteSeg > 0 se detiene al agotar el
+// tiempo; cada cliente procesado queda con geo_estatus (ok/cp_centroide/fallido), asi
+// que la siguiente llamada sigue con los que faltan. Devuelve 'pendientes'.
+function geocodificarClientesNuevos(mysqli $conn, float $limiteSeg = 0): array {
     $NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
     $USER_AGENT    = 'ControlVehicular-MESS/1.0 (contacto@mess-metrologicos.com)';
     $DELAY_US      = 1100 * 1000;
+    $SQL_PENDIENTES = "FROM clientes WHERE lat IS NULL AND (geo_estatus IS NULL OR geo_estatus = '')";
 
-    $stmtSelect = $conn->prepare("SELECT IDCLTE, CALLE, CP, CIUDAD, MUNICIPIO, ESTADO
-        FROM clientes WHERE lat IS NULL AND (geo_estatus IS NULL OR geo_estatus = '')");
+    $stmtSelect = $conn->prepare("SELECT IDCLTE, CALLE, CP, CIUDAD, MUNICIPIO, ESTADO $SQL_PENDIENTES");
     $stmtUpdate = $conn->prepare("UPDATE clientes
         SET lat = ?, lng = ?, geo_estatus = ?
         WHERE IDCLTE = ?");
@@ -237,8 +255,10 @@ function geocodificarClientesNuevos(mysqli $conn): array {
     $result = $stmtSelect->get_result();
 
     $ok = 0; $cp = 0; $err = 0;
+    $vence = $limiteSeg > 0 ? microtime(true) + $limiteSeg : INF;
 
     while ($cli = $result->fetch_assoc()) {
+        if ($ok + $cp + $err > 0 && microtime(true) > $vence) break;
         $id     = intval($cli['IDCLTE']);
         $calle  = trim((string)($cli['CALLE']    ?? ''));
         $cpVal  = trim((string)($cli['CP']       ?? ''));
@@ -279,7 +299,9 @@ function geocodificarClientesNuevos(mysqli $conn): array {
 
     $stmtSelect->close();
     $stmtUpdate->close();
-    return ['ok' => $ok, 'cp' => $cp, 'err' => $err];
+
+    $pendientes = (int) $conn->query("SELECT COUNT(*) $SQL_PENDIENTES")->fetch_row()[0];
+    return ['ok' => $ok, 'cp' => $cp, 'err' => $err, 'pendientes' => $pendientes];
 }
 
 function nominatimQuery(array $params, string $url, string $ua): ?array {

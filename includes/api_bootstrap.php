@@ -104,13 +104,28 @@ function tieneAccesoEspecial($conn, $noEmpleado, $opcion) {
  * 1681614 entre lecturas de ~169000) se quedaba pegado para siempre y además bloqueaba
  * la validación de "el km no puede ser menor al último".
  *
- * kilometrajes hoy está vacía; se incluye para el día que se empiece a poblar.
+ * kilometrajes la alimentan los check-ins QR; cuenta como lectura de check-in.
  *
  * @return int 0 si el vehículo no tiene ninguna lectura.
  */
 function obtenerUltimoKM($conn, $id_vehiculo) {
+    $l = ultimaLecturaKm($conn, $id_vehiculo);
+    return $l ? $l['km'] : 0;
+}
+
+/**
+ * Igual que obtenerUltimoKM(), pero dice además de dónde salió la lectura: 'checkin'
+ * (actividad_vehiculo o kilometrajes) o 'carga' (carga_gasolina).
+ *
+ * El check-in no puede repetir el km de otro check-in (el campo viene prellenado y se
+ * guardaba el mismo valor aunque el vehículo se hubiera movido), pero sí el de una carga:
+ * es normal cargar y hacer check-in en el mismo punto.
+ *
+ * @return array{km:int,fuente:string}|null null si el vehículo no tiene ninguna lectura.
+ */
+function ultimaLecturaKm($conn, $id_vehiculo) {
     $id = intval($id_vehiculo);
-    if ($id <= 0) return 0;
+    if ($id <= 0) return null;
 
     // fecha_carga y no fecha_registro para carga_gasolina: la captura en lote deja
     // varias cargas registradas el mismo minuto, y la fecha de carga es cuándo se leyó
@@ -130,28 +145,29 @@ function obtenerUltimoKM($conn, $id_vehiculo) {
     //                  resulta de DATE(fecha_registro), y se usa fecha_carga: la buena
     //   carga vieja en lote -> fecha_registro es de otro día, se queda fecha_carga
     $stmt = $conn->prepare(
-        "SELECT km FROM (
-             SELECT km_actual AS km, fecha_actividad AS f
+        "SELECT km, fuente FROM (
+             SELECT km_actual AS km, fecha_actividad AS f, 'checkin' AS fuente
                FROM actividad_vehiculo WHERE id_vehiculo = ? AND km_actual > 0
              UNION ALL
              SELECT km_actual AS km,
                     CASE WHEN DATE(fecha_registro) = fecha_carga THEN fecha_registro
-                         ELSE CAST(fecha_carga AS DATETIME) END AS f
+                         ELSE CAST(fecha_carga AS DATETIME) END AS f,
+                    'carga' AS fuente
                FROM carga_gasolina    WHERE id_vehiculo = ? AND km_actual > 0
              UNION ALL
-             SELECT km AS km, fecha AS f
+             SELECT km AS km, fecha AS f, 'checkin' AS fuente
                FROM kilometrajes      WHERE id_vehiculo = ? AND km > 0
          ) t
          ORDER BY t.f DESC, t.km DESC
          LIMIT 1"
     );
-    if (!$stmt) { error_log("obtenerUltimoKM: prepare falló - " . $conn->error); return 0; }
+    if (!$stmt) { error_log("ultimaLecturaKm: prepare falló - " . $conn->error); return null; }
     $stmt->bind_param("iii", $id, $id, $id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    return intval($row['km'] ?? 0);
+    return $row ? ['km' => intval($row['km']), 'fuente' => $row['fuente']] : null;
 }
 
 /**

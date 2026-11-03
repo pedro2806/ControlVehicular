@@ -222,19 +222,33 @@ if (empty($_COOKIE['noEmpleado'])) {
             if (tiempoSitio) fd.append('tiempo_sitio', tiempoSitio);
             if (sinTiempo) fd.append('sin_tiempo', sinTiempo);
             if (otros) fd.append('otros', otros);
-            fd.append('geocodificar', $('#chkGeocodificar').is(':checked') ? '1' : '0');
+            var geocodificar = $('#chkGeocodificar').is(':checked');
+            var inicio = Date.now();
 
             $('#btnImportar').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Procesando...');
             $('#cardResultado').hide();
 
             Swal.fire({
                 title: 'Procesando archivos',
-                html: 'Importando OV/OT y geocodificando clientes nuevos. Esto puede tardar varios minutos, no cierres esta ventana.',
+                html: '<span id="swalEtapa">Importando archivos...</span><br><small class="text-muted">Puede tardar varios minutos, no cierres esta ventana.</small>',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: function () { Swal.showLoading(); }
             });
 
+            function terminar(resumen, aviso) {
+                resumen.duracion = Math.round((Date.now() - inicio) / 100) / 10;
+                Swal.close();
+                renderResumen(resumen);
+                if (aviso) {
+                    Swal.fire({ icon: 'warning', title: 'Importacion incompleta', text: aviso, confirmButtonText: 'Aceptar' });
+                } else {
+                    Swal.fire({ icon: 'success', title: 'Importacion completada', timer: 1800, showConfirmButton: false });
+                }
+                $('#btnImportar').prop('disabled', false).html('<i class="fas fa-cloud-upload-alt me-1"></i> Importar');
+            }
+
+            // Etapa 1: subir e importar los CSV (rapido).
             $.ajax({
                 url: 'acciones_importar.php',
                 method: 'POST',
@@ -243,22 +257,88 @@ if (empty($_COOKIE['noEmpleado'])) {
                 contentType: false,
                 dataType: 'json',
                 success: function (resp) {
-                    Swal.close();
-                    if (resp.success) {
-                        renderResumen(resp);
-                        Swal.fire({ icon: 'success', title: 'Importacion completada', timer: 1800, showConfirmButton: false });
-                    } else {
+                    if (!resp.success) {
                         Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'Fallo la importacion.', confirmButtonText: 'Aceptar' });
+                        $('#btnImportar').prop('disabled', false).html('<i class="fas fa-cloud-upload-alt me-1"></i> Importar');
+                        return;
                     }
+                    // Etapas 2 y 3: geocodificar y reconciliar km, por lotes cortos.
+                    var etapas = [];
+                    if (geocodificar) etapas.push('geocodificar');
+                    if (resp.otros) etapas.push('reconciliar');
+                    correrEtapas(etapas, resp, terminar);
                 },
                 error: function (xhr) {
                     Swal.close();
                     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.' + (xhr.responseText ? ' Detalle: ' + xhr.responseText.substring(0, 200) : ''), confirmButtonText: 'Aceptar' });
-                },
-                complete: function () {
                     $('#btnImportar').prop('disabled', false).html('<i class="fas fa-cloud-upload-alt me-1"></i> Importar');
                 }
             });
+        }
+
+        // Ejecuta las etapas lentas en orden. Cada llamada al servidor dura ~20 s como
+        // maximo y dice si falta trabajo; se repite hasta terminar. Si una etapa falla,
+        // se muestra lo que si se hizo (los CSV ya quedaron importados).
+        function correrEtapas(etapas, resumen, fin) {
+            var MAX_LOTES = 300;
+            resumen.geo = null;
+            resumen.reconciliacion = null;
+
+            function siguiente(i) {
+                if (i >= etapas.length) { fin(resumen); return; }
+                var etapa = etapas[i];
+                var acum = etapa === 'geocodificar'
+                    ? { ok: 0, cp: 0, err: 0, pendientes: null }
+                    : { revisados: 0, calculados: 0, sin_actividad: 0, sin_destino: 0, ovot: 0, regresos: 0 };
+                var cursor = { desde_checkin: 0, desde_regreso: 0 };
+                var lote = 0;
+                if (etapa === 'geocodificar') resumen.geo = acum; else resumen.reconciliacion = acum;
+
+                function pedirLote() {
+                    lote++;
+                    $('#swalEtapa').text(etapa === 'geocodificar'
+                        ? 'Geocodificando clientes nuevos' + (acum.pendientes !== null ? ' (faltan ' + acum.pendientes + ')' : '') + '...'
+                        : 'Calculando km de check-ins pendientes (' + acum.revisados + ' revisados)...');
+                    var datos = { accion: etapa };
+                    if (etapa === 'reconciliar') { datos.desde_checkin = cursor.desde_checkin; datos.desde_regreso = cursor.desde_regreso; }
+
+                    $.ajax({
+                        url: 'acciones_importar.php',
+                        method: 'POST',
+                        dataType: 'json',
+                        data: datos,
+                        success: function (r) {
+                            if (!r || !r.success) {
+                                fin(resumen, 'Los archivos se importaron, pero la etapa "' + etapa + '" fallo: ' + ((r && r.error) || 'respuesta invalida') + '. Vuelve a importar para reintentarla.');
+                                return;
+                            }
+                            Object.keys(acum).forEach(function (k) {
+                                if (k !== 'pendientes' && typeof r[k] === 'number') acum[k] += r[k];
+                            });
+                            var listo;
+                            if (etapa === 'geocodificar') {
+                                acum.pendientes = r.pendientes;
+                                listo = !r.pendientes || (r.ok + r.cp + r.err) === 0;
+                            } else {
+                                cursor.desde_checkin = r.desde_checkin;
+                                cursor.desde_regreso = r.desde_regreso;
+                                listo = r.terminado;
+                            }
+                            if (listo) { siguiente(i + 1); return; }
+                            if (lote >= MAX_LOTES) {
+                                fin(resumen, 'La etapa "' + etapa + '" no termino tras ' + MAX_LOTES + ' lotes. Vuelve a importar para continuar.');
+                                return;
+                            }
+                            pedirLote();
+                        },
+                        error: function (xhr) {
+                            fin(resumen, 'Los archivos se importaron, pero se perdio la conexion en la etapa "' + etapa + '" (HTTP ' + xhr.status + '). Vuelve a importar para continuar donde quedo.');
+                        }
+                    });
+                }
+                pedirLote();
+            }
+            siguiente(0);
         }
 
         function renderResumen(r) {
@@ -276,6 +356,9 @@ if (empty($_COOKIE['noEmpleado'])) {
                 html += '<tr><td class="text-muted">Actividades importadas</td><td class="fw-semibold">' + (r.otros.ok || 0) + '</td></tr>';
                 html += '<tr><td class="text-muted">Actividades ignoradas (correo/llamada)</td><td class="fw-semibold">' + (r.otros.ignoradas || 0) + '</td></tr>';
                 html += '<tr><td class="text-muted">Actividades duplicadas (omitidas)</td><td class="fw-semibold">' + (r.otros.dup || 0) + '</td></tr>';
+            }
+            if (r.reconciliacion) {
+                html += '<tr><td class="text-muted">Check-ins con km calculado</td><td class="fw-semibold">' + ((r.reconciliacion.calculados || 0) + (r.reconciliacion.regresos || 0)) + ' <span class="text-muted small">(' + (r.reconciliacion.revisados || 0) + ' revisados)</span></td></tr>';
             }
             html += '<tr><td class="text-muted">Tiempo total</td><td class="fw-semibold">' + (r.duracion || '?') + ' seg</td></tr>';
             html += '</tbody></table>';

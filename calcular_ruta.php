@@ -379,11 +379,45 @@ function crearTablaReporteKm(mysqli $conn): void {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
+/**
+ * Tope de km por trayecto (03/11/2026).
+ *
+ * Tabla derivada: por cada lectura de odómetro (id_actividad), lo que avanzó hasta la
+ * lectura siguiente del mismo vehículo. Mismo LEAD y mismo descarte (negativos o más de
+ * KM_VIAJE_MAX) que el odómetro de sqlAggReporteKmVehiculo, así que los km de trabajo
+ * topados nunca suman más que el odómetro. km_tramo es NULL cuando aún no hay lectura
+ * siguiente (el último check-in del vehículo).
+ *
+ * Los km de trabajo de un check-in = LEAST(ruta calculada, km_tramo): la ruta es solo de
+ * ida y el tramo incluye la vuelta, así que un viaje real casi nunca topa; lo que se
+ * recorta son destinos mal ubicados (clientes con domicilio fiscal en otra ciudad, la OT
+ * ZEISSI26-06I-769 con cliente MESS Querétaro usada en Saltillo: 655 km por check-in). La
+ * ruta original sigue en km_calculados.long_km.
+ */
+function sqlTramoOdometro(): string {
+    $max = KM_VIAJE_MAX;
+    return "(SELECT id_actividad,
+                    CASE WHEN delta IS NULL THEN NULL
+                         WHEN delta BETWEEN 0 AND $max THEN delta ELSE 0 END AS km_tramo
+             FROM (SELECT id_actividad,
+                          LEAD(km_actual) OVER (PARTITION BY id_vehiculo ORDER BY fecha_actividad, id_actividad) - km_actual AS delta
+                   FROM actividad_vehiculo
+                   WHERE km_actual > 0) d)";
+}
+
+// Km de trabajo topados de un trayecto. Sin lectura siguiente cuenta 0 hasta que llegue.
+// Requiere `km_calculados k` y `LEFT JOIN sqlTramoOdometro() tr ON tr.id_actividad = k.id_actividad`.
+const SQL_KM_TOPADO = 'LEAST(k.long_km, COALESCE(tr.km_tramo, 0))';
+
 // SELECT denormalizado reutilizado por el upsert y el rebuild. $where es código
 // fijo interno ('WHERE k.id = ?'), nunca datos del usuario.
 //
 // usuarios.id_usuario NO es único (hay duplicados y 0/NULL): se empareja con la
-// fila de mayor id por id_usuario para no multiplicar el grano del fact table.
+// fila de mayor id por id_usuario para no multiplicar el grano del fact table. Va como
+// tabla derivada y no como `u.id = (SELECT MAX(u2.id) ...)` en el ON, que se reevalúa por
+// cada pareja de filas (en acciones_mapa.php pasó de 17.7 s a 2.2 s).
+//
+// `km` es el topado por el odómetro (SQL_KM_TOPADO), no la ruta calculada.
 function sqlSelectReporteKm(string $where = ''): string {
     return "SELECT
             k.id, k.id_actividad,
@@ -398,26 +432,38 @@ function sqlSelectReporteKm(string $where = ''): string {
                  WHEN k.estatus = 'sin_actividad' OR k.ov_ot IS NULL OR k.ov_ot = '' THEN 'SIN'
                  ELSE 'OTROS' END,
             k.id_cliente, c.CLIENTE, c.ESTADO, c.MUNICIPIO,
-            k.long_km, k.tiempo_min, av.costoOv, k.metodo, k.estatus,
+            " . SQL_KM_TOPADO . ", k.tiempo_min, av.costoOv, k.metodo, k.estatus,
             CASE WHEN k.estatus = 'ok' AND k.long_km IS NOT NULL THEN 1 ELSE 0 END
         FROM km_calculados k
         LEFT JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
+        LEFT JOIN " . sqlTramoOdometro() . " tr ON tr.id_actividad = k.id_actividad
         LEFT JOIN inventario inv        ON inv.id_vehiculo = av.id_vehiculo
-        LEFT JOIN usuarios u            ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = k.id_usuario)
+        LEFT JOIN (SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario) um ON um.id_usuario = k.id_usuario
+        LEFT JOIN usuarios u            ON u.id = um.id
         LEFT JOIN clientes c            ON c.IDCLTE = k.id_cliente
         LEFT JOIN OT ot                 ON ot.OT = k.ov_ot
         LEFT JOIN OV ov                 ON ov.OV = k.ov_ot
         $where";
 }
 
-// Refresca reporte_km. Con $idKm: reemplaza esa única fila (hook por check-in).
-// Sin $idKm: reconstrucción total. Nunca lanza: el KPI jamás debe tumbar el
-// flujo de km (check-in / importación).
-function refrescarReporteKm(mysqli $conn, int $idKm = 0): void {
+// Refresca reporte_km. Con $idVehiculo: reemplaza los trayectos de ese vehículo (hook por
+// check-in: la lectura nueva cambia el tope del trayecto anterior). Con $idKm: solo esa
+// fila. Sin ninguno: reconstrucción total. Nunca lanza: el KPI jamás debe tumbar el flujo
+// de km (check-in / importación).
+function refrescarReporteKm(mysqli $conn, int $idKm = 0, int $idVehiculo = 0): void {
     try {
         crearTablaReporteKm($conn);
         $cols = COLS_REPORTE_KM;
-        if ($idKm > 0) {
+        if ($idVehiculo > 0) {
+            $d = $conn->prepare("DELETE FROM reporte_km WHERE id_vehiculo = ?");
+            $d->bind_param("i", $idVehiculo);
+            $d->execute();
+            $d->close();
+            $ins = $conn->prepare("INSERT INTO reporte_km ($cols) " . sqlSelectReporteKm("WHERE av.id_vehiculo = ?"));
+            $ins->bind_param("i", $idVehiculo);
+            $ins->execute();
+            $ins->close();
+        } elseif ($idKm > 0) {
             $d = $conn->prepare("DELETE FROM reporte_km WHERE id_km = ?");
             $d->bind_param("i", $idKm);
             $d->execute();
@@ -443,7 +489,10 @@ function refrescarReporteKm(mysqli $conn, int $idKm = 0): void {
 //                            de km_actual CONSECUTIVAS del vehículo (por tiempo,
 //                            sin importar el tipo de actividad).
 //   - km_trabajo_calculado:  km calculados por INEGI/API de las actividades de
-//                            trabajo de la semana (de reporte_km, km_valido=1).
+//                            trabajo de la semana (de reporte_km, km_valido=1), cada
+//                            uno topado por lo que avanzó el odómetro hasta la lectura
+//                            siguiente (sqlTramoOdometro). Por eso nunca pasa de
+//                            km_registrado.
 //   - porcentaje_uso_trabajo = km_trabajo_calculado / km_registrado * 100.
 //
 // El delta de odómetro se descarta si es negativo o > KM_VIAJE_MAX (reseteos de
@@ -549,8 +598,24 @@ function refrescarReporteKmVehiculo(mysqli $conn): void {
 // Refresca ambos KPIs tras un cambio de km. Lo llama registrarKm en sus dos
 // rutas (rellenar placeholder / insertar): el fact por trayecto (esa fila) y el
 // resumen vehículo×semana (reconstrucción completa, es pequeño).
+//
+// Con el tope por odómetro (sqlTramoOdometro), el check-in que acaba de llegar es la
+// "lectura siguiente" del trayecto anterior del mismo vehículo, que hasta ahora contaba 0:
+// por eso se recalculan todos los trayectos del vehículo y no solo esta fila.
 function refrescarKpiKm(mysqli $conn, int $idKm): void {
-    refrescarReporteKm($conn, $idKm);
+    $idVehiculo = 0;
+    try {
+        $q = $conn->prepare("SELECT av.id_vehiculo FROM km_calculados k
+                             INNER JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
+                             WHERE k.id = ?");
+        $q->bind_param("i", $idKm);
+        $q->execute();
+        $idVehiculo = (int) ($q->get_result()->fetch_assoc()['id_vehiculo'] ?? 0);
+        $q->close();
+    } catch (Throwable $e) { /* sin vehículo: se refresca solo la fila */ }
+
+    if ($idVehiculo > 0) refrescarReporteKm($conn, 0, $idVehiculo);
+    else                 refrescarReporteKm($conn, $idKm);
     refrescarReporteKmVehiculo($conn);
 }
 

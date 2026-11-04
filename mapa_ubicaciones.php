@@ -45,8 +45,9 @@ if (!$puedeVerMapa) {
     <style>
         /* Alto relativo a la pantalla: en celular no se come toda la vista y en escritorio
            deja ver el inicio de la tabla de abajo. */
-        #mapa { height: 60vh; min-height: 360px; width: 100%; border-radius: 0 0 .5rem .5rem; }
-        .mu-mapa-caja { position: relative; }
+        /* Crece con la tarjeta: a su lado va el panel de uso, que puede quedar más alto. */
+        #mapa { flex: 1 1 auto; min-height: max(360px, 60vh); width: 100%; border-radius: 0 0 .5rem .5rem; }
+        .mu-mapa-caja { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; }
         /* Aviso sobre el mapa (sin resultados / error / cargando) */
         .mu-aviso {
             position: absolute; inset: 0; z-index: 500; display: none;
@@ -72,6 +73,88 @@ if (!$puedeVerMapa) {
 
         #tablaDetalle tbody tr { cursor: pointer; }
         #tablaDetalle tbody tr.es-activo > * { box-shadow: none; background: var(--accent-soft); }
+
+        /* ===== Panel "Uso del vehículo" (retro 03/11/2026) ===== */
+        /* Semáforo de % uso Mess: rojo < 50, amarillo 50–79, azul >= 80, gris sin odómetro. */
+        .uv-sem-rojo     { --sem: var(--danger); }
+        .uv-sem-amarillo { --sem: var(--warning); }
+        .uv-sem-azul     { --sem: var(--accent); }
+        .uv-sem-gris     { --sem: var(--mess-gris); }
+
+        /* Dona segmentada: arco de --pct en acento, separadores del color de la tarjeta. */
+        .uv-dona {
+            --pct: 0; flex: none; position: relative; border-radius: 50%;
+            width: 150px; aspect-ratio: 1;
+            background:
+                repeating-conic-gradient(var(--card-bg) 0deg 1.6deg, transparent 1.6deg 18deg),
+                conic-gradient(var(--accent) calc(var(--pct) * 1%), color-mix(in srgb, var(--accent) 22%, var(--card-bg)) 0);
+        }
+        .uv-dona::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: var(--card-bg); }
+        .uv-dona__txt {
+            position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; line-height: 1.1;
+        }
+        .uv-dona__pct { font-size: 1.7rem; font-weight: 800; color: var(--accent); }
+        .uv-dona__lbl { font-size: .72rem; color: var(--text-muted); }
+        .uv-dona--mini { width: 48px; }
+        .uv-dona--mini::after { inset: 21%; }
+        .uv-dona--mini .uv-dona__pct { font-size: .58rem; color: var(--text); }
+        .uv-dona.es-vacia .uv-dona__pct { color: var(--text-muted); }
+
+        /* Tira de tarjetas con scroll horizontal */
+        /* position: relative para que offsetLeft de cada tarjeta se mida contra la tira */
+        .uv-tira { position: relative; display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .4rem; margin-bottom: .75rem; }
+        .uv-tarjeta {
+            flex: 0 0 auto; display: flex; align-items: center; gap: .5rem; position: relative;
+            min-width: 150px; padding: .4rem 1.4rem .4rem .45rem; text-align: left;
+            background: var(--card-bg); color: var(--text);
+            border: 2px solid var(--border); border-radius: .6rem; cursor: pointer;
+        }
+        .uv-tarjeta:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+        .uv-tarjeta.es-activa { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+        .uv-tarjeta__txt { font-size: .72rem; line-height: 1.15; }
+        .uv-tarjeta__txt b { display: block; font-size: .78rem; }
+        .uv-tarjeta__punto {
+            position: absolute; top: .4rem; right: .4rem; width: .7rem; height: .7rem; border-radius: 50%;
+            background: var(--sem); box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 25%, transparent);
+        }
+
+        /* Ficha del vehículo */
+        .uv-ficha { border: 2px solid var(--border); border-radius: .9rem; padding: 1rem; }
+        .uv-cab { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; }
+        .uv-foto {
+            flex: none; width: 120px; height: 80px; display: flex; align-items: center; justify-content: center;
+            border-radius: .5rem; background: var(--card-soft); color: var(--text-muted); overflow: hidden;
+        }
+        .uv-foto img { width: 100%; height: 100%; object-fit: cover; }
+        .uv-titulo { line-height: 1.15; }
+        .uv-titulo__marca { font-size: 1.35rem; text-transform: uppercase; }
+        .uv-titulo__marca small { font-size: .8rem; color: var(--text-muted); text-transform: none; }
+        .uv-titulo__anio { font-size: 1.1rem; color: var(--text-muted); }
+        .uv-titulo__placa { font-size: 1.45rem; font-weight: 800; letter-spacing: .03em; }
+        .uv-meta { margin: 0; font-size: .85rem; }
+        .uv-meta dt { font-weight: 400; color: var(--text-muted); }
+        .uv-meta dd { font-weight: 800; margin-bottom: .2rem; }
+
+        .uv-cuerpo { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; }
+        .uv-km { margin: 0; font-size: .82rem; min-width: 140px; }
+        .uv-km dt { font-weight: 400; color: var(--text-muted); }
+        .uv-km dd { font-weight: 800; font-size: .95rem; margin-bottom: .45rem; }
+        .uv-refs {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: .25rem; margin-top: 1rem;
+            padding: .6rem 1rem; text-align: center;
+            border-radius: .5rem; background: var(--accent); color: var(--card-bg);
+        }
+        .uv-refs div { font-size: .8rem; }
+        .uv-refs b { display: block; font-size: 1.35rem; line-height: 1.1; }
+        .uv-rend {
+            margin-top: 1rem; padding: .5rem 1rem; text-align: center; border-radius: .5rem;
+            background: var(--card-soft); border: 1px solid var(--border);
+        }
+        .uv-rend__lbl { font-size: .85rem; color: var(--text-muted); }
+        .uv-rend__val { font-size: 1.2rem; font-weight: 800; }
+        .uv-aviso { margin-top: .6rem; font-size: .78rem; color: var(--danger); }
+        .uv-vacio { padding: 2rem 1rem; text-align: center; color: var(--text-muted); }
     </style>
 </head>
 <body id="page-top">
@@ -115,14 +198,34 @@ if (!$puedeVerMapa) {
                     </div>
                 </div>
 
-                <div class="card shadow mb-3">
-                    <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between gap-2">
-                        <h6 class="m-0 fw-bold text-dark"><i class="fas fa-map-location-dot me-1"></i> Mapa</h6>
-                        <span class="badge bg-secondary" id="badgeMapa"></span>
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-xl-7">
+                        <div class="card shadow h-100 d-flex flex-column">
+                            <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between gap-2">
+                                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-map-location-dot me-1"></i> Mapa</h6>
+                                <span class="badge bg-secondary" id="badgeMapa"></span>
+                            </div>
+                            <div class="mu-mapa-caja">
+                                <div id="mapa"></div>
+                                <div class="mu-aviso" id="avisoMapa"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mu-mapa-caja">
-                        <div id="mapa"></div>
-                        <div class="mu-aviso" id="avisoMapa"></div>
+
+                    <!-- Uso del vehículo (retro 03/11/2026). Las cifras son del vehículo en el
+                         rango Desde–Hasta, sin importar quién manejó; las calcula
+                         acciones_mapa.php (accion=resumen). -->
+                    <div class="col-12 col-xl-5">
+                        <div class="card shadow h-100">
+                            <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between gap-2">
+                                <h6 class="m-0 fw-bold text-dark"><i class="fas fa-gauge-high me-1"></i> Uso del vehículo</h6>
+                                <span class="small text-muted" id="uvRango"></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="uv-tira" id="uvTira"></div>
+                                <div id="uvFicha"><div class="uv-vacio">Cargando…</div></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -179,6 +282,9 @@ var filas = [];          // ubicaciones del último resultado
 var marcadores = {};     // id_actividad -> marcador
 var marcadorActivo = null;
 var rango = { desde: '', hasta: '' };
+// Panel de uso: vehículo de la ficha, tarjetas de la tira (respuesta de accion=resumen) y
+// un contador para descartar respuestas viejas cuando se piden dos seguidas.
+var uv = { activo: 0, tarjetas: [], turno: 0, error: '' };
 
 var iconoPin = L.divIcon({ className: 'mu-pin', html: '<i class="fas fa-location-dot"></i>',
                            iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -26] });
@@ -287,7 +393,12 @@ $(document).ready(function () {
     $('#tablaDetalle tbody').on('click', 'tr', function (e) {
         if ($(e.target).closest('a, .dtr-control').length) return;
         var f = tabla.row(this).data();
-        if (f) enfocar(f.id, true);
+        if (f) { enfocar(f.id, true); seleccionarVehiculo(f.id_vehiculo); }
+    });
+
+    $('#uvTira').on('click', '.uv-tarjeta', function () {
+        uv.activo = parseInt($(this).data('id'), 10) || 0;
+        mostrarActivo();
     });
 
     $('#btnBuscar').on('click', buscar);
@@ -342,10 +453,16 @@ function buscar() {
             $('#avisoSinCoordenadas').toggle(sinCoord > 0)
                 .text(sinCoord + (sinCoord === 1 ? ' check-in no tiene' : ' check-ins no tienen') + ' una ubicación válida y no aparecen.');
             pintar();
+
+            // El panel sigue a los filtros, y sus cifras dependen del rango: se recarga en
+            // cada búsqueda.
+            uv.activo = vehiculoParaPanel();
+            cargarPanel();
         },
         error: function (xhr) {
             // 403 = sin el acceso verMapaGPS (por ejemplo, si se lo quitaron con la página abierta).
             avisoMapa(xhr.status === 403 ? 'No tienes acceso al mapa de ubicaciones.' : 'No se pudieron cargar las ubicaciones.');
+            if (!uv.tarjetas.length) { uv.error = 'No se pudo cargar el uso del vehículo.'; pintarPanel(); }
         },
         complete: function () { $('#btnBuscar').prop('disabled', false); }
     });
@@ -359,7 +476,7 @@ function pintar() {
     filas.forEach(function (f) {
         var m = L.marker([f.lat, f.lng], { icon: iconoPin });
         m.bindPopup(popupHtml(f));
-        m.on('click', function () { enfocar(f.id, false); });
+        m.on('click', function () { enfocar(f.id, false); seleccionarVehiculo(f.id_vehiculo); });
         marcadores[f.id] = m;
         capa.addLayer(m);
     });
@@ -394,6 +511,200 @@ function enfocar(id, desdeTabla) {
     if (desdeTabla) document.getElementById('mapa').scrollIntoView({ behavior: 'smooth', block: 'center' });
     // zoomToShowLayer abre el cluster que lo contiene antes de mostrar el popup.
     capa.zoomToShowLayer(m, function () { m.openPopup(); });
+}
+
+/* ===== Panel "Uso del vehículo" (retro 03/11/2026) =====
+ * Tira: todos los vehículos activos, primero los que se movieron en el rango (así los
+ * ordena acciones_mapa.php). Ficha: el vehículo activo, que se elige con el filtro
+ * Vehículo, un marcador, una fila de la tabla o una tarjeta. Todas las cifras ya vienen en
+ * la respuesta: cambiar de vehículo no vuelve a consultar. */
+
+var SIN_CHECKINS_USUARIO = -1;   // uv.activo cuando el usuario filtrado no tiene check-ins
+
+/**
+ * Vehículo de la ficha tras una búsqueda: el del filtro Vehículo; con un usuario en el
+ * filtro, el que más usó en el rango (antes se quedaba el vehículo anterior y parecía que
+ * el filtro no hacía nada); sin ninguno de los dos, 0 = la primera tarjeta, la de más km.
+ */
+function vehiculoParaPanel() {
+    var veh = parseInt($('#fVehiculo').val(), 10) || 0;
+    if (veh) return veh;
+    if (!(parseInt($('#fUsuario').val(), 10) || 0)) return 0;
+    if (!filas.length) return SIN_CHECKINS_USUARIO;
+
+    // filas ya viene filtrada por el usuario. En empate gana el que llegó primero a esa
+    // cuenta, y filas va de la más reciente a la más vieja.
+    var cuenta = {}, mejor = 0;
+    filas.forEach(function (f) {
+        cuenta[f.id_vehiculo] = (cuenta[f.id_vehiculo] || 0) + 1;
+        if (!mejor || cuenta[f.id_vehiculo] > cuenta[mejor]) mejor = f.id_vehiculo;
+    });
+    return mejor;
+}
+
+/**
+ * Con un usuario en el filtro, los vehículos que usó en el rango van primero en la tira
+ * (por cuántos check-ins hizo en cada uno); el resto sigue en el orden del servidor.
+ */
+function ordenarTira(lista) {
+    if (!(parseInt($('#fUsuario').val(), 10) || 0)) return lista;
+    var cuenta = {};
+    filas.forEach(function (f) { cuenta[f.id_vehiculo] = (cuenta[f.id_vehiculo] || 0) + 1; });
+    var suyos = lista.filter(function (t) { return cuenta[t.id_vehiculo]; })
+                     .sort(function (a, b) { return cuenta[b.id_vehiculo] - cuenta[a.id_vehiculo]; });
+    return suyos.concat(lista.filter(function (t) { return !cuenta[t.id_vehiculo]; }));
+}
+
+/** Marcador o fila de la tabla: su vehículo pasa a la ficha. */
+function seleccionarVehiculo(id) {
+    id = parseInt(id, 10) || 0;
+    if (!id) return;
+    uv.activo = id;
+    mostrarActivo();
+}
+
+function cargarPanel() {
+    var turno = ++uv.turno;
+    $.ajax({
+        url: 'acciones_mapa.php', method: 'POST', dataType: 'json',
+        data: { accion: 'resumen', desde: rango.desde, hasta: rango.hasta },
+        success: function (resp) {
+            if (turno !== uv.turno) return;   // ya se pidió otra más nueva
+            var ok = resp && resp.status === 'success';
+            uv.error = ok ? '' : ((resp && resp.message) || 'No se pudo cargar el uso del vehículo.');
+            // Array.isArray antes de iterar: ante un error el endpoint manda un objeto.
+            uv.tarjetas = ordenarTira(ok && Array.isArray(resp.vehiculos) ? resp.vehiculos : []);
+            pintarPanel();
+        },
+        error: function (xhr) {
+            if (turno !== uv.turno) return;
+            uv.error = xhr.status === 403 ? 'No tienes acceso al mapa de ubicaciones.' : 'No se pudo cargar el uso del vehículo.';
+            uv.tarjetas = [];
+            pintarPanel();
+        }
+    });
+}
+
+/** Semáforo de % uso Mess: rojo < 50, amarillo 50–79, azul >= 80, gris sin odómetro. */
+function claseSemaforo(pct) {
+    if (pct === null || pct === undefined) return 'uv-sem-gris';
+    return pct < 50 ? 'uv-sem-rojo' : (pct < 80 ? 'uv-sem-amarillo' : 'uv-sem-azul');
+}
+
+function textoSemaforo(pct) {
+    if (pct === null || pct === undefined) return 'Sin km de odómetro en el rango';
+    return pct + '% de uso Mess';
+}
+
+function donaHtml(pct, mini) {
+    var vacia = pct === null || pct === undefined;
+    return '<div class="uv-dona' + (mini ? ' uv-dona--mini' : '') + (vacia ? ' es-vacia' : '') + '" style="--pct:' + (vacia ? 0 : Number(pct)) + '">'
+         + '<div class="uv-dona__txt"><span class="uv-dona__pct">' + (vacia ? '—' : Number(pct) + '%') + '</span>'
+         + (mini ? '' : '<span class="uv-dona__lbl">' + (vacia ? 'sin odómetro' : '% uso Mess') + '</span>') + '</div></div>';
+}
+
+function fmtKm(n) {
+    return (Number(n) || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' km';
+}
+
+var ICONO_AUTO = '<i class="fas fa-car-side fa-2x"></i>';
+
+/** Con datos nuevos: redibuja la tira completa y luego la ficha. */
+function pintarPanel() {
+    $('#uvRango').text(rango.desde ? fmtFecha(rango.desde) + ' – ' + fmtFecha(rango.hasta) : '');
+
+    var lista = uv.tarjetas;
+    $('#uvTira').toggle(lista.length > 0).html(lista.map(function (t) {
+        return '<button type="button" class="uv-tarjeta ' + claseSemaforo(t.pct_uso) + '"'
+             + ' data-id="' + t.id_vehiculo + '" title="' + esc(vehiculoTexto(t) + ' · ' + textoSemaforo(t.pct_uso)) + '">'
+             + donaHtml(t.pct_uso, true)
+             + '<span class="uv-tarjeta__txt">' + esc(t.marca || '') + '<br>' + esc(t.anio || '') + '<b>' + esc(t.placa) + '</b></span>'
+             + '<span class="uv-tarjeta__punto"></span>'
+             + '</button>';
+    }).join(''));
+    mostrarActivo();
+}
+
+/**
+ * Ficha del vehículo activo, su tarjeta marcada y la tira desplazada hasta ella (con ~100
+ * tarjetas, la de un marcador o una fila suele quedar fuera de la vista). No redibuja la
+ * tira: así no pierde el desplazamiento al tocar una tarjeta.
+ */
+function mostrarActivo() {
+    var lista = uv.tarjetas;
+    var v = lista.find(function (x) { return x.id_vehiculo === uv.activo; });
+    // Sin vehículo elegido (o uno que ya no está activo): la primera tarjeta. Salvo si el
+    // usuario filtrado no tiene check-ins: mostrar otro vehículo haría creer que es el suyo.
+    if (!v && lista.length && uv.activo !== SIN_CHECKINS_USUARIO) { v = lista[0]; uv.activo = v.id_vehiculo; }
+
+    var tira = document.getElementById('uvTira');
+    $(tira).find('.uv-tarjeta.es-activa').removeClass('es-activa');
+    var tarjeta = v ? tira.querySelector('.uv-tarjeta[data-id="' + v.id_vehiculo + '"]') : null;
+    if (tarjeta) {
+        tarjeta.classList.add('es-activa');
+        // Solo horizontal: scrollIntoView movería también la página.
+        var izq = tarjeta.offsetLeft, der = izq + tarjeta.offsetWidth;
+        if (izq < tira.scrollLeft || der > tira.scrollLeft + tira.clientWidth) {
+            tira.scrollTo({ left: Math.max(0, izq - 8), behavior: 'smooth' });
+        }
+    }
+
+    if (!v) {
+        var vacio = uv.error || (uv.activo === SIN_CHECKINS_USUARIO
+            ? 'Este usuario no tiene check-ins en el rango. Elige una tarjeta para ver otro vehículo.'
+            : 'Elige un vehículo en el filtro, en el mapa o en la tabla.');
+        $('#uvFicha').html('<div class="uv-vacio">' + esc(vacio) + '</div>');
+        return;
+    }
+
+    $('#uvFicha').html(
+        '<div class="uv-ficha">'
+        + '<div class="uv-cab">'
+        +   '<div class="uv-foto">' + (v.foto ? '<img alt="" src="' + esc(v.foto) + '">' : ICONO_AUTO) + '</div>'
+        +   '<div class="uv-titulo">'
+        +     '<div class="uv-titulo__marca">' + esc(v.marca || '') + (v.modelo ? ' <small>' + esc(v.modelo) + '</small>' : '') + '</div>'
+        +     (v.anio ? '<div class="uv-titulo__anio">' + esc(v.anio) + '</div>' : '')
+        +     '<div class="uv-titulo__placa">' + esc(v.placa) + '</div>'
+        +   '</div>'
+        +   '<dl class="uv-meta">'
+        +     '<dt>Asignado</dt><dd>' + esc(v.asignado || 'Sin asignar') + '</dd>'
+        +     '<dt>Región</dt><dd>' + esc(v.region || '—') + '</dd>'
+        +   '</dl>'
+        + '</div>'
+        + '<div class="uv-cuerpo">'
+        +   '<div class="text-center" title="KM Mess ÷ km del odómetro en el rango">' + donaHtml(v.pct_uso, false)
+        +     '<div class="small text-muted mt-1">de ' + fmtKm(v.km_odometro) + ' recorridos</div></div>'
+        +   '<dl class="uv-km">'
+        +     '<dt title="Km calculados de los check-ins hacia sus OT, OV y actividades">KM Mess aproximados</dt><dd>' + fmtKm(v.km_mess) + '</dd>'
+        +     '<dt title="Km del odómetro que no corresponden a ningún trayecto calculado">KM no reportados</dt><dd>' + fmtKm(v.km_no_reportados) + '</dd>'
+        +     '<dt>$ en gasolina</dt><dd>MXN ' + fmtMoneda(v.gasto_gas) + '</dd>'
+        +   '</dl>'
+        + '</div>'
+        + '<div class="uv-refs" title="Check-ins del rango">'
+        +   '<div><b>' + (v.ots || 0) + '</b>OTs</div><div><b>' + (v.ovs || 0) + '</b>OVs</div><div><b>' + (v.otros || 0) + '</b>Otros</div>'
+        + '</div>'
+        + '<div class="uv-rend" title="Gasolina del rango ÷ KM Mess">'
+        +   '<div class="uv-rend__lbl">Rendimiento</div>'
+        +   '<div class="uv-rend__val">' + (v.rendimiento !== null ? 'MXN ' + fmtMoneda(v.rendimiento) + '/km' : '—') + '</div>'
+        +   (v.rendimiento === null
+              ? '<div class="small text-muted">' + (!v.gasto_gas ? 'Sin cargas de gasolina en el rango' : 'Sin KM Mess en el rango') + '</div>'
+              : '')
+        + '</div>'
+        // KM Mess va topado por el odómetro (acciones_mapa.php). Se explica lo descontado:
+        // recortado = ruta que el odómetro no registró (destino mal ubicado); pendiente = el
+        // último check-in, que cuenta cuando llegue el siguiente.
+        + (v.km_recortado >= 1
+            ? '<div class="uv-aviso"><i class="fas fa-triangle-exclamation me-1"></i>Se descontaron ' + fmtKm(v.km_recortado)
+              + ' calculados que el odómetro no registró: revisa la ubicación del cliente de sus OT/OV.</div>'
+            : '')
+        + (v.km_pendiente >= 1
+            ? '<div class="small text-muted mt-1"><i class="fas fa-hourglass-half me-1"></i>' + fmtKm(v.km_pendiente)
+              + ' del último check-in se cuentan cuando llegue el siguiente.</div>'
+            : '')
+        + '</div>'
+    );
+    // Muchas rutas de foto_general están mal: sin foto, el ícono.
+    $('#uvFicha .uv-foto img').on('error', function () { $(this).replaceWith(ICONO_AUTO); });
 }
 
 /**

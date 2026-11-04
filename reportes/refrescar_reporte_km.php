@@ -1,8 +1,8 @@
 <?php
 /**
  * Reconstruye por completo las dos tablas del KPI de kilometraje (Power BI):
- *   - reporte_km           — fact table, una fila por trayecto calculado.
- *   - reporte_km_vehiculo  — resumen vehículo×semana (km registrado vs calculado, % uso trabajo).
+ *   - reporte_km           — fact table, una fila por check-in con su KM Mess.
+ *   - reporte_km_vehiculo  — resumen vehículo×semana (km del odómetro vs KM Mess, % uso trabajo).
  * a partir de km_calculados + actividad_vehiculo + dimensiones.
  *
  * Uso:  php reportes/refrescar_reporte_km.php
@@ -10,7 +10,14 @@
  * Idempotente: crea las tablas si no existen y reemplaza TODAS las filas. También
  * se mantienen vivas en tiempo real por el hook en registrarKm() (calcular_ruta.php);
  * este script es la red de seguridad para cron/manual.
+ *
+ * Solo terminal o cron: por URL respondía a cualquiera, sin sesión.
  */
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Solo desde la terminal: php reportes/refrescar_reporte_km.php');
+}
 
 require_once __DIR__ . '/../conn.php';
 require_once __DIR__ . '/../calcular_ruta.php'; // define las funciones de refresco sin disparar el endpoint

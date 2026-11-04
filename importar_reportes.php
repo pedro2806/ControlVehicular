@@ -289,7 +289,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                 var etapa = etapas[i];
                 var acum = etapa === 'geocodificar'
                     ? { ok: 0, cp: 0, err: 0, pendientes: null }
-                    : { revisados: 0, calculados: 0, sin_actividad: 0, sin_destino: 0, ovot: 0, regresos: 0 };
+                    : { revisados: 0, calculados: 0, sin_actividad: 0, sin_destino: 0, ovot: 0, ovot_recalculados: 0, regresos: 0 };
                 var cursor = { desde_checkin: 0, desde_regreso: 0 };
                 var lote = 0;
                 if (etapa === 'geocodificar') resumen.geo = acum; else resumen.reconciliacion = acum;
@@ -358,7 +358,7 @@ if (empty($_COOKIE['noEmpleado'])) {
                 html += '<tr><td class="text-muted">Actividades duplicadas (omitidas)</td><td class="fw-semibold">' + (r.otros.dup || 0) + '</td></tr>';
             }
             if (r.reconciliacion) {
-                html += '<tr><td class="text-muted">Check-ins con km calculado</td><td class="fw-semibold">' + ((r.reconciliacion.calculados || 0) + (r.reconciliacion.regresos || 0)) + ' <span class="text-muted small">(' + (r.reconciliacion.revisados || 0) + ' revisados)</span></td></tr>';
+                html += '<tr><td class="text-muted">Check-ins con km calculado</td><td class="fw-semibold">' + ((r.reconciliacion.calculados || 0) + (r.reconciliacion.ovot_recalculados || 0) + (r.reconciliacion.regresos || 0)) + ' <span class="text-muted small">(' + (r.reconciliacion.revisados || 0) + ' revisados)</span></td></tr>';
             }
             html += '<tr><td class="text-muted">Tiempo total</td><td class="fw-semibold">' + (r.duracion || '?') + ' seg</td></tr>';
             html += '</tbody></table>';

@@ -153,7 +153,8 @@ if (!$puedeVerMapa) {
         }
         .uv-rend__lbl { font-size: .85rem; color: var(--text-muted); }
         .uv-rend__val { font-size: 1.2rem; font-weight: 800; }
-        .uv-aviso { margin-top: .6rem; font-size: .78rem; color: var(--danger); }
+        .uv-km dt[title] { cursor: help; }
+        .uv-ayuda { font-size: .72rem; opacity: .7; }
         .uv-vacio { padding: 2rem 1rem; text-align: center; color: var(--text-muted); }
     </style>
 </head>
@@ -609,6 +610,12 @@ function fmtKm(n) {
 
 var ICONO_AUTO = '<i class="fas fa-car-side fa-2x"></i>';
 
+// Regla de KM Mess del 04/11/2026 (sqlKmMessCheckin en calcular_ruta.php), para el title.
+var AYUDA_KM_MESS = 'Lo que avanzó el odómetro de un check-in al siguiente, cuando el siguiente es del '
+    + 'mismo día o del día siguiente.';
+var AYUDA_KM_PERSONALES = 'Lo que avanzó el odómetro entre dos check-ins con al menos un día completo sin '
+    + 'check-ins en medio (fines de semana, días sin usar QRide).';
+
 /** Con datos nuevos: redibuja la tira completa y luego la ficha. */
 function pintarPanel() {
     $('#uvRango').text(rango.desde ? fmtFecha(rango.desde) + ' – ' + fmtFecha(rango.hasta) : '');
@@ -675,8 +682,8 @@ function mostrarActivo() {
         +   '<div class="text-center" title="KM Mess ÷ km del odómetro en el rango">' + donaHtml(v.pct_uso, false)
         +     '<div class="small text-muted mt-1">de ' + fmtKm(v.km_odometro) + ' recorridos</div></div>'
         +   '<dl class="uv-km">'
-        +     '<dt title="Km calculados de los check-ins hacia sus OT, OV y actividades">KM Mess aproximados</dt><dd>' + fmtKm(v.km_mess) + '</dd>'
-        +     '<dt title="Km del odómetro que no corresponden a ningún trayecto calculado">KM no reportados</dt><dd>' + fmtKm(v.km_no_reportados) + '</dd>'
+        +     '<dt title="' + AYUDA_KM_MESS + '">KM Mess aproximados <i class="fas fa-circle-info uv-ayuda"></i></dt><dd>' + fmtKm(v.km_mess) + '</dd>'
+        +     '<dt title="' + AYUDA_KM_PERSONALES + '">KM personales <i class="fas fa-circle-info uv-ayuda"></i></dt><dd>' + fmtKm(v.km_personales) + '</dd>'
         +     '<dt>$ en gasolina</dt><dd>MXN ' + fmtMoneda(v.gasto_gas) + '</dd>'
         +   '</dl>'
         + '</div>'
@@ -690,17 +697,6 @@ function mostrarActivo() {
               ? '<div class="small text-muted">' + (!v.gasto_gas ? 'Sin cargas de gasolina en el rango' : 'Sin KM Mess en el rango') + '</div>'
               : '')
         + '</div>'
-        // KM Mess va topado por el odómetro (acciones_mapa.php). Se explica lo descontado:
-        // recortado = ruta que el odómetro no registró (destino mal ubicado); pendiente = el
-        // último check-in, que cuenta cuando llegue el siguiente.
-        + (v.km_recortado >= 1
-            ? '<div class="uv-aviso"><i class="fas fa-triangle-exclamation me-1"></i>Se descontaron ' + fmtKm(v.km_recortado)
-              + ' calculados que el odómetro no registró: revisa la ubicación del cliente de sus OT/OV.</div>'
-            : '')
-        + (v.km_pendiente >= 1
-            ? '<div class="small text-muted mt-1"><i class="fas fa-hourglass-half me-1"></i>' + fmtKm(v.km_pendiente)
-              + ' del último check-in se cuentan cuando llegue el siguiente.</div>'
-            : '')
         + '</div>'
     );
     // Muchas rutas de foto_general están mal: sin foto, el ícono.

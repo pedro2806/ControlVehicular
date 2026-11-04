@@ -30,20 +30,57 @@ function tokenInegi(): string {
     return $key;
 }
 
-function resolverCliente(mysqli $conn, string $ov_ot): ?int {
-    $stmt = $conn->prepare("SELECT id_cliente FROM OT WHERE OT = ? LIMIT 1");
-    $stmt->bind_param("s", $ov_ot);
-    $stmt->execute();
-    $r = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!empty($r['id_cliente'])) return intval($r['id_cliente']);
+// ---------------------------------------------------------------------------
+// OT/OV escritas a mano. El catálogo guarda la OT como 'FZ26-01E-691' y la OV como
+// '8068-2026', pero en el check-in llegan con texto pegado ('FZ26-01E-691; Salida a
+// CDMX', 'PT26-01N-227 Salida ZF TRW') o con prefijo ('MESS-OV-8068-2026',
+// 'Mess ov 5592 2026', 'MESS-OV-5845/2025'). Sin normalizar, en octubre de 2026 no
+// empataban 112 OV ni las OT con texto. Las mismas expresiones se usan en PHP
+// (resolverOvOt) y en SQL (sqlCheckinOvOt) para que el check-in y los reportes
+// reconozcan lo mismo.
+// ---------------------------------------------------------------------------
 
-    $stmt = $conn->prepare("SELECT id_cliente FROM OV WHERE OV = ? LIMIT 1");
-    $stmt->bind_param("s", $ov_ot);
-    $stmt->execute();
-    $r = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    return !empty($r['id_cliente']) ? intval($r['id_cliente']) : null;
+// Formato de OT del catálogo (99.6 % de las OT). Sin barras: sirve tal cual en REGEXP.
+const RE_OT = '[A-Za-z]+[0-9]{2}-[0-9]{2}[A-Za-z]+-[0-9]+';
+// Una OV solo se busca si el texto trae 'ov' como palabra ('MESS-OV', 'Mess ov', 'OV 4474');
+// así 'MESS-CT-11243-2025-140' no se toma por la OV 11243-2025.
+const RE_OV_MARCA = '(^|[^A-Za-z])[Oo][Vv]';
+// Número y año de la OV, separados por guion, diagonal o espacio. Se normaliza a 'numero-año'.
+const RE_OV_NUM = '[0-9]+ *[-/ ] *20[0-9]{2}';
+const RE_OV_SEP = ' *[-/ ] *';
+
+/**
+ * Busca en el catálogo la OT/OV de lo que se capturó en el check-in: primero el texto
+ * exacto (OT y luego OV), después la OT que venga dentro del texto y al final la OV
+ * normalizada. Solo cuenta si la OT/OV tiene cliente.
+ * @return array{tipo:string,codigo:string,id_cliente:int}|null codigo = valor del catálogo
+ */
+function resolverOvOt(mysqli $conn, string $texto): ?array {
+    $texto = trim($texto);
+    if ($texto === '') return null;
+
+    $candidatos = [['OT', $texto], ['OV', $texto]];
+    if (preg_match('~' . RE_OT . '~', $texto, $m)) $candidatos[] = ['OT', $m[0]];
+    if (preg_match('~' . RE_OV_MARCA . '~', $texto) && preg_match('~' . RE_OV_NUM . '~', $texto, $m)) {
+        $candidatos[] = ['OV', preg_replace('~' . RE_OV_SEP . '~', '-', $m[0])];
+    }
+
+    foreach ($candidatos as [$tabla, $codigo]) {
+        // $tabla viene de la lista fija de arriba ('OT'/'OV'), nunca del usuario.
+        $stmt = $conn->prepare("SELECT $tabla AS codigo, id_cliente FROM $tabla WHERE $tabla = ? LIMIT 1");
+        $stmt->bind_param("s", $codigo);
+        $stmt->execute();
+        $r = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!empty($r['id_cliente'])) {
+            return ['tipo' => $tabla, 'codigo' => (string) $r['codigo'], 'id_cliente' => intval($r['id_cliente'])];
+        }
+    }
+    return null;
+}
+
+function resolverCliente(mysqli $conn, string $ov_ot): ?int {
+    return resolverOvOt($conn, $ov_ot)['id_cliente'] ?? null;
 }
 
 /**
@@ -327,8 +364,10 @@ function registrarKm(mysqli $conn, $ov_ot, $id_cliente, $oLat, $oLng, $dLat, $dL
 // ---------------------------------------------------------------------------
 // reporte_km — tabla denormalizada (fact table) para el KPI de Power BI.
 //
-// Grano: una fila por trayecto calculado (= una fila de km_calculados),
-// enriquecida con dimensiones de vehículo, usuario y cliente. Power BI se
+// Grano: una fila por fila de km_calculados (= un check-in: cada check-in con coordenadas
+// deja la suya, aunque sea el placeholder 'sin_actividad'), enriquecida con dimensiones de
+// vehículo, usuario y cliente. `km` es el KM Mess del check-in (sqlKmMessCheckin) desde el
+// 04/11/2026; antes era la ruta INEGI. Power BI se
 // conecta directo a esta tabla. Se mantiene viva por dos vías:
 //   - upsert por fila tras cada cálculo (hook en registrarKm, arriba);
 //   - reconstrucción total con reportes/refrescar_reporte_km.php (cron/manual).
@@ -380,34 +419,76 @@ function crearTablaReporteKm(mysqli $conn): void {
 }
 
 /**
- * Tope de km por trayecto (03/11/2026).
+ * KM Mess y KM personales (regla del negocio, 04/11/2026: "todo lo registrado en QRide es
+ * trabajo Mess; los días sin check-in son uso personal").
  *
- * Tabla derivada: por cada lectura de odómetro (id_actividad), lo que avanzó hasta la
- * lectura siguiente del mismo vehículo. Mismo LEAD y mismo descarte (negativos o más de
- * KM_VIAJE_MAX) que el odómetro de sqlAggReporteKmVehiculo, así que los km de trabajo
- * topados nunca suman más que el odómetro. km_tramo es NULL cuando aún no hay lectura
- * siguiente (el último check-in del vehículo).
+ * km_tramo de un check-in = lo que avanzó el odómetro desde el check-in anterior del mismo
+ * vehículo (km_actual - km_actual anterior). Se descarta (0) si es negativo o pasa de
+ * KM_VIAJE_MAX (reseteos de tablero, dedazos); es NULL en la primera lectura del vehículo.
+ * Solo cuentan los INICIO: las "Salidas" (FINALIZACION) son copias automáticas del check-in
+ * siguiente (misma hora y mismo km en 1,163 de 1,173 desde septiembre).
  *
- * Los km de trabajo de un check-in = LEAST(ruta calculada, km_tramo): la ruta es solo de
- * ida y el tramo incluye la vuelta, así que un viaje real casi nunca topa; lo que se
- * recorta son destinos mal ubicados (clientes con domicilio fiscal en otra ciudad, la OT
- * ZEISSI26-06I-769 con cliente MESS Querétaro usada en Saltillo: 655 km por check-in). La
- * ruta original sigue en km_calculados.long_km.
+ *   - Si entre el check-in anterior y este hubo al menos un día completo sin check-ins
+ *     (DATEDIFF >= 2: fin de semana, días sin usar QRide), esos km son PERSONALES.
+ *   - Si no (mismo día o día siguiente), son KM MESS, traiga lo que traiga en `ot`.
+ *
+ * Ej. UNF455E: check-in el viernes 30/10 en 351,345 y el siguiente el martes 03/11 en
+ * 351,574: los 229 km son personales (31/10, 01/11 y 02/11 sin check-in). El del jueves
+ * 29/10 al viernes 30/10 (410 km) es Mess. No se puede partir un hueco: el viernes
+ * después del check-in y el martes antes del siguiente también caen en personal.
+ *
+ * KM odómetro = KM Mess + KM personales, siempre. La ruta INEGI (km_calculados.long_km)
+ * ya no entra en el cálculo; queda como referencia del destino.
  */
+
+// Por cada check-in con lectura de km: km_tramo desde el check-in anterior y cuántos días
+// hay entre las dos fechas (1 = día siguiente).
 function sqlTramoOdometro(): string {
     $max = KM_VIAJE_MAX;
-    return "(SELECT id_actividad,
-                    CASE WHEN delta IS NULL THEN NULL
-                         WHEN delta BETWEEN 0 AND $max THEN delta ELSE 0 END AS km_tramo
-             FROM (SELECT id_actividad,
-                          LEAD(km_actual) OVER (PARTITION BY id_vehiculo ORDER BY fecha_actividad, id_actividad) - km_actual AS delta
+    return "(SELECT id_actividad, id_vehiculo, fecha_actividad,
+                    CASE WHEN km_ant IS NULL THEN NULL
+                         WHEN km_actual - km_ant BETWEEN 0 AND $max THEN km_actual - km_ant
+                         ELSE 0 END AS km_tramo,
+                    DATEDIFF(DATE(fecha_actividad), DATE(fecha_ant)) AS dias
+             FROM (SELECT id_actividad, id_vehiculo, fecha_actividad, km_actual,
+                          LAG(km_actual)       OVER w AS km_ant,
+                          LAG(fecha_actividad) OVER w AS fecha_ant
                    FROM actividad_vehiculo
-                   WHERE km_actual > 0) d)";
+                   WHERE km_actual > 0 AND tipo_actividad = 'INICIO'
+                   WINDOW w AS (PARTITION BY id_vehiculo ORDER BY fecha_actividad, id_actividad)) d)";
 }
 
-// Km de trabajo topados de un trayecto. Sin lectura siguiente cuenta 0 hasta que llegue.
-// Requiere `km_calculados k` y `LEFT JOIN sqlTramoOdometro() tr ON tr.id_actividad = k.id_actividad`.
-const SQL_KM_TOPADO = 'LEAST(k.long_km, COALESCE(tr.km_tramo, 0))';
+// Por cada check-in (INICIO) con algo en `ot`: 'OT', 'OV' o NULL según el catálogo, con la
+// misma normalización que resolverOvOt() (texto exacto, OT dentro del texto, OV con
+// prefijo). A diferencia de resolverOvOt(), basta con que exista en el catálogo aunque no
+// tenga cliente. Sirve para contar OT / OV / Otros y para reporte_km.tipo_ref; no cambia los km.
+// COLLATE: actividad_vehiculo.ot es utf8mb4_general_ci y OT/OV utf8mb4_0900_ai_ci.
+function sqlCheckinOvOt(): string {
+    $c = 'COLLATE utf8mb4_0900_ai_ci';
+    $reOt = RE_OT; $marca = RE_OV_MARCA; $num = RE_OV_NUM; $sep = RE_OV_SEP;
+    return "(SELECT av.id_actividad,
+                    CASE WHEN ot1.OT IS NOT NULL OR ot2.OT IS NOT NULL THEN 'OT'
+                         WHEN ov1.OV IS NOT NULL OR ov2.OV IS NOT NULL THEN 'OV' END AS tipo
+             FROM actividad_vehiculo av
+             LEFT JOIN OT ot1 ON ot1.OT = TRIM(av.ot) $c
+             LEFT JOIN OV ov1 ON ov1.OV = TRIM(av.ot) $c
+             LEFT JOIN OT ot2 ON ot2.OT = REGEXP_SUBSTR(av.ot, '$reOt') $c
+             LEFT JOIN OV ov2 ON av.ot REGEXP '$marca'
+                             AND ov2.OV = REGEXP_REPLACE(REGEXP_SUBSTR(av.ot, '$num'), '$sep', '-') $c
+             WHERE av.tipo_actividad = 'INICIO' AND av.ot IS NOT NULL AND av.ot <> '')";
+}
+
+// KM Mess y personales por check-in. Única definición: la usan reporte_km,
+// reporte_km_vehiculo y el panel "Uso del vehículo" (acciones_mapa.php).
+// Columnas: id_actividad, id_vehiculo, fecha_actividad, km_tramo, dias, tipo_ref, km_mess, km_personal.
+function sqlKmMessCheckin(): string {
+    return "(SELECT tr.id_actividad, tr.id_vehiculo, tr.fecha_actividad, tr.km_tramo, tr.dias,
+                    r.tipo AS tipo_ref,
+                    CASE WHEN tr.km_tramo IS NULL OR tr.dias >= 2 THEN 0 ELSE tr.km_tramo END AS km_mess,
+                    CASE WHEN tr.km_tramo IS NOT NULL AND tr.dias >= 2 THEN tr.km_tramo ELSE 0 END AS km_personal
+             FROM " . sqlTramoOdometro() . " tr
+             LEFT JOIN " . sqlCheckinOvOt() . " r ON r.id_actividad = tr.id_actividad)";
+}
 
 // SELECT denormalizado reutilizado por el upsert y el rebuild. $where es código
 // fijo interno ('WHERE k.id = ?'), nunca datos del usuario.
@@ -417,7 +498,11 @@ const SQL_KM_TOPADO = 'LEAST(k.long_km, COALESCE(tr.km_tramo, 0))';
 // tabla derivada y no como `u.id = (SELECT MAX(u2.id) ...)` en el ON, que se reevalúa por
 // cada pareja de filas (en acciones_mapa.php pasó de 17.7 s a 2.2 s).
 //
-// `km` es el topado por el odómetro (SQL_KM_TOPADO), no la ruta calculada.
+// `km` es el KM Mess del check-in (sqlKmMessCheckin), no la ruta calculada; km_valido = km > 0.
+// COLLATE en OT/OV: en producción km_calculados.ov_ot quedó utf8mb4_general_ci (respaldo del
+// 04/11/2026) y OT/OV son utf8mb4_0900_ai_ci; sin él el INSERT falla y, como refrescarReporteKm
+// no lanza, reporte_km dejaba de actualizarse sin ningún aviso.
+// tipo_ref sale de lo capturado en el check-in (sqlCheckinOvOt) y, si no, de km_calculados.
 function sqlSelectReporteKm(string $where = ''): string {
     return "SELECT
             k.id, k.id_actividad,
@@ -427,27 +512,28 @@ function sqlSelectReporteKm(string $where = ''): string {
             av.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.anio, inv.area,
             k.id_usuario, u.nombre, u.noEmpleado, u.region, u.departamento,
             k.ov_ot,
-            CASE WHEN ot.OT IS NOT NULL THEN 'OT'
+            CASE WHEN m.tipo_ref IS NOT NULL THEN m.tipo_ref
+                 WHEN ot.OT IS NOT NULL THEN 'OT'
                  WHEN ov.OV IS NOT NULL THEN 'OV'
                  WHEN k.estatus = 'sin_actividad' OR k.ov_ot IS NULL OR k.ov_ot = '' THEN 'SIN'
                  ELSE 'OTROS' END,
             k.id_cliente, c.CLIENTE, c.ESTADO, c.MUNICIPIO,
-            " . SQL_KM_TOPADO . ", k.tiempo_min, av.costoOv, k.metodo, k.estatus,
-            CASE WHEN k.estatus = 'ok' AND k.long_km IS NOT NULL THEN 1 ELSE 0 END
+            COALESCE(m.km_mess, 0), k.tiempo_min, av.costoOv, k.metodo, k.estatus,
+            CASE WHEN COALESCE(m.km_mess, 0) > 0 THEN 1 ELSE 0 END
         FROM km_calculados k
         LEFT JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
-        LEFT JOIN " . sqlTramoOdometro() . " tr ON tr.id_actividad = k.id_actividad
+        LEFT JOIN " . sqlKmMessCheckin() . " m ON m.id_actividad = k.id_actividad
         LEFT JOIN inventario inv        ON inv.id_vehiculo = av.id_vehiculo
         LEFT JOIN (SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario) um ON um.id_usuario = k.id_usuario
         LEFT JOIN usuarios u            ON u.id = um.id
         LEFT JOIN clientes c            ON c.IDCLTE = k.id_cliente
-        LEFT JOIN OT ot                 ON ot.OT = k.ov_ot
-        LEFT JOIN OV ov                 ON ov.OV = k.ov_ot
+        LEFT JOIN OT ot                 ON ot.OT = k.ov_ot COLLATE utf8mb4_0900_ai_ci
+        LEFT JOIN OV ov                 ON ov.OV = k.ov_ot COLLATE utf8mb4_0900_ai_ci
         $where";
 }
 
-// Refresca reporte_km. Con $idVehiculo: reemplaza los trayectos de ese vehículo (hook por
-// check-in: la lectura nueva cambia el tope del trayecto anterior). Con $idKm: solo esa
+// Refresca reporte_km. Con $idVehiculo: reemplaza los check-ins de ese vehículo (hook por
+// check-in; ver refrescarKpiKm). Con $idKm: solo esa
 // fila. Sin ninguno: reconstrucción total. Nunca lanza: el KPI jamás debe tumbar el flujo
 // de km (check-in / importación).
 function refrescarReporteKm(mysqli $conn, int $idKm = 0, int $idVehiculo = 0): void {
@@ -483,21 +569,17 @@ function refrescarReporteKm(mysqli $conn, int $idKm = 0, int $idVehiculo = 0): v
 // reporte_km_vehiculo — resumen por VEHÍCULO × SEMANA (ISO 8601) para el KPI
 // de uso (Power BI).
 //
-// El QR es el registro único; NO se depende del par INICIO/FINALIZACION.
-//  Por vehículo y semana:
-//   - km_registrado:         km reales de ODÓMETRO = Σ diferencias entre lecturas
-//                            de km_actual CONSECUTIVAS del vehículo (por tiempo,
-//                            sin importar el tipo de actividad).
-//   - km_trabajo_calculado:  km calculados por INEGI/API de las actividades de
-//                            trabajo de la semana (de reporte_km, km_valido=1), cada
-//                            uno topado por lo que avanzó el odómetro hasta la lectura
-//                            siguiente (sqlTramoOdometro). Por eso nunca pasa de
-//                            km_registrado.
-//   - porcentaje_uso_trabajo = km_trabajo_calculado / km_registrado * 100.
+// Todo sale de sqlKmMessCheckin (un renglón por check-in), así que cuadra con el panel:
+//   - km_registrado:         km del ODÓMETRO = Σ km_tramo de los check-ins de la semana
+//                            (lo avanzado desde el check-in anterior).
+//   - segmentos_odo:         check-ins de la semana con check-in anterior.
+//   - km_trabajo_calculado:  KM Mess (tramos sin un día completo sin check-ins en medio).
+//   - actividades_trabajo:   check-ins de la semana con KM Mess > 0.
+//   - porcentaje_uso_trabajo = km_trabajo_calculado / km_registrado * 100. Lo que falta
+//                            para 100 son los km personales (días sin check-in).
 //
-// El delta de odómetro se descarta si es negativo o > KM_VIAJE_MAX (reseteos de
-// tablero, p. ej. 192k→25k, y typos de captura, p. ej. 95152 entre 29k). Cada
-// delta se asigna a la semana de su lectura inicial.
+// Cada tramo va a la semana del check-in que lo cierra. Incluye los check-ins sin fila en
+// km_calculados (sin coordenadas), que no aparecen en reporte_km.
 //
 // La semana es ISO 8601 (lunes-domingo, vía YEARWEEK(fecha, 3)): `anio` es el
 // año ISO de esa semana, que puede diferir del año calendario en los bordes de
@@ -533,56 +615,22 @@ function crearTablaReporteKmVehiculo(mysqli $conn): void {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
-// Agregación vehículo×semana (reconstrucción total). Combina dos fuentes por (vehículo,
-// año ISO, semana ISO): el odómetro real (lecturas consecutivas de actividad_vehiculo) y
-// el km de trabajo calculado (reporte_km). Se unen por la UNIÓN de sus llaves, porque una
-// semana puede tener movimiento sin trabajo calculado o viceversa.
+// Agregación vehículo×semana (reconstrucción total).
 function sqlAggReporteKmVehiculo(): string {
-    $max = KM_VIAJE_MAX;
     return "
-        WITH odo AS (
-            SELECT id_vehiculo, anio, semana, MIN(semana_inicio) AS semana_inicio,
-                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN delta ELSE 0 END) AS km_total,
-                   SUM(CASE WHEN delta BETWEEN 0 AND $max THEN 1    ELSE 0 END) AS segmentos
-            FROM (
-                SELECT av.id_vehiculo,
-                       FLOOR(YEARWEEK(av.fecha_actividad, 3) / 100) AS anio,
-                       MOD(YEARWEEK(av.fecha_actividad, 3), 100)    AS semana,
-                       DATE_SUB(DATE(av.fecha_actividad), INTERVAL WEEKDAY(av.fecha_actividad) DAY) AS semana_inicio,
-                       (LEAD(av.km_actual) OVER (PARTITION BY av.id_vehiculo ORDER BY av.fecha_actividad, av.id_actividad) - av.km_actual) AS delta
-                FROM actividad_vehiculo av
-                WHERE av.km_actual > 0
-            ) d
-            GROUP BY id_vehiculo, anio, semana
-        ),
-        trab AS (
-            SELECT id_vehiculo,
-                   FLOOR(YEARWEEK(fecha, 3) / 100) AS anio,
-                   MOD(YEARWEEK(fecha, 3), 100)    AS semana,
-                   MIN(DATE_SUB(DATE(fecha), INTERVAL WEEKDAY(fecha) DAY)) AS semana_inicio,
-                   COUNT(*)              AS actividades,
-                   ROUND(SUM(km), 3)     AS km_trabajo
-            FROM reporte_km
-            WHERE km_valido = 1 AND id_vehiculo IS NOT NULL AND fecha IS NOT NULL
-            GROUP BY id_vehiculo, anio, semana
-        ),
-        base AS (
-            SELECT id_vehiculo, anio, semana FROM odo
-            UNION
-            SELECT id_vehiculo, anio, semana FROM trab
-        )
-        SELECT base.id_vehiculo, base.anio, base.semana,
-               COALESCE(odo.semana_inicio, trab.semana_inicio) AS semana_inicio,
-               i.placa, i.marca, i.modelo, i.area,
-               COALESCE(odo.segmentos, 0)   AS segmentos_odo,
-               COALESCE(odo.km_total, 0)    AS km_registrado,
-               COALESCE(trab.actividades, 0) AS actividades_trabajo,
-               COALESCE(trab.km_trabajo, 0)  AS km_trabajo_calculado,
-               ROUND(COALESCE(trab.km_trabajo, 0) / NULLIF(odo.km_total, 0) * 100, 2) AS porcentaje_uso_trabajo
-        FROM base
-        LEFT JOIN odo  USING (id_vehiculo, anio, semana)
-        LEFT JOIN trab USING (id_vehiculo, anio, semana)
-        LEFT JOIN inventario i ON i.id_vehiculo = base.id_vehiculo";
+        SELECT m.id_vehiculo,
+               FLOOR(YEARWEEK(m.fecha_actividad, 3) / 100) AS anio,
+               MOD(YEARWEEK(m.fecha_actividad, 3), 100)    AS semana,
+               MIN(DATE_SUB(DATE(m.fecha_actividad), INTERVAL WEEKDAY(m.fecha_actividad) DAY)) AS semana_inicio,
+               MAX(i.placa), MAX(i.marca), MAX(i.modelo), MAX(i.area),
+               SUM(CASE WHEN m.km_tramo IS NOT NULL THEN 1 ELSE 0 END) AS segmentos_odo,
+               COALESCE(SUM(m.km_tramo), 0)                           AS km_registrado,
+               SUM(CASE WHEN m.km_mess > 0 THEN 1 ELSE 0 END)         AS actividades_trabajo,
+               SUM(m.km_mess)                                         AS km_trabajo_calculado,
+               ROUND(SUM(m.km_mess) / NULLIF(SUM(m.km_tramo), 0) * 100, 2) AS porcentaje_uso_trabajo
+        FROM " . sqlKmMessCheckin() . " m
+        LEFT JOIN inventario i ON i.id_vehiculo = m.id_vehiculo
+        GROUP BY m.id_vehiculo, anio, semana";
 }
 
 // Refresca reporte_km_vehiculo (reconstrucción total — es un agregado pequeño).
@@ -599,9 +647,9 @@ function refrescarReporteKmVehiculo(mysqli $conn): void {
 // rutas (rellenar placeholder / insertar): el fact por trayecto (esa fila) y el
 // resumen vehículo×semana (reconstrucción completa, es pequeño).
 //
-// Con el tope por odómetro (sqlTramoOdometro), el check-in que acaba de llegar es la
-// "lectura siguiente" del trayecto anterior del mismo vehículo, que hasta ahora contaba 0:
-// por eso se recalculan todos los trayectos del vehículo y no solo esta fila.
+// El km de un check-in depende del check-in anterior del vehículo (sqlKmMessCheckin). Se
+// recalculan todos los check-ins del vehículo y no solo esta fila: la reconciliación llena
+// check-ins viejos y un km corregido cambia también el tramo del check-in siguiente.
 function refrescarKpiKm(mysqli $conn, int $idKm): void {
     $idVehiculo = 0;
     try {
@@ -660,7 +708,9 @@ function calcularKmRuta(float $oLat, float $oLng, float $dLat, float $dLng): arr
  * con GPS, cuyo km aún no se calculó (order_code IS NULL) — y los empareja con
  * la actividad OTROS del MISMO DÍA del usuario que acaba de llegar en el CSV.
  * Cubre el caso en que el chofer sube su registro de actividad después del
- * check-in. Los check-ins de OV/OT se ignoran (ya se calculan en vivo).
+ * check-in. Los check-ins de OV/OT ya se calculan en vivo; aquí solo se recalculan los que
+ * quedaron sin km porque la OT/OV no se encontró al hacer el check-in (entró tarde al
+ * catálogo o venía escrita como 'MESS-OV-…').
  *
  * Por lotes: cada check-in que empareja hace varias llamadas a INEGI, y en el
  * hosting una sola petición que tarde minutos se corta (ERR_CONNECTION_RESET).
@@ -669,17 +719,20 @@ function calcularKmRuta(float $oLat, float $oLng, float $dLat, float $dLng): arr
  * llamada continúe donde quedó. Sin límite (CLI) procesa todo de una vez.
  *
  * @return array contadores: revisados, calculados, sin_actividad, sin_destino, ovot,
- *               regresos, terminado, desde_checkin, desde_regreso
+ *               ovot_recalculados, regresos, terminado, desde_checkin, desde_regreso
  */
 function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30, int $desdeCheckin = 0, int $desdeRegreso = 0, float $limiteSeg = 0): array {
     $res = ['revisados' => 0, 'calculados' => 0, 'sin_actividad' => 0, 'sin_destino' => 0, 'ovot' => 0,
-            'regresos' => 0, 'terminado' => false, 'desde_checkin' => $desdeCheckin, 'desde_regreso' => $desdeRegreso];
+            'ovot_recalculados' => 0, 'regresos' => 0, 'terminado' => false, 'desde_checkin' => $desdeCheckin, 'desde_regreso' => $desdeRegreso];
     $vence = $limiteSeg > 0 ? microtime(true) + $limiteSeg : INF;
     $procesados = 0;   // al menos uno por llamada, para que siempre avance
     $agotado = function () use (&$procesados, $vence) { return $procesados > 0 && microtime(true) > $vence; };
 
-    $stmt = $conn->prepare("SELECT id_actividad, id_usuario, coordenadas, ot, fecha_actividad
-        FROM actividad_vehiculo
+    // sin_km: el check-in no tiene km real todavía (sin fila o solo el placeholder 'sin_actividad').
+    $stmt = $conn->prepare("SELECT av.id_actividad, av.id_usuario, av.coordenadas, av.ot, av.fecha_actividad,
+               NOT EXISTS (SELECT 1 FROM km_calculados k
+                           WHERE k.id_actividad = av.id_actividad AND k.estatus <> 'sin_actividad') AS sin_km
+        FROM actividad_vehiculo av
         WHERE order_code IS NULL
           AND tipo_actividad = 'INICIO'
           AND coordenadas IS NOT NULL AND coordenadas <> ''
@@ -704,9 +757,18 @@ function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30, int $desdeCh
         $oLng = floatval(trim($partes[1]));
         if ($oLat == 0.0 && $oLng == 0.0) continue;
 
-        // Si el ot resuelve como OV/OT, ya se manejó en vivo: saltar.
+        // OV/OT: si ya tiene su km (se calculó en vivo), se salta. Si quedó solo el placeholder
+        // 'sin_actividad' porque la OT entró al catálogo después del check-in, o porque la OV
+        // venía como 'MESS-OV-…' antes de normalizarla (04/11/2026), se calcula ahora y
+        // registrarKm() rellena esa misma fila.
         $ot = trim((string) $row['ot']);
-        if ($ot !== '' && resolverCliente($conn, $ot) !== null) { $res['ovot']++; continue; }
+        if ($ot !== '' && resolverOvOt($conn, $ot) !== null) {
+            if (!$row['sin_km']) { $res['ovot']++; continue; }
+            procesarKmCheckin($conn, $ot, $oLat, $oLng, intval($row['id_usuario']) ?: null,
+                (int) $row['id_actividad'], (string) $row['fecha_actividad']);
+            $res['ovot_recalculados']++;
+            continue;
+        }
 
         $id_usuario = intval($row['id_usuario']);
         $otros = resolverClienteOtros($conn, $id_usuario, (string) $row['fecha_actividad']);
@@ -817,8 +879,9 @@ function procesarKmCheckin(mysqli $conn, string $ov_ot, ?float $oLat, ?float $oL
     $tipoActividad = esTipoActividad($ov_ot) ? strtoupper(trim($ov_ot)) : null;
     if ($tipoActividad !== null) $ov_ot = '';
 
-    $id_cliente = $ov_ot !== '' ? resolverCliente($conn, $ov_ot) : null;
-    $esOvOt     = $id_cliente !== null;      // el ot capturado SÍ es un OV/OT válido
+    $ovot       = $ov_ot !== '' ? resolverOvOt($conn, $ov_ot) : null;
+    $id_cliente = $ovot['id_cliente'] ?? null;
+    $esOvOt     = $ovot !== null;            // el ot capturado SÍ es un OV/OT válido
     $otros      = null;
 
     // Fallback OTROS: si no es OV/OT, tomar la actividad del usuario del día.
@@ -839,8 +902,9 @@ function procesarKmCheckin(mysqli $conn, string $ov_ot, ?float $oLat, ?float $oL
         return ['status' => 'error', 'message' => $ov_ot !== '' ? "OV/OT '$ov_ot' no encontrada" : 'Sin actividad OTROS para el usuario'];
     }
 
-    // En km_calculados.ov_ot va el código OV/OT, o el tipo de actividad si es OTROS.
-    $ovOtKm = $esOvOt ? $ov_ot : (string) $otros['actividad'];
+    // En km_calculados.ov_ot va el código OV/OT tal como está en el catálogo (no el texto
+    // capturado, que puede traer 'MESS-OV-' o texto pegado), o el tipo de actividad si es OTROS.
+    $ovOtKm = $esOvOt ? $ovot['codigo'] : (string) $otros['actividad'];
 
     // Destino: OTROS usa coords de la actividad (validadas vs sedes) o del
     // cliente; OV/OT usa siempre las del cliente.

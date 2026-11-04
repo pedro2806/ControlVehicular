@@ -151,6 +151,7 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpa
     echo "  Sin actividad: {$rc['sin_actividad']}\n";
     echo "  Sin destino:   {$rc['sin_destino']}\n";
     echo "  OV/OT (omit.): {$rc['ovot']}\n";
+    echo "  OV/OT recalc.: {$rc['ovot_recalculados']}\n";
 
     $conn->close();
 }

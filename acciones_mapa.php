@@ -188,21 +188,22 @@ if ($accion === 'ubicaciones') {
  * Por vehículo y en el rango de fechas, sin importar quién manejó. Mismo criterio que el
  * KPI de Power BI (sqlAggReporteKmVehiculo en calcular_ruta.php) para que los números
  * cuadren con el reporte:
- *   - km_odometro: suma de las diferencias entre lecturas consecutivas de
- *     actividad_vehiculo, cada una en la fecha de su lectura inicial; se descartan las
- *     negativas y las de más de KM_VIAJE_MAX (reseteos de tablero, dedazos).
- *   - km_mess: km calculados (INEGI) de los check-ins del rango con estatus 'ok', cada uno
- *     topado por lo que avanzó el odómetro hasta el check-in siguiente (03/11/2026; ver
- *     sqlTramoOdometro). Incluye "Volver a la sede", que cuenta como trabajo desde el 26/10.
+ *   - km_odometro: lo que avanzó el odómetro en los check-ins del rango, cada uno desde el
+ *     check-in anterior del vehículo (aunque ese caiga antes de `desde`); se descartan los
+ *     tramos negativos y los de más de KM_VIAJE_MAX (reseteos de tablero, dedazos).
+ *   - km_mess / km_personales: regla del 04/11/2026 (sqlKmMessCheckin en calcular_ruta.php):
+ *     un tramo es personal si entre los dos check-ins hubo al menos un día completo sin
+ *     check-ins; si no, es Mess. Siempre km_mess + km_personales = km_odometro.
  *   - pct_uso: km_mess / km_odometro; null sin odómetro (semáforo gris).
  *   - rendimiento: $ de gasolina / km_mess (lo pidió así la retro: costo por km de trabajo).
- *   - ots / ovs / otros: check-ins del rango según si su `ot` es una OT, una OV o ninguna.
+ *   - ots / ovs / otros: check-ins del rango según si su `ot` es una OT, una OV o ninguna,
+ *     con la misma normalización que el check-in ('MESS-OV-…', OT con texto pegado).
  *
  * Vehículos: todos los activos (la barra del panel los muestra todos). Primero los que se
  * movieron en el rango, de más a menos km; después los demás, por placa.
  */
 if ($accion === 'resumen') {
-    require_once __DIR__ . '/calcular_ruta.php';   // KM_VIAJE_MAX; incluirlo no dispara su endpoint
+    require_once __DIR__ . '/calcular_ruta.php';   // sqlKmMessCheckin() y sqlCheckinOvOt(); incluirlo no dispara su endpoint
 
     list($desde, $hasta) = rangoFechas($_POST['desde'] ?? '', $_POST['hasta'] ?? '');
 
@@ -234,35 +235,17 @@ if ($accion === 'resumen') {
          WHERE inv.estatus = 'Activo'"
     );
 
-    // El LEAD corre sobre todo el historial del vehículo: la lectura siguiente a la última
-    // del rango puede caer después de `hasta`, y ese tramo es del rango.
-    $kmMax = KM_VIAJE_MAX;
-    $odo = $porVehiculo(
-        "SELECT id_vehiculo, SUM(delta) AS km
-         FROM (SELECT id_vehiculo, fecha_actividad,
-                      LEAD(km_actual) OVER (PARTITION BY id_vehiculo ORDER BY fecha_actividad, id_actividad) - km_actual AS delta
-               FROM actividad_vehiculo
-               WHERE km_actual > 0) d
+    // Odómetro, KM Mess y personales con la misma definición que Power BI (reporte_km /
+    // reporte_km_vehiculo). El LAG corre sobre todo el historial: el check-in anterior al
+    // primero del rango puede caer antes de `desde`.
+    $km = $porVehiculo(
+        "SELECT id_vehiculo,
+                COALESCE(SUM(km_tramo), 0) AS odometro,
+                SUM(km_mess)               AS mess,
+                SUM(km_personal)           AS personal
+         FROM " . sqlKmMessCheckin() . " m
          WHERE fecha_actividad >= ? AND fecha_actividad < DATE_ADD(?, INTERVAL 1 DAY)
-           AND delta BETWEEN 0 AND $kmMax
          GROUP BY id_vehiculo",
-        "ss", $desde, $hasta
-    );
-    // KM Mess topados por el odómetro, como en reporte_km (SQL_KM_TOPADO en calcular_ruta.php).
-    // Además se separa lo que se descontó: `pendiente` es la ruta del último check-in, que
-    // cuenta 0 hasta que llegue la lectura siguiente; `recortado` es ruta que el odómetro no
-    // registró (destino mal ubicado).
-    $mess = $porVehiculo(
-        "SELECT av.id_vehiculo,
-                SUM(" . SQL_KM_TOPADO . ") AS km,
-                SUM(k.long_km) AS km_ruta,
-                SUM(CASE WHEN tr.id_actividad IS NOT NULL AND tr.km_tramo IS NULL THEN k.long_km ELSE 0 END) AS km_pendiente
-         FROM km_calculados k
-         INNER JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
-         LEFT JOIN " . sqlTramoOdometro() . " tr ON tr.id_actividad = k.id_actividad
-         WHERE av.fecha_actividad >= ? AND av.fecha_actividad < DATE_ADD(?, INTERVAL 1 DAY)
-           AND k.estatus = 'ok' AND k.long_km IS NOT NULL
-         GROUP BY av.id_vehiculo",
         "ss", $desde, $hasta
     );
     $gas = $porVehiculo(
@@ -272,17 +255,15 @@ if ($accion === 'resumen') {
          GROUP BY id_vehiculo",
         "ss", $desde, $hasta
     );
-    // COLLATE: actividad_vehiculo.ot es utf8mb4_general_ci y OT/OV son utf8mb4_0900_ai_ci;
-    // sin él MySQL lanza "Illegal mix of collations". OT.OT y OV.OV son UNIQUE: el JOIN no
-    // multiplica filas.
+    // OT/OV reconocidas como en el check-in (sqlCheckinOvOt). OT.OT y OV.OV son UNIQUE: el
+    // JOIN no multiplica filas.
     $tipos = $porVehiculo(
         "SELECT av.id_vehiculo,
-                SUM(ot_.OT IS NOT NULL) AS ots,
-                SUM(ot_.OT IS NULL AND ov_.OV IS NOT NULL) AS ovs,
-                SUM(ot_.OT IS NULL AND ov_.OV IS NULL) AS otros
+                SUM(CASE WHEN r.tipo = 'OT' THEN 1 ELSE 0 END) AS ots,
+                SUM(CASE WHEN r.tipo = 'OV' THEN 1 ELSE 0 END) AS ovs,
+                SUM(CASE WHEN r.tipo IS NULL THEN 1 ELSE 0 END) AS otros
          FROM actividad_vehiculo av
-         LEFT JOIN OT ot_ ON ot_.OT = TRIM(av.ot) COLLATE utf8mb4_0900_ai_ci
-         LEFT JOIN OV ov_ ON ov_.OV = TRIM(av.ot) COLLATE utf8mb4_0900_ai_ci
+         LEFT JOIN " . sqlCheckinOvOt() . " r ON r.id_actividad = av.id_actividad
          WHERE av.tipo_actividad = 'INICIO'
            AND av.fecha_actividad >= ? AND av.fecha_actividad < DATE_ADD(?, INTERVAL 1 DAY)
          GROUP BY av.id_vehiculo",
@@ -291,10 +272,8 @@ if ($accion === 'resumen') {
 
     $vehiculos = [];
     foreach ($info as $idVeh => $v) {
-        $kmOdo  = (float) ($odo[$idVeh]['km'] ?? 0);
-        $kmMess = round((float) ($mess[$idVeh]['km'] ?? 0), 1);
-        $kmPendiente = round((float) ($mess[$idVeh]['km_pendiente'] ?? 0), 1);
-        $kmRecortado = max(0, round((float) ($mess[$idVeh]['km_ruta'] ?? 0) - $kmMess - $kmPendiente, 1));
+        $kmOdo  = (float) ($km[$idVeh]['odometro'] ?? 0);
+        $kmMess = (float) ($km[$idVeh]['mess'] ?? 0);
         $gasto  = (float) ($gas[$idVeh]['total'] ?? 0);
 
         $asignado = trim(preg_replace('/\s+/u', ' ', (string) $v['asignado']));
@@ -311,14 +290,8 @@ if ($accion === 'resumen') {
             'region'           => $v['region'] ?: ($v['area'] ?: null),
             'km_odometro'      => $kmOdo,
             'km_mess'          => $kmMess,
-            'km_no_reportados' => max(0, round($kmOdo - $kmMess, 1)),
-            // Con el tope por trayecto km_mess ya no pasa del odómetro; el min() queda por
-            // si el redondeo deja 100.x.
-            'pct_uso'          => $kmOdo > 0 ? min(100, round($kmMess / $kmOdo * 100)) : null,
-            // La vista avisa de ambos: recortado apunta a un destino mal ubicado (p. ej. la
-            // OT ZEISSI26-06I-769, cliente MESS Querétaro usada en Saltillo).
-            'km_recortado'     => $kmRecortado,
-            'km_pendiente'     => $kmPendiente,
+            'km_personales'    => (float) ($km[$idVeh]['personal'] ?? 0),
+            'pct_uso'          => $kmOdo > 0 ? round($kmMess / $kmOdo * 100) : null,
             'gasto_gas'        => $gasto,
             // null sin cargas o sin km Mess: un $0.00/km parecería un vehículo que no gasta.
             'rendimiento'      => ($kmMess > 0 && $gasto > 0) ? round($gasto / $kmMess, 2) : null,

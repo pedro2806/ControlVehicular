@@ -339,3 +339,40 @@ function etiquetaVehiculo(v) {
     var etiqueta = partes.join(' - ');
     return usuario ? etiqueta + ' · ' + usuario : etiqueta;
 }
+
+/**
+ * Imagen del vehículo para los recuadros de "foto del vehículo": QR del vehículo, checklist,
+ * documentación, siniestros, verificación de check-in y panel del mapa. En orden:
+ *   1. img/QRide_vehiculos_ilustraciones/web/{id_vehiculo}.jpg, la copia ligera (~21 KB) que
+ *      genera reportes/ilustraciones_web.php;
+ *   2. la ilustración original {id_vehiculo}.png (~650 KB), por si falta la copia;
+ *   3. la foto_general del inventario;
+ *   4. el ícono.
+ * Devuelve el HTML que va dentro de un recuadro .foto-vehiculo-caja (css/app.css), que pone
+ * tamaño y fondo.
+ */
+var RUTA_ILUSTRACIONES = 'img/QRide_vehiculos_ilustraciones/';
+var ICONO_FOTO_VEHICULO = '<i class="fas fa-car fa-2x text-muted"></i>';
+
+function htmlFotoVehiculo(idVehiculo, fotoGeneral) {
+    var id = parseInt(idVehiculo, 10);
+    var fuentes = [];
+    if (id > 0) fuentes.push(RUTA_ILUSTRACIONES + 'web/' + id + '.jpg', RUTA_ILUSTRACIONES + id + '.png');
+    if (fotoGeneral) fuentes.push(String(fotoGeneral));
+    if (!fuentes.length) return ICONO_FOTO_VEHICULO;
+    var attr = function (s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+    return '<img class="foto-vehiculo" alt="" src="' + attr(fuentes[0]) + '"'
+        + ' data-respaldo="' + attr(fuentes.slice(1).join('|')) + '" onerror="fotoVehiculoRespaldo(this)">';
+}
+
+// onerror de htmlFotoVehiculo: pasa a la siguiente fuente (muchas rutas de foto_general
+// están rotas) y, cuando ya no quedan, al ícono.
+function fotoVehiculoRespaldo(img) {
+    var resto = (img.getAttribute('data-respaldo') || '').split('|').filter(Boolean);
+    if (resto.length) {
+        img.setAttribute('data-respaldo', resto.slice(1).join('|'));
+        img.src = resto[0];
+        return;
+    }
+    img.outerHTML = ICONO_FOTO_VEHICULO;
+}

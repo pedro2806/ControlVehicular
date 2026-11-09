@@ -72,6 +72,7 @@ if (!$puedeVerMapa) {
         .mu-popup dd { margin: 0; }
 
         #tablaDetalle tbody tr { cursor: pointer; }
+        .mu-km-personal { color: var(--danger); font-weight: 600; }
         #tablaDetalle tbody tr.es-activo > * { box-shadow: none; background: var(--accent-soft); }
 
         /* ===== Panel "Uso del vehículo" (retro 03/11/2026) ===== */
@@ -122,11 +123,6 @@ if (!$puedeVerMapa) {
         /* Ficha del vehículo */
         .uv-ficha { border: 2px solid var(--border); border-radius: .9rem; padding: 1rem; }
         .uv-cab { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; }
-        .uv-foto {
-            flex: none; width: 120px; height: 80px; display: flex; align-items: center; justify-content: center;
-            border-radius: .5rem; background: var(--card-soft); color: var(--text-muted); overflow: hidden;
-        }
-        .uv-foto img { width: 100%; height: 100%; object-fit: cover; }
         .uv-titulo { line-height: 1.15; }
         .uv-titulo__marca { font-size: 1.35rem; text-transform: uppercase; }
         .uv-titulo__marca small { font-size: .8rem; color: var(--text-muted); text-transform: none; }
@@ -168,7 +164,7 @@ if (!$puedeVerMapa) {
 
                 <div class="mb-3">
                     <h1 class="h3 mb-0 text-gray-800">Mapa de ubicaciones</h1>
-                    <div class="small text-muted">Check-ins con ubicación según los filtros. Toca un marcador o una fila para ver el detalle.</div>
+                    <div class="small text-muted">Check-ins con ubicación según los filtros. Toca una tarjeta, un marcador o una fila para ver ese vehículo en el panel y en el detalle.</div>
                 </div>
 
                 <!-- Filtros. Ya no está "Mostrar ubicaciones" (con/sin vehículo): el mapa
@@ -176,11 +172,15 @@ if (!$puedeVerMapa) {
                 <div class="card shadow mb-3">
                     <div class="card-body py-3">
                         <div class="row g-2 align-items-end">
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-2">
+                                <label for="fRegion" class="form-label mb-1 small fw-semibold">Región</label>
+                                <select id="fRegion" class="form-select form-select-sm"><option value="">Todas</option></select>
+                            </div>
+                            <div class="col-12 col-md-2">
                                 <label for="fUsuario" class="form-label mb-1 small fw-semibold">Usuario</label>
                                 <select id="fUsuario" class="form-select form-select-sm"><option value="0">Todos</option></select>
                             </div>
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-2">
                                 <label for="fVehiculo" class="form-label mb-1 small fw-semibold">Vehículo</label>
                                 <select id="fVehiculo" class="form-select form-select-sm"><option value="0">Todos</option></select>
                             </div>
@@ -234,7 +234,13 @@ if (!$puedeVerMapa) {
                      mapa: la página entera está restringida. -->
                 <div class="card shadow mb-4">
                     <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
-                        <h6 class="m-0 fw-bold text-dark"><i class="fas fa-table-list me-1"></i> Detalle <span class="badge bg-secondary ms-1" id="badgeDetalle"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h6 class="m-0 fw-bold text-dark"><i class="fas fa-table-list me-1"></i> Detalle <span class="badge bg-secondary ms-1" id="badgeDetalle"></span></h6>
+                            <span class="small text-muted" id="filtroDetalle" style="display:none;">
+                                Solo <b id="filtroDetallePlaca"></b> ·
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="btnVerTodos">Ver todos</button>
+                            </span>
+                        </div>
                         <button id="btnExcel" class="btn btn-outline-success btn-sm" disabled>
                             <i class="fas fa-file-excel me-1"></i> Descargar Excel
                         </button>
@@ -282,10 +288,13 @@ var mapa, capa, tabla;
 var filas = [];          // ubicaciones del último resultado
 var marcadores = {};     // id_actividad -> marcador
 var marcadorActivo = null;
-var rango = { desde: '', hasta: '' };
+// usuario / region: los filtros de la última búsqueda (no lo que esté en los select ahora).
+var rango = { desde: '', hasta: '', usuario: 0, region: '' };
 // Panel de uso: vehículo de la ficha, tarjetas de la tira (respuesta de accion=resumen) y
 // un contador para descartar respuestas viejas cuando se piden dos seguidas.
 var uv = { activo: 0, tarjetas: [], turno: 0, error: '' };
+// Vehículo al que se limita la tabla Detalle (0 = todo el resultado de la búsqueda).
+var detalleVehiculo = 0;
 
 var iconoPin = L.divIcon({ className: 'mu-pin', html: '<i class="fas fa-location-dot"></i>',
                            iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -26] });
@@ -366,8 +375,19 @@ $(document).ready(function () {
                 var veh = vehiculoTexto(f);
                 return esc(d) + (veh && t === 'display' ? '<div class="small text-muted">' + esc(veh) + '</div>' : '');
             } },
+            // Km del odómetro y, abajo, lo agregado desde el check-in anterior del vehículo
+            // (personal si en medio hubo un día completo sin check-ins; sqlKmMessCheckin).
             { data: 'km', className: 'text-end text-nowrap',
-              render: function (d, t) { return t === 'display' ? (d ? Number(d).toLocaleString('es-MX') + ' km' : '—') : d; } },
+              render: function (d, t, f) {
+                if (t !== 'display') return d;
+                var html = d ? Number(d).toLocaleString('es-MX') + ' km' : '—';
+                if (f.km_agregado !== null && f.km_agregado !== undefined) {
+                    html += '<div class="small ' + (f.personal ? 'mu-km-personal' : 'text-muted') + '"'
+                          + ' title="Km desde el check-in anterior del vehículo' + (f.personal ? ': hubo al menos un día sin check-ins, cuentan como personales' : '') + '">'
+                          + '+' + Number(f.km_agregado).toLocaleString('es-MX') + ' km' + (f.personal ? ' · personal' : '') + '</div>';
+                }
+                return html;
+              } },
             { data: 'carga', orderable: false, render: function (c) {
                 if (!c) return '<span class="text-muted">Sin cargas registradas</span>';
                 return esc(fmtFecha(c.fecha)) + '<div class="small text-muted">pagó ' + fmtMoneda(c.pagos) + ' · saldo ' + fmtMoneda(c.saldo) + '</div>';
@@ -381,7 +401,7 @@ $(document).ready(function () {
             } }
         ],
         language: {
-            lengthMenu: 'Mostrar _MENU_ registros', zeroRecords: 'Sin resultados',
+            lengthMenu: 'Mostrar _MENU_ registros', zeroRecords: 'Sin check-ins que coincidan',
             emptyTable: 'Sin check-ins con ubicación en este rango',
             info: 'Mostrando _START_ a _END_ de _TOTAL_', infoEmpty: 'Sin registros',
             infoFiltered: '(filtrado de _MAX_)', search: 'Buscar:',
@@ -398,9 +418,15 @@ $(document).ready(function () {
     });
 
     $('#uvTira').on('click', '.uv-tarjeta', function () {
-        uv.activo = parseInt($(this).data('id'), 10) || 0;
-        mostrarActivo();
+        seleccionarVehiculo($(this).data('id'));
     });
+
+    // La tabla Detalle sigue al vehículo de la ficha. El Excel exporta las filas que pasan
+    // este filtro (rows({search: 'applied'})), así que también descarga solo ese vehículo.
+    $.fn.dataTable.ext.search.push(function (settings, datos, i, f) {
+        return settings.nTable.id !== 'tablaDetalle' || !detalleVehiculo || f.id_vehiculo == detalleVehiculo;
+    });
+    $('#btnVerTodos').on('click', function () { filtrarDetalle(0); });
 
     $('#btnBuscar').on('click', buscar);
     $('#btnExcel').on('click', descargarExcel);
@@ -414,6 +440,10 @@ function cargarFiltros() {
         url: 'acciones_mapa.php', method: 'POST', dataType: 'json', data: { accion: 'filtros' },
         success: function (resp) {
             if (!resp || resp.status !== 'success') return;
+            // Región del vehículo: la de su asignado en RRHH (acciones_mapa.php, $sqlRegionVehiculo).
+            if (Array.isArray(resp.regiones)) {
+                resp.regiones.forEach(function (r) { $('#fRegion').append($('<option>').val(r).text(r)); });
+            }
             if (Array.isArray(resp.usuarios)) {
                 resp.usuarios.forEach(function (u) {
                     $('#fUsuario').append($('<option>').val(u.id_usuario).text(u.nombre));
@@ -433,12 +463,14 @@ function cargarFiltros() {
 function buscar() {
     avisoMapa('Cargando ubicaciones…');
     $('#btnBuscar').prop('disabled', true);
+    var usuarioBuscado = parseInt($('#fUsuario').val(), 10) || 0;
+    var regionBuscada = $('#fRegion').val() || '';
     $.ajax({
         url: 'acciones_mapa.php', method: 'POST', dataType: 'json',
         data: {
             accion: 'ubicaciones',
             desde: $('#fDesde').val(), hasta: $('#fHasta').val(),
-            id_usuario: $('#fUsuario').val(), id_vehiculo: $('#fVehiculo').val()
+            id_usuario: usuarioBuscado, id_vehiculo: $('#fVehiculo').val(), region: regionBuscada
         },
         success: function (resp) {
             if (!resp || resp.status !== 'success') {
@@ -447,7 +479,7 @@ function buscar() {
             }
             // Array.isArray antes de iterar: ante un error el endpoint manda un objeto.
             filas = Array.isArray(resp.ubicaciones) ? resp.ubicaciones : [];
-            rango = { desde: resp.desde, hasta: resp.hasta };
+            rango = { desde: resp.desde, hasta: resp.hasta, usuario: usuarioBuscado, region: regionBuscada };
             $('#fDesde').val(resp.desde);
             $('#fHasta').val(resp.hasta);
             var sinCoord = parseInt(resp.sin_coordenadas, 10) || 0;
@@ -489,10 +521,31 @@ function pintar() {
         avisoMapa('Sin check-ins con ubicación en este rango.');
     }
 
-    tabla.clear().rows.add(filas).draw();
-    var txt = filas.length + (filas.length === 1 ? ' registro' : ' registros');
-    $('#badgeMapa, #badgeDetalle').text(txt);
-    $('#btnExcel').prop('disabled', !filas.length);
+    tabla.clear().rows.add(filas);
+    $('#badgeMapa').text(filas.length + (filas.length === 1 ? ' registro' : ' registros'));
+    // Una búsqueda nueva muestra todo su resultado en la tabla.
+    filtrarDetalle(0);
+}
+
+/**
+ * Limita la tabla Detalle a los check-ins de un vehículo del resultado (0 = todos). Lo llama
+ * cada cambio de vehículo: tarjeta, marcador o fila. Con el filtro Usuario puesto, son solo
+ * los check-ins de ese usuario en el vehículo.
+ */
+function filtrarDetalle(id) {
+    detalleVehiculo = parseInt(id, 10) || 0;
+    tabla.draw();
+    var n = tabla.rows({ search: 'applied' }).count();
+    $('#badgeDetalle').text(n + (n === 1 ? ' registro' : ' registros'));
+    $('#btnExcel').prop('disabled', !n);
+
+    // El aviso solo cuando el filtro deja algo fuera (con el filtro Vehículo de la búsqueda
+    // ya está todo).
+    var t = !detalleVehiculo ? null
+          : (uv.tarjetas.find(function (x) { return x.id_vehiculo == detalleVehiculo; })
+             || filas.find(function (x) { return x.id_vehiculo == detalleVehiculo; }));
+    $('#filtroDetallePlaca').text(t ? t.placa : '');
+    $('#filtroDetalle').toggle(detalleVehiculo > 0 && n < filas.length);
 }
 
 /**
@@ -516,7 +569,8 @@ function enfocar(id, desdeTabla) {
 
 /* ===== Panel "Uso del vehículo" (retro 03/11/2026) =====
  * Tira: todos los vehículos activos, primero los que se movieron en el rango (así los
- * ordena acciones_mapa.php). Ficha: el vehículo activo, que se elige con el filtro
+ * ordena acciones_mapa.php); con el filtro Región, solo los de esa región; con el filtro
+ * Usuario, solo los que esa persona usó. Ficha: el vehículo activo, que se elige con el filtro
  * Vehículo, un marcador, una fila de la tabla o una tarjeta. Todas las cifras ya vienen en
  * la respuesta: cambiar de vehículo no vuelve a consultar. */
 
@@ -524,57 +578,49 @@ var SIN_CHECKINS_USUARIO = -1;   // uv.activo cuando el usuario filtrado no tien
 
 /**
  * Vehículo de la ficha tras una búsqueda: el del filtro Vehículo; con un usuario en el
- * filtro, el que más usó en el rango (antes se quedaba el vehículo anterior y parecía que
- * el filtro no hacía nada); sin ninguno de los dos, 0 = la primera tarjeta, la de más km.
+ * filtro, el que más usó en el rango, que es la primera tarjeta de su tira (mientras llega
+ * el resumen queda en SIN_CHECKINS_USUARIO, y cargarPanel lo pasa a la primera tarjeta si
+ * la hay); sin ninguno de los dos, 0 = la primera tarjeta, la de más km.
  */
 function vehiculoParaPanel() {
     var veh = parseInt($('#fVehiculo').val(), 10) || 0;
     if (veh) return veh;
-    if (!(parseInt($('#fUsuario').val(), 10) || 0)) return 0;
-    if (!filas.length) return SIN_CHECKINS_USUARIO;
-
-    // filas ya viene filtrada por el usuario. En empate gana el que llegó primero a esa
-    // cuenta, y filas va de la más reciente a la más vieja.
-    var cuenta = {}, mejor = 0;
-    filas.forEach(function (f) {
-        cuenta[f.id_vehiculo] = (cuenta[f.id_vehiculo] || 0) + 1;
-        if (!mejor || cuenta[f.id_vehiculo] > cuenta[mejor]) mejor = f.id_vehiculo;
-    });
-    return mejor;
+    return rango.usuario ? SIN_CHECKINS_USUARIO : 0;
 }
 
 /**
- * Con un usuario en el filtro, los vehículos que usó en el rango van primero en la tira
- * (por cuántos check-ins hizo en cada uno); el resto sigue en el orden del servidor.
+ * Con un usuario en el filtro, la tira muestra solo los vehículos en que esa persona hizo
+ * check-in en el rango, del más usado al menos usado (checkins_usuario lo cuenta
+ * acciones_mapa.php). Sin usuario, todos en el orden del servidor.
  */
 function ordenarTira(lista) {
-    if (!(parseInt($('#fUsuario').val(), 10) || 0)) return lista;
-    var cuenta = {};
-    filas.forEach(function (f) { cuenta[f.id_vehiculo] = (cuenta[f.id_vehiculo] || 0) + 1; });
-    var suyos = lista.filter(function (t) { return cuenta[t.id_vehiculo]; })
-                     .sort(function (a, b) { return cuenta[b.id_vehiculo] - cuenta[a.id_vehiculo]; });
-    return suyos.concat(lista.filter(function (t) { return !cuenta[t.id_vehiculo]; }));
+    if (!rango.usuario) return lista;
+    return lista.filter(function (t) { return t.checkins_usuario > 0; })
+                .sort(function (a, b) { return b.checkins_usuario - a.checkins_usuario; });
 }
 
-/** Marcador o fila de la tabla: su vehículo pasa a la ficha. */
+/** Tarjeta, marcador o fila de la tabla: su vehículo pasa a la ficha y a la tabla Detalle. */
 function seleccionarVehiculo(id) {
     id = parseInt(id, 10) || 0;
     if (!id) return;
     uv.activo = id;
     mostrarActivo();
+    filtrarDetalle(id);
 }
 
 function cargarPanel() {
     var turno = ++uv.turno;
     $.ajax({
         url: 'acciones_mapa.php', method: 'POST', dataType: 'json',
-        data: { accion: 'resumen', desde: rango.desde, hasta: rango.hasta },
+        data: { accion: 'resumen', desde: rango.desde, hasta: rango.hasta, id_usuario: rango.usuario, region: rango.region },
         success: function (resp) {
             if (turno !== uv.turno) return;   // ya se pidió otra más nueva
             var ok = resp && resp.status === 'success';
             uv.error = ok ? '' : ((resp && resp.message) || 'No se pudo cargar el uso del vehículo.');
             // Array.isArray antes de iterar: ante un error el endpoint manda un objeto.
             uv.tarjetas = ordenarTira(ok && Array.isArray(resp.vehiculos) ? resp.vehiculos : []);
+            // Hizo check-ins pero ninguno con ubicación: no hay marcadores, pero sí tarjetas.
+            if (uv.activo === SIN_CHECKINS_USUARIO && uv.tarjetas.length) uv.activo = 0;
             pintarPanel();
         },
         error: function (xhr) {
@@ -608,7 +654,6 @@ function fmtKm(n) {
     return (Number(n) || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 }) + ' km';
 }
 
-var ICONO_AUTO = '<i class="fas fa-car-side fa-2x"></i>';
 
 // Regla de KM Mess del 04/11/2026 (sqlKmMessCheckin en calcular_ruta.php), para el title.
 var AYUDA_KM_MESS = 'Lo que avanzó el odómetro de un check-in al siguiente, cuando el siguiente es del '
@@ -658,7 +703,7 @@ function mostrarActivo() {
 
     if (!v) {
         var vacio = uv.error || (uv.activo === SIN_CHECKINS_USUARIO
-            ? 'Este usuario no tiene check-ins en el rango. Elige una tarjeta para ver otro vehículo.'
+            ? 'Este usuario no tiene check-ins en el rango.'
             : 'Elige un vehículo en el filtro, en el mapa o en la tabla.');
         $('#uvFicha').html('<div class="uv-vacio">' + esc(vacio) + '</div>');
         return;
@@ -667,7 +712,8 @@ function mostrarActivo() {
     $('#uvFicha').html(
         '<div class="uv-ficha">'
         + '<div class="uv-cab">'
-        +   '<div class="uv-foto">' + (v.foto ? '<img alt="" src="' + esc(v.foto) + '">' : ICONO_AUTO) + '</div>'
+        // Ilustración del vehículo; si no hay, su foto_general o el ícono (js/global/vehiculos.js).
+        +   '<div class="foto-vehiculo-caja">' + htmlFotoVehiculo(v.id_vehiculo, v.foto) + '</div>'
         +   '<div class="uv-titulo">'
         +     '<div class="uv-titulo__marca">' + esc(v.marca || '') + (v.modelo ? ' <small>' + esc(v.modelo) + '</small>' : '') + '</div>'
         +     (v.anio ? '<div class="uv-titulo__anio">' + esc(v.anio) + '</div>' : '')
@@ -699,8 +745,6 @@ function mostrarActivo() {
         + '</div>'
         + '</div>'
     );
-    // Muchas rutas de foto_general están mal: sin foto, el ícono.
-    $('#uvFicha .uv-foto img').on('error', function () { $(this).replaceWith(ICONO_AUTO); });
 }
 
 /**
@@ -711,13 +755,15 @@ function descargarExcel() {
     var lista = tabla.rows({ search: 'applied' }).data().toArray();
     if (!lista.length) return;
 
-    var enc = ['Fecha', 'Hora', 'Usuario', 'Placa', 'Vehículo', 'Km', 'Última carga', 'Pagó', 'Saldo tras la carga', 'OT / OV', 'Latitud', 'Longitud', 'Google Maps'];
+    var enc = ['Fecha', 'Hora', 'Usuario', 'Placa', 'Vehículo', 'Km', 'Km agregado', 'Uso', 'Última carga', 'Pagó', 'Saldo tras la carga', 'OT / OV', 'Latitud', 'Longitud', 'Google Maps'];
     var aoa = [enc].concat(lista.map(function (f) {
         var p = String(f.fecha).split(' ');
         var d = p[0].split('-');
         return [
             d[2] + '/' + d[1] + '/' + d[0], (p[1] || '').slice(0, 5), f.usuario, f.placa, vehiculoTexto(f),
             f.km || 0,
+            f.km_agregado === null || f.km_agregado === undefined ? '' : f.km_agregado,
+            f.km_agregado === null || f.km_agregado === undefined ? '' : (f.personal ? 'Personal' : 'Mess'),
             f.carga ? fmtFecha(f.carga.fecha) : 'Sin cargas',
             f.carga ? f.carga.pagos : '', f.carga ? f.carga.saldo : '',
             f.ot || '', f.lat, f.lng, urlMaps(f)
@@ -729,12 +775,12 @@ function descargarExcel() {
                       alignment: { vertical: 'center', wrapText: true } };
     for (var c = 0; c < enc.length; c++) ws[XLSX.utils.encode_cell({ r: 0, c: c })].s = estiloEnc;
     for (var r = 1; r < aoa.length; r++) {
-        var km = ws[XLSX.utils.encode_cell({ r: r, c: 5 })];  if (km) km.z = '#,##0';
-        [7, 8].forEach(function (col) { var x = ws[XLSX.utils.encode_cell({ r: r, c: col })]; if (x && x.t === 'n') x.z = '"$"#,##0.00'; });
-        var link = ws[XLSX.utils.encode_cell({ r: r, c: 12 })];
+        [5, 6].forEach(function (col) { var x = ws[XLSX.utils.encode_cell({ r: r, c: col })]; if (x && x.t === 'n') x.z = '#,##0'; });
+        [9, 10].forEach(function (col) { var x = ws[XLSX.utils.encode_cell({ r: r, c: col })]; if (x && x.t === 'n') x.z = '"$"#,##0.00'; });
+        var link = ws[XLSX.utils.encode_cell({ r: r, c: 14 })];
         if (link) { link.l = { Target: link.v }; link.v = 'Ver en mapa'; link.s = { font: { color: { rgb: '1C83F1' }, underline: true } }; }
     }
-    ws['!cols'] = [12, 7, 28, 10, 18, 10, 18, 11, 14, 18, 11, 11, 13].map(function (w) { return { wch: w }; });
+    ws['!cols'] = [12, 7, 28, 10, 18, 10, 11, 9, 18, 11, 14, 18, 11, 11, 13].map(function (w) { return { wch: w }; });
     ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: enc.length - 1 } }) };
 
     var wb = XLSX.utils.book_new();

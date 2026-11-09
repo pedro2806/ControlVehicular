@@ -64,10 +64,8 @@ if (empty($_COOKIE['noEmpleado'])) {
                     <div class="card shadow mb-3" id="cardVehiculo" style="display:none;">
                         <div class="card-body">
                             <div class="d-flex gap-3 align-items-center">
-                                <div id="fotoVehiculo" class="flex-shrink-0">
-                                    <div class="vehicle-photo-placeholder">
-                                        <i class="fas fa-car fa-2x"></i>
-                                    </div>
+                                <div id="fotoVehiculo" class="foto-vehiculo-caja">
+                                    <i class="fas fa-car fa-2x text-muted"></i>
                                 </div>
                                 <div class="flex-grow-1 min-w-0">
                                     <h4 class="fw-bold mb-0 text-truncate" id="infoPlaca"></h4>
@@ -505,17 +503,8 @@ if (empty($_COOKIE['noEmpleado'])) {
         }
 
         function renderVehiculo(v) {
-            // Foto o placeholder
-            if (v.foto_general) {
-                var img = new Image();
-                img.className = 'vehicle-photo';
-                img.alt = 'Foto';
-                img.onerror = function () {
-                    $('#fotoVehiculo').html('<div class="vehicle-photo-placeholder"><i class="fas fa-car fa-2x"></i></div>');
-                };
-                img.src = v.foto_general;
-                $('#fotoVehiculo').empty().append(img);
-            }
+            // Ilustración del vehículo; si no hay, su foto_general o el ícono (js/global/vehiculos.js).
+            $('#fotoVehiculo').html(htmlFotoVehiculo(v.id_vehiculo, v.foto_general));
 
             // Info principal
             $('#infoPlaca').text(v.placa || '');

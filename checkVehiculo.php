@@ -122,10 +122,9 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
                         <div class="card shadow-sm mb-3">
                             <div class="card-body py-3 px-3">
                                 <div class="d-flex align-items-center">
-                                    <div id="fotoVehiculoPlaceholder" style="width:80px; height:80px; border-radius:8px; background:var(--card-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <div id="fotoVehiculo" class="foto-vehiculo-caja">
                                         <i class="fas fa-car fa-2x text-muted"></i>
                                     </div>
-                                    <img id="fotoVehiculo" style="width:80px; height:80px; object-fit:cover; border-radius:8px; display:none; flex-shrink:0;" onerror="this.style.display='none'; document.getElementById('fotoVehiculoPlaceholder').style.display='';">
                                     <div class="ml-3 flex-grow-1">
                                         <h5 class="mb-0 font-weight-bold text-primary" id="placa" name="placa"></h5>
                                         <span class="text-dark" id="modeloMarca"></span>
@@ -460,14 +459,8 @@ if ($_COOKIE['noEmpleado'] == '' || $_COOKIE['noEmpleado'] == null) {
         $('#usuario').text(Registro.usuario || Registro.asignado || '');
         $('#kilometraje').val(Registro.kilometraje);
 
-        var foto = Registro.fotoGeneral || '';
-        if (foto) {
-            $('#fotoVehiculo').attr('src', foto).show();
-            $('#fotoVehiculoPlaceholder').hide();
-        } else {
-            $('#fotoVehiculo').hide();
-            $('#fotoVehiculoPlaceholder').show();
-        }
+        // Ilustración del vehículo; si no hay, su foto_general o el ícono (js/global/vehiculos.js).
+        $('#fotoVehiculo').html(htmlFotoVehiculo(Registro.idCoche, Registro.fotoGeneral));
 
         // Limpieza completa: si no, al cambiar de vehículo se quedaban las fotos y los
         // datos capturados del anterior.

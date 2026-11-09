@@ -1,18 +1,16 @@
+/* ===== Foto del vehículo (htmlFotoVehiculo en js/global/vehiculos.js) =====
+   Las ilustraciones son 16:9 con fondo blanco: el recuadro va apaisado para no recortar el auto. */
+.foto-vehiculo-caja {
+    flex: none;
+    width: 128px; height: 72px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--card-soft);
+}
+.foto-vehiculo { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 /* ===== QR Vehículo (qr_vehiculo.php) ===== */
-.vehicle-photo {
-    width: 110px; height: 90px;
-    object-fit: cover;
-    border-radius: 8px;
-}
-.vehicle-photo-placeholder {
-    width: 110px; height: 90px;
-    background: #e9ecef;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #adb5bd;
-}
 .action-btn {
     display: flex;
     flex-direction: column;
@@ -58,7 +56,6 @@
 
 /* Modo oscuro (tokens de mess-ds.css). Los estilos de sticker NO se
    tokenizan: la etiqueta impresa debe conservar sus colores exactos. */
-body.theme-dark .vehicle-photo-placeholder { background: var(--card-soft); color: var(--text-muted); }
 body.theme-dark .foto-captura { background: var(--card-soft); }
 body.theme-dark .foto-captura .foto-viewfinder { border-color: var(--border); }
 body.theme-dark .foto-captura .corner { border-color: var(--text-muted); }

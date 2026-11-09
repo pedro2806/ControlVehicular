@@ -39,6 +39,26 @@ $sqlNombre = "IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.
 // vehículos tardaba 2.5 s, así tarda milisegundos.
 $sqlUltimoUsuario = "(SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario)";
 
+// Región de cada vehículo activo (la que muestra la ficha y usa el filtro Región): la de su
+// asignado en RRHH (mess_rrhh.usuarios.region; si no está en RRHH, la de usuarios de CV);
+// sin asignado, la región cuyo nombre coincide con inventario.area ('BAJIO' -> 'Bajio') y,
+// si ninguna coincide, el área tal cual. COLLATE: region.region es utf8mb3_spanish_ci e
+// inventario.area utf8mb3_spanish2_ci.
+$sqlRegionVehiculo = "(SELECT inv.id_vehiculo,
+        COALESCE(reg.region, rarea.region, NULLIF(TRIM(inv.area), '') COLLATE utf8mb3_spanish_ci) AS region
+    FROM inventario inv
+    LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = inv.id_us_asignado AND inv.id_us_asignado > 0
+    LEFT JOIN usuarios u ON u.id = um.id
+    LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
+    LEFT JOIN mess_rrhh.region reg ON reg.id = COALESCE(rrhh.region, u.region)
+    LEFT JOIN mess_rrhh.region rarea ON rarea.region = TRIM(inv.area) COLLATE utf8mb3_spanish_ci
+    WHERE inv.estatus = 'Activo')";
+
+// Región del filtro (texto tal cual de la lista de filtros; vacío = todas).
+function regionFiltro() {
+    return mb_substr(trim((string) ($_POST['region'] ?? '')), 0, 50);
+}
+
 /**
  * Rango de fechas de los filtros. Sin fechas, el mes en curso (del día 1 a hoy): lo pidieron
  * así el 03/11/2026, porque el panel de uso se lee por mes. Antes eran los últimos 30 días.
@@ -81,7 +101,12 @@ if ($accion === 'filtros') {
     );
     if ($res) { while ($r = $res->fetch_assoc()) $vehiculos[] = $r; }
 
-    echo json_encode(['status' => 'success', 'usuarios' => $usuarios, 'vehiculos' => $vehiculos]);
+    // Regiones con al menos un vehículo activo.
+    $regiones = [];
+    $res = $conn->query("SELECT DISTINCT region FROM $sqlRegionVehiculo rv WHERE region IS NOT NULL ORDER BY region");
+    if ($res) { while ($r = $res->fetch_assoc()) $regiones[] = $r['region']; }
+
+    echo json_encode(['status' => 'success', 'usuarios' => $usuarios, 'vehiculos' => $vehiculos, 'regiones' => $regiones]);
     exit;
 }
 
@@ -97,6 +122,7 @@ if ($accion === 'filtros') {
  * anteriores a cualquier check-in de ese mismo día.
  */
 if ($accion === 'ubicaciones') {
+    require_once __DIR__ . '/calcular_ruta.php';   // sqlKmMessCheckin(); incluirlo no dispara su endpoint
     list($desde, $hasta) = rangoFechas($_POST['desde'] ?? '', $_POST['hasta'] ?? '');
     $idUsr = intval($_POST['id_usuario'] ?? 0);
     $idVeh = intval($_POST['id_vehiculo'] ?? 0);
@@ -108,15 +134,22 @@ if ($accion === 'ubicaciones') {
     $params = [$desde, $hasta];
     if ($idUsr > 0) { $where .= " AND av.id_usuario = ?";  $tipos .= "i"; $params[] = $idUsr; }
     if ($idVeh > 0) { $where .= " AND av.id_vehiculo = ?"; $tipos .= "i"; $params[] = $idVeh; }
+    $region = regionFiltro();
+    if ($region !== '') {
+        $where .= " AND av.id_vehiculo IN (SELECT id_vehiculo FROM $sqlRegionVehiculo rv WHERE rv.region = ?)";
+        $tipos .= "s"; $params[] = $region;
+    }
 
     $stmt = $conn->prepare(
         "SELECT av.id_actividad, av.id_vehiculo, av.id_usuario, av.fecha_actividad,
                 av.km_actual, av.ot, av.coordenadas,
                 inv.placa, inv.marca, inv.modelo,
                 $sqlNombre AS usuario,
-                cg.fecha_carga AS carga_fecha, cg.pagos AS carga_pagos, cg.saldo AS carga_saldo
+                cg.fecha_carga AS carga_fecha, cg.pagos AS carga_pagos, cg.saldo AS carga_saldo,
+                m.km_tramo, m.km_personal
          FROM actividad_vehiculo av
          INNER JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo AND inv.estatus = 'Activo'
+         LEFT JOIN " . sqlKmMessCheckin() . " m ON m.id_actividad = av.id_actividad
          LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = av.id_usuario
          LEFT JOIN usuarios u ON u.id = um.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
@@ -159,6 +192,10 @@ if ($accion === 'ubicaciones') {
             'marca'       => $r['marca'],
             'modelo'      => $r['modelo'],
             'km'          => intval($r['km_actual']),
+            // Km agregados desde el check-in anterior del vehículo (null en su primera lectura
+            // o sin km) y si cuentan como personales (regla de sqlKmMessCheckin).
+            'km_agregado' => $r['km_tramo'] === null ? null : intval($r['km_tramo']),
+            'personal'    => intval($r['km_personal'] ?? 0) > 0,
             'ot'          => $r['ot'],
             'lat'         => $lat,
             'lng'         => $lng,
@@ -222,16 +259,18 @@ if ($accion === 'resumen') {
 
     // Datos fijos del vehículo. Asignado: el nombre de id_us_asignado (MAX(id) porque
     // usuarios.id_usuario no es único) y, si no resuelve, el texto de inventario.asignado.
-    // Región: la del asignado en RRHH; si no hay, el área del vehículo.
+    // Región: la del asignado en RRHH (mess_rrhh.usuarios.region; la de usuarios de CV está
+    // desactualizada en 9 personas, p. ej. Eduardo Trejo 283: Norte en CV, Bajío en RRHH); si
+    // no está en RRHH, la de CV; si no hay asignado, el área del vehículo.
     $info = $porVehiculo(
         "SELECT inv.id_vehiculo, inv.placa, TRIM(inv.marca) AS marca, TRIM(inv.modelo) AS modelo, inv.anio, inv.foto_general,
                 TRIM(inv.asignado) AS asignado_txt, TRIM(inv.area) AS area,
-                $sqlNombre AS asignado, reg.region
+                $sqlNombre AS asignado, rv.region
          FROM inventario inv
          LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = inv.id_us_asignado AND inv.id_us_asignado > 0
          LEFT JOIN usuarios u ON u.id = um.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
-         LEFT JOIN mess_rrhh.region reg ON reg.id = u.region
+         LEFT JOIN $sqlRegionVehiculo rv ON rv.id_vehiculo = inv.id_vehiculo
          WHERE inv.estatus = 'Activo'"
     );
 
@@ -269,6 +308,25 @@ if ($accion === 'resumen') {
          GROUP BY av.id_vehiculo",
         "ss", $desde, $hasta
     );
+    // Con el filtro Usuario, la tira muestra solo los vehículos en que esa persona hizo
+    // check-in en el rango (aunque el check-in no traiga ubicación).
+    $idUsr = intval($_POST['id_usuario'] ?? 0);
+    $deUsuario = $idUsr > 0 ? $porVehiculo(
+        "SELECT id_vehiculo, COUNT(*) AS n
+         FROM actividad_vehiculo
+         WHERE tipo_actividad = 'INICIO' AND id_usuario = ?
+           AND fecha_actividad >= ? AND fecha_actividad < DATE_ADD(?, INTERVAL 1 DAY)
+         GROUP BY id_vehiculo",
+        "iss", $idUsr, $desde, $hasta
+    ) : [];
+
+    // Con el filtro Región, la tira solo trae los vehículos de esa región.
+    $region = regionFiltro();
+    if ($region !== '') {
+        $info = array_filter($info, function ($v) use ($region) {
+            return mb_strtolower((string) $v['region']) === mb_strtolower($region);
+        });
+    }
 
     $vehiculos = [];
     foreach ($info as $idVeh => $v) {
@@ -287,7 +345,7 @@ if ($accion === 'resumen') {
             'anio'             => $v['anio'] ? intval($v['anio']) : null,
             'foto'             => $v['foto_general'] ?: null,
             'asignado'         => $asignado !== '' ? $asignado : null,
-            'region'           => $v['region'] ?: ($v['area'] ?: null),
+            'region'           => $v['region'] ?: null,
             'km_odometro'      => $kmOdo,
             'km_mess'          => $kmMess,
             'km_personales'    => (float) ($km[$idVeh]['personal'] ?? 0),
@@ -297,7 +355,8 @@ if ($accion === 'resumen') {
             'rendimiento'      => ($kmMess > 0 && $gasto > 0) ? round($gasto / $kmMess, 2) : null,
             'ots'              => intval($tipos[$idVeh]['ots'] ?? 0),
             'ovs'              => intval($tipos[$idVeh]['ovs'] ?? 0),
-            'otros'            => intval($tipos[$idVeh]['otros'] ?? 0)
+            'otros'            => intval($tipos[$idVeh]['otros'] ?? 0),
+            'checkins_usuario' => intval($deUsuario[$idVeh]['n'] ?? 0)
         ];
     }
 
@@ -305,7 +364,7 @@ if ($accion === 'resumen') {
         return [$b['km_odometro'], $a['placa']] <=> [$a['km_odometro'], $b['placa']];
     });
 
-    echo json_encode(['status' => 'success', 'desde' => $desde, 'hasta' => $hasta, 'vehiculos' => $vehiculos]);
+    echo json_encode(['status' => 'success', 'desde' => $desde, 'hasta' => $hasta, 'id_usuario' => $idUsr, 'region' => $region, 'vehiculos' => $vehiculos]);
     exit;
 }
 

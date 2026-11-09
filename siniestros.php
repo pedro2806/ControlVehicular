@@ -67,7 +67,7 @@
                     <div class="card shadow-sm mb-3" id="placaSeleccionada" style="display:none;">
                         <div class="card-body py-3 px-3">
                             <div class="d-flex align-items-center">
-                                <div style="width:60px;height:60px;border-radius:8px;background:var(--card-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <div id="fotoVehiculo" class="foto-vehiculo-caja">
                                     <i class="fas fa-car fa-2x text-muted"></i>
                                 </div>
                                 <div class="ml-3 flex-grow-1">
@@ -259,6 +259,8 @@
             $("#infoPlacaSin").text(placa);
             $("#infoModeloMarcaSin").text(modelo + ' ' + marca);
             $("#infoColorSin").text(color);
+            // Ilustración del vehículo; si no hay, el ícono (js/global/vehiculos.js).
+            $("#fotoVehiculo").html(htmlFotoVehiculo(id_vehiculo));
             $("#placaSeleccionada").show();
             $("#id_vehiculo").val(id_vehiculo);
             $("#tablaInventario").closest(".container").hide();

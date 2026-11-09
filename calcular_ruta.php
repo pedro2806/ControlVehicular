@@ -498,6 +498,9 @@ function sqlKmMessCheckin(): string {
 // tabla derivada y no como `u.id = (SELECT MAX(u2.id) ...)` en el ON, que se reevalúa por
 // cada pareja de filas (en acciones_mapa.php pasó de 17.7 s a 2.2 s).
 //
+// La región sale de RRHH (mess_rrhh.usuarios.region): la de usuarios de CV está desactualizada
+// en algunas personas. noEmpleado es único en RRHH, así que el JOIN no multiplica filas.
+//
 // `km` es el KM Mess del check-in (sqlKmMessCheckin), no la ruta calculada; km_valido = km > 0.
 // COLLATE en OT/OV: en producción km_calculados.ov_ot quedó utf8mb4_general_ci (respaldo del
 // 04/11/2026) y OT/OV son utf8mb4_0900_ai_ci; sin él el INSERT falla y, como refrescarReporteKm
@@ -510,7 +513,7 @@ function sqlSelectReporteKm(string $where = ''): string {
             YEAR(COALESCE(av.fecha_actividad, k.fecha)),
             MONTH(COALESCE(av.fecha_actividad, k.fecha)),
             av.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.anio, inv.area,
-            k.id_usuario, u.nombre, u.noEmpleado, u.region, u.departamento,
+            k.id_usuario, u.nombre, u.noEmpleado, COALESCE(rrhh.region, u.region), u.departamento,
             k.ov_ot,
             CASE WHEN m.tipo_ref IS NOT NULL THEN m.tipo_ref
                  WHEN ot.OT IS NOT NULL THEN 'OT'
@@ -526,6 +529,7 @@ function sqlSelectReporteKm(string $where = ''): string {
         LEFT JOIN inventario inv        ON inv.id_vehiculo = av.id_vehiculo
         LEFT JOIN (SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario) um ON um.id_usuario = k.id_usuario
         LEFT JOIN usuarios u            ON u.id = um.id
+        LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
         LEFT JOIN clientes c            ON c.IDCLTE = k.id_cliente
         LEFT JOIN OT ot                 ON ot.OT = k.ov_ot COLLATE utf8mb4_0900_ai_ci
         LEFT JOIN OV ov                 ON ov.OV = k.ov_ot COLLATE utf8mb4_0900_ai_ci

@@ -513,7 +513,7 @@ function sqlSelectReporteKm(string $where = ''): string {
             YEAR(COALESCE(av.fecha_actividad, k.fecha)),
             MONTH(COALESCE(av.fecha_actividad, k.fecha)),
             av.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.anio, inv.area,
-            k.id_usuario, u.nombre, u.noEmpleado, COALESCE(rrhh.region, u.region), u.departamento,
+            k.id_usuario, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)), u.noEmpleado, COALESCE(rrhh.region, u.region), u.departamento,
             k.ov_ot,
             CASE WHEN m.tipo_ref IS NOT NULL THEN m.tipo_ref
                  WHEN ot.OT IS NOT NULL THEN 'OT'
@@ -527,8 +527,8 @@ function sqlSelectReporteKm(string $where = ''): string {
         LEFT JOIN actividad_vehiculo av ON av.id_actividad = k.id_actividad
         LEFT JOIN " . sqlKmMessCheckin() . " m ON m.id_actividad = k.id_actividad
         LEFT JOIN inventario inv        ON inv.id_vehiculo = av.id_vehiculo
-        LEFT JOIN (SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario) um ON um.id_usuario = k.id_usuario
-        LEFT JOIN usuarios u            ON u.id = um.id
+        LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) um ON um.id_usuario = k.id_usuario
+        LEFT JOIN mess_rrhh.usuarios u  ON u.id = um.id
         LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
         LEFT JOIN clientes c            ON c.IDCLTE = k.id_cliente
         LEFT JOIN OT ot                 ON ot.OT = k.ov_ot COLLATE utf8mb4_0900_ai_ci
@@ -801,7 +801,7 @@ function reconciliarKmPendientes(mysqli $conn, int $diasAtras = 30, int $desdeCh
     // llamada vaya directo a los regresos.
     $res['desde_checkin'] = 2147483647;   // tope de id_actividad (INT)
     $stmtR = $conn->prepare("SELECT av.id_actividad, av.id_usuario, av.coordenadas,
-            (SELECT u.noEmpleado FROM usuarios u WHERE u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario)) AS noEmpleado
+            (SELECT u.noEmpleado FROM mess_rrhh.usuarios u WHERE u.id_usuario = av.id_usuario ORDER BY u.estatus = 1 DESC, u.id LIMIT 1) AS noEmpleado
         FROM actividad_vehiculo av
         WHERE av.detalle_tipo_uso = 'REGRESO_SEDE' AND av.tipo_actividad = 'INICIO'
           AND av.fecha_actividad >= (NOW() - INTERVAL ? DAY)

@@ -103,9 +103,7 @@ if ($accion === 'obtenerFeedAnomalias') {
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS nombre_usuario
             FROM anomalias a
             INNER JOIN inventario inv ON inv.id_vehiculo = a.id_vehiculo
-            LEFT JOIN usuarios u ON u.id = (
-                SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = a.id_usuario
-            )
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = a.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
             $where
             ORDER BY a.fecha DESC, a.id DESC";

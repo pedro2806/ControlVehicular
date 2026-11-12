@@ -419,9 +419,7 @@ if ($accion == 'consultarCheckins') {
                         ) THEN 1 ELSE 0 END AS ultimo_uso
             FROM actividad_vehiculo av
             LEFT JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo
-            LEFT JOIN usuarios u ON u.id = (
-                SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario
-            )
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = av.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
             WHERE DATE(av.fecha_actividad) BETWEEN ? AND ?
               -- Solo vehículos activos, para todos (también verTodosVehiculo): un vehículo
@@ -496,7 +494,7 @@ if($accion == 'Actividades'){
                     AND fecha_actividad > i.fecha_actividad
                 )
             INNER JOIN inventario inv ON i.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE i.tipo_actividad = 'INICIO'
                 AND inv.estatus = 'Activo'
@@ -553,7 +551,7 @@ if($accion == 'ActividadesCalendario'){
         ao.notas AS notas_inicio,
         ao.patron AS patron_inicio,
         ao.ot AS ot_inicio,
-        u.nombre,
+        COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre,
         -- Datos de la FINALIZACION
         CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_actividad_fin ELSE NULL END AS id_actividad_fin,
         CASE WHEN ao.siguiente_tipo_actividad = 'FINALIZACION' THEN ao.id_prestamo_fin ELSE NULL END AS id_prestamo_fin,
@@ -569,7 +567,7 @@ if($accion == 'ActividadesCalendario'){
     FROM
         ActividadesOrdenadas ao
     INNER JOIN inventario i ON ao.id_vehiculo = i.id_vehiculo
-    INNER JOIN usuarios u ON ao.id_usuario = u.id_usuario
+    LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = ao.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
     WHERE ao.tipo_actividad = 'INICIO' AND i.estatus = 'Activo'
     ORDER BY ao.id_usuario, ao.id_vehiculo, ao.fecha_actividad;";
         /*$sql = "SELECT av.*, i.placa, i.marca, i.modelo, (select u.nombre from usuarios u where u.id_usuario = av.id_usuario) as usuario
@@ -592,12 +590,12 @@ if($accion == 'ActividadesCalendario'){
 
 if($accion == 'ActividadesCalendarioPlaneadas'){
     // Consultar las actividades planeadas del usuario actual
-    $sql = "SELECT p.fecha_inc_prestamo, p.fecha_fin_prestamo, p.motivo_us, p.detalle_tipo_uso, p.estatus, u.nombre,
+    $sql = "SELECT p.fecha_inc_prestamo, p.fecha_fin_prestamo, p.motivo_us, p.detalle_tipo_uso, p.estatus, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre,
                 IF(i.placa IS NULL OR i.placa = '', 'Vehiculo por asignar', i.placa) AS placa,
                 IF(i.modelo IS NULL OR i.modelo = '', '', i.modelo) AS modelo,
                 IF(i.marca IS NULL OR i.marca = '', '', i.marca) AS marca
             FROM prestamos p
-            INNER JOIN usuarios u ON p.id_usuario = u.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = p.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             LEFT JOIN inventario i ON p.id_vehiculo = i.id_vehiculo
             -- Se conservan los préstamos sin vehículo ('Vehiculo por asignar').
             WHERE i.id_vehiculo IS NULL OR i.estatus = 'Activo'";

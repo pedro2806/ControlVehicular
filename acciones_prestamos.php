@@ -89,7 +89,7 @@ if ($accion == "consultarPrestamos") {
         $esPendiente = (count($estatusArray) === 1 && $estatusArray[0] === 'PENDIENTE');
 
         // Detectar si es jefe por jerarquía (sin depender de cookie rol)
-        $stmtJefe = $conn->prepare("SELECT 1 FROM usuarios WHERE jefe = ? LIMIT 1");
+        $stmtJefe = $conn->prepare("SELECT 1 FROM mess_rrhh.usuarios WHERE jefe = ? LIMIT 1");
         $stmtJefe->bind_param("s", $noEmpleado);
         $stmtJefe->execute();
         $esJefe = $stmtJefe->get_result()->num_rows > 0;
@@ -116,7 +116,7 @@ if ($accion == "consultarPrestamos") {
         if ($verTodosPrestamos) {
             $whereRol = "1 = 1";
         } elseif ($esJefe) {
-            $whereRol = "(prest.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
+            $whereRol = "(prest.id_usuario IN (SELECT id_usuario FROM mess_rrhh.usuarios WHERE jefe = $noEmpleado UNION ALL SELECT $id_usuario)
                         OR prest.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = $id_usuario))";
         } else {
             $whereRol = "prest.id_usuario = $id_usuario";
@@ -125,7 +125,7 @@ if ($accion == "consultarPrestamos") {
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color,
                         $selectFechas
                         prest.estatus, prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
+                        IFNULL((SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) FROM mess_rrhh.usuarios WHERE id_usuario = prest.id_usuario ORDER BY estatus = 1 DESC, id LIMIT 1), 'S/R') AS nombre_usuario,
                         inv.usuario AS valida, prest.fecha_registro
                         $propiedadCol $camposExtra
                 FROM prestamos prest
@@ -165,7 +165,7 @@ if ($accion == "consultarPrestamosDetalle") {
         $sqlConsulta = "SELECT prest.id_prestamo, prest.id_vehiculo, inv.placa, inv.marca, inv.modelo, inv.color, prest.id_vehiculo,
                         prest.fecha_inc_prestamo, prest.fecha_fin_prestamo, prest.estatus,
                         prest.tipo_uso, prest.detalle_tipo_uso, prest.motivo_us,
-                        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
+                        IFNULL((SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) FROM mess_rrhh.usuarios WHERE id_usuario = prest.id_usuario ORDER BY estatus = 1 DESC, id LIMIT 1), 'S/R') AS nombre_usuario
                 FROM prestamos prest
                 LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                 WHERE prest.id_prestamo = $id_prestamo
@@ -197,7 +197,7 @@ if ($accion == "consultarPrestamosOtraArea") {
         prest.tipo_uso,
         prest.detalle_tipo_uso,
         prest.motivo_us,
-        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
+        IFNULL((SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) FROM mess_rrhh.usuarios WHERE id_usuario = prest.id_usuario ORDER BY estatus = 1 DESC, id LIMIT 1), 'S/R') AS nombre_usuario,
         1 AS source_type
     FROM prestamos prest
     LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
@@ -205,7 +205,7 @@ if ($accion == "consultarPrestamosOtraArea") {
         SELECT id_vehiculo
         FROM inventario
         WHERE id_usuario IN (
-            SELECT id_usuario FROM usuarios WHERE jefe = $id_usuario
+            SELECT id_usuario FROM mess_rrhh.usuarios WHERE jefe = $id_usuario
             UNION ALL
             SELECT $id_usuario
         )
@@ -228,7 +228,7 @@ if ($accion == "consultarPrestamosOtraArea") {
         prest.tipo_uso,
         prest.detalle_tipo_uso,
         prest.motivo_us,
-        IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario,
+        IFNULL((SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) FROM mess_rrhh.usuarios WHERE id_usuario = prest.id_usuario ORDER BY estatus = 1 DESC, id LIMIT 1), 'S/R') AS nombre_usuario,
         2 AS source_type
     FROM prestamos prest
     LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
@@ -266,7 +266,7 @@ LEFT JOIN Duplicated d ON cp.id_prestamo = d.id_prestamo";
         // ROL 1 es usuario
         $sqlConsulta = "SELECT id_prestamo, prest.id_vehiculo, fecha_inc_prestamo, fecha_fin_prestamo, prest.estatus,
                             tipo_uso, detalle_tipo_uso, motivo_us,
-                            IFNULL((SELECT nombre FROM usuarios WHERE id_usuario = prest.id_usuario LIMIT 1), 'S/R') AS nombre_usuario
+                            IFNULL((SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) FROM mess_rrhh.usuarios WHERE id_usuario = prest.id_usuario ORDER BY estatus = 1 DESC, id LIMIT 1), 'S/R') AS nombre_usuario
                         FROM prestamos prest
                         LEFT JOIN inventario inv ON prest.id_vehiculo = inv.id_vehiculo
                         WHERE prest.id_usuario = $id_usuario";
@@ -481,7 +481,7 @@ if ($accion == "finalizarPrestamo") {
 
 //Consulta de Usuarios con Rol 3
 if ($accion == "consultarUsuariosRecibe") {
-    $sql = "SELECT id_usuario, nombre FROM usuarios WHERE rol = 3 AND estatus = 1 ORDER BY nombre ASC";
+    $sql = "SELECT id_usuario, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) AS nombre FROM mess_rrhh.usuarios WHERE rol_cv = 3 AND estatus = 1 AND id_usuario > 0 ORDER BY nombre ASC";
     $result = $conn->query($sql);
 
     $usuarios = [];

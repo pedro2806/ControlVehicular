@@ -12,9 +12,8 @@ $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
 
 
     $Qempresas = "SELECT cv.*, TIMESTAMPDIFF(YEAR, cv.fechaIngreso, CURDATE()) AS antiguedad,
-                         TRIM(CONCAT(IFNULL(rrhh.nombres,''), ' ', IFNULL(rrhh.apellidos,''))) AS nombre_completo
-                  FROM usuarios cv
-                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv.noEmpleado
+                         TRIM(CONCAT(IFNULL(cv.nombres,''), ' ', IFNULL(cv.apellidos,''))) AS nombre_completo
+                  FROM mess_rrhh.usuarios cv
                   WHERE cv.usuario = '" . mysqli_real_escape_string($conn, $usuario) . "' AND cv.estatus = 1";
     $res2 = mysqli_query($conn, $Qempresas) or die(mysqli_error($conn));
     $nr   = mysqli_num_rows($res2);
@@ -25,7 +24,7 @@ $usuario = isset($_POST['correoCV']) ? $_POST['correoCV'] : '';
         $noEmpleado     = $row2["noEmpleado"];
         $antiguedad     = $row2["antiguedad"];
         $diasD          = $row2["diasdisponibles"];
-        $rol            = $row2["rol"];
+        $rol            = $row2["rol_cv"];
         $gps            = $row2["gps"];
     }
 

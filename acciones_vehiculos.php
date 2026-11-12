@@ -73,9 +73,9 @@ if ($accion === 'listarVehiculos') {
     $sql = "SELECT i.id_vehiculo, i.placa, i.marca, i.modelo, i.anio, i.color, i.area,
                    i.estatus, i.efecticard, i.km_mantenimiento, i.fecha_registro,
                    i.id_usuario, i.id_us_asignado, i.usuario,
-                   u.nombre AS nombre_usuario
+                   COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre_usuario
             FROM inventario i
-            LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = i.id_usuario)
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = i.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             $where
             ORDER BY i.placa";
 
@@ -104,12 +104,12 @@ if ($accion === 'usuariosAsignables') {
     }
 
     $res = $conn->query(
-        "SELECT u.id_usuario, u.nombre
-         FROM usuarios u
-         WHERE u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = u.id_usuario)
+        "SELECT u.id_usuario, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre
+         FROM mess_rrhh.usuarios u
+         WHERE u.id = (SELECT u2.id FROM mess_rrhh.usuarios u2 WHERE u2.id_usuario = u.id_usuario ORDER BY u2.estatus = 1 DESC, u2.id LIMIT 1)
            AND u.id_usuario IS NOT NULL AND u.id_usuario > 0
-           AND TRIM(IFNULL(u.nombre,'')) <> ''
-         ORDER BY u.nombre"
+           AND TRIM(IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'')) <> ''
+         ORDER BY nombre"
     );
     $lista = [];
     if ($res) { while ($row = $res->fetch_assoc()) { $lista[] = $row; } }
@@ -171,7 +171,7 @@ if ($accion === 'guardarVehiculo') {
     // muestran el texto. Si solo se actualizara el id, quedarían desalineados.
     $nombreUsr = '';
     if ($idUsr > 0) {
-        $stmt = $conn->prepare("SELECT nombre FROM usuarios WHERE id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = ?) LIMIT 1");
+        $stmt = $conn->prepare("SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) AS nombre FROM mess_rrhh.usuarios WHERE id_usuario = ? ORDER BY estatus = 1 DESC, id LIMIT 1");
         $stmt->bind_param("i", $idUsr);
         $stmt->execute();
         $ru = $stmt->get_result()->fetch_assoc();
@@ -293,9 +293,9 @@ if ($accion === 'historialVehiculo') {
 
     // --- Datos del vehículo
     $stmt = $conn->prepare(
-        "SELECT i.*, u.nombre AS nombre_usuario
+        "SELECT i.*, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre_usuario
          FROM inventario i
-         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = i.id_usuario)
+         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = i.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
          WHERE i.id_vehiculo = ? LIMIT 1"
     );
     $stmt->bind_param("i", $idVeh);
@@ -313,24 +313,24 @@ if ($accion === 'historialVehiculo') {
     // check-ins y con 74 préstamos. El LIMIT 500 queda solo como tope de seguridad.
     $bloques = [
         'checklists' => "SELECT c.id_checklist, c.fecha, c.estatus, c.motivo,
-                                IFNULL(u.nombre,'S/R') AS usuario
+                                IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'S/R') AS usuario
                          FROM checklist c
-                         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = c.id_usuario)
+                         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = c.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                          WHERE c.id_vehiculo = ? ORDER BY c.fecha DESC LIMIT 500",
 
         'checkins'   => "SELECT a.id_actividad, a.tipo_actividad, a.fecha_actividad, a.km_actual,
                                 a.gasolina_actual, a.ot, a.coordenadas, a.notas,
-                                IFNULL(u.nombre,'S/R') AS usuario
+                                IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'S/R') AS usuario
                          FROM actividad_vehiculo a
-                         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = a.id_usuario)
+                         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = a.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                          WHERE a.id_vehiculo = ? ORDER BY a.fecha_actividad DESC LIMIT 500",
 
         'cargas'     => "SELECT cg.id, cg.fecha_carga, cg.fecha_registro, cg.monto, cg.pagos, cg.saldo,
                                 cg.km_actual, cg.ot, cg.id_ciclo, cli.CLIENTE AS cliente,
-                                IFNULL(u.nombre,'S/R') AS usuario
+                                IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'S/R') AS usuario
                          FROM carga_gasolina cg
                          LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
-                         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
+                         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = cg.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                          WHERE cg.id_vehiculo = ? ORDER BY cg.fecha_carga DESC LIMIT 500",
 
         'solicitudes'=> "SELECT s.id, s.fecha, s.estatus, s.saldo_solicitud, s.km_actual,
@@ -344,16 +344,16 @@ if ($accion === 'historialVehiculo') {
                              WHERE m.id_vehiculo = ? ORDER BY m.fecha_registro DESC LIMIT 500",
 
         'anomalias'  => "SELECT an.id, an.fecha, an.descripcion, an.foto_ruta, an.coordenadas,
-                                IFNULL(u.nombre,'S/R') AS usuario
+                                IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'S/R') AS usuario
                          FROM anomalias an
-                         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = an.id_usuario)
+                         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = an.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                          WHERE an.id_vehiculo = ? ORDER BY an.fecha DESC LIMIT 500",
 
         'prestamos'  => "SELECT p.id_prestamo, p.fecha_registro, p.fecha_inc_prestamo, p.fecha_fin_prestamo,
                                 p.estatus, p.tipo_uso, p.motivo_us,
-                                IFNULL(u.nombre,'S/R') AS usuario
+                                IFNULL(COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)),'S/R') AS usuario
                          FROM prestamos p
-                         LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = p.id_usuario)
+                         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = p.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                          WHERE p.id_vehiculo = ? ORDER BY p.fecha_registro DESC LIMIT 500",
     ];
 

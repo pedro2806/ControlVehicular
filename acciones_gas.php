@@ -67,7 +67,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         }
         if (!empty($deptos)) {
             $deptosEsc = implode(',', $deptos);
-            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario WHERE us.departamento IN ($deptosEsc) AND inv.estatus = 'Activo'";
+            $sql .= " UNION SELECT inv.id_vehiculo FROM inventario inv INNER JOIN mess_rrhh.usuarios us ON inv.id_usuario = us.id_usuario WHERE us.departamento IN ($deptosEsc) AND inv.estatus = 'Activo'";
         }
 
         $ids = [];
@@ -483,7 +483,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                      ORDER BY prev.id DESC LIMIT 1) AS km_recorridos,
                     IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
              FROM carga_gasolina cg
-             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario)
+             LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = cg.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
              LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
              LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
              WHERE cg.id_vehiculo = ? AND " . ($ciclo ? "cg.id_ciclo = ?" : "cg.id_ciclo IS NULL") . "
@@ -557,7 +557,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                     av.km_actual, av.ot, av.notas,
                     IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS usuario
              FROM actividad_vehiculo av
-             LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = av.id_usuario)
+             LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = av.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
              LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
              WHERE av.id_vehiculo = ? AND av.fecha_actividad >= ? AND av.fecha_actividad <= ?
              ORDER BY av.fecha_actividad ASC, av.id_actividad ASC"
@@ -781,7 +781,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                         IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
                 FROM carga_gasolina ca
                 INNER JOIN inventario inv ON inv.id_vehiculo = ca.id_vehiculo
-                LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+                LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
                 LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
                 WHERE inv.id_vehiculo IN (SELECT id_vehiculo FROM inventario WHERE id_usuario = '".$_COOKIE['id_usuario']."')
                 ORDER BY ca.id DESC";
@@ -804,7 +804,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                         IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
                 FROM carga_gasolina ca
                 INNER JOIN inventario inv ON inv.id_vehiculo = ca.id_vehiculo
-                LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+                LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
                 LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
                 ORDER BY ca.id DESC";
 
@@ -856,9 +856,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                  INNER JOIN inventario inv ON inv.id_vehiculo = cg.id_vehiculo
                  -- MAX(id) porque usuarios.id_usuario no es único: el join directo duplicaba
                  -- la carga, y LAG tomaba la copia como carga anterior (0 km consumidos).
-                 LEFT JOIN usuarios u ON u.id = (
-                     SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = cg.id_usuario
-                 )
+                 LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = cg.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
                  LEFT JOIN clientes cli ON cli.IDCLTE = cg.id_cliente
                  -- Datos del ciclo al que pertenece la carga. Alimentan el separador que la
@@ -913,11 +911,11 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                         (SELECT IFNULL(SUM(ct.monto_abonado), 0)
                            FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado,
                         IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS solicitante,
-                        ur.nombre AS resolvio
+                        COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(ur.nombres,''),' ',IFNULL(ur.apellidos,'')),'  ',' ')),''), TRIM(ur.nombre)) AS resolvio
                  FROM solicitudes_gas s
-                 LEFT JOIN usuarios u  ON u.id  = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
+                 LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = s.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                  LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
-                 LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
+                 LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) ur_k ON ur_k.id_usuario = s.id_resuelve LEFT JOIN mess_rrhh.usuarios ur ON ur.id = ur_k.id
                  WHERE s.id_vehiculo = ?
                  ORDER BY s.fecha DESC, s.id DESC LIMIT 1"
             );
@@ -1046,7 +1044,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // servidor. Antes se tomaba el que mandaba el navegador ($_POST['saldo']).
         $saldo_actual = $evaluacion['saldo'];
 
-        $stmt = $conn->prepare("SELECT nombre FROM usuarios WHERE noEmpleado = ?");
+        $stmt = $conn->prepare("SELECT COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) AS nombre FROM mess_rrhh.usuarios WHERE noEmpleado = ?");
         $stmt->bind_param("s", $noEmp);
         $stmt->execute();
         $row_u = $stmt->get_result()->fetch_assoc();
@@ -1213,7 +1211,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                        s.fecha_resuelto, s.notas_resolucion,
                        inv.placa, inv.marca, inv.modelo, inv.efecticard,
                        IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre) AS solicitante,
-                       ur.nombre AS resolvio,
+                       COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(ur.nombres,''),' ',IFNULL(ur.apellidos,'')),'  ',' ')),''), TRIM(ur.nombre)) AS resolvio,
                        -- Lo que se lleva abonado a esta solicitud. Con una parcialidad la
                        -- tarjeta ya recibió dinero, así que el saldo real es
                        -- saldo_solicitud + esto, y es contra ese que se calcula el resto.
@@ -1221,8 +1219,8 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                           FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado
                 FROM solicitudes_gas s
                 LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
-                LEFT JOIN usuarios u  ON u.id  = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
-                LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
+                LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = s.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
+                LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) ur_k ON ur_k.id_usuario = s.id_resuelve LEFT JOIN mess_rrhh.usuarios ur ON ur.id = ur_k.id
                 LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
                 WHERE inv.estatus = 'Activo'
                 ORDER BY FIELD(s.estatus,'PENDIENTE','APROBADA','RECHAZADA'), s.fecha DESC";
@@ -1261,12 +1259,12 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             "SELECT s.id, s.id_vehiculo, s.saldo_solicitud, s.km_actual, s.km_recorrido,
                     s.estatus, s.fecha, s.fecha_resuelto, s.notas_resolucion,
                     inv.placa, inv.marca, inv.modelo, inv.efecticard,
-                    ur.nombre AS resolvio,
+                    COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(ur.nombres,''),' ',IFNULL(ur.apellidos,'')),'  ',' ')),''), TRIM(ur.nombre)) AS resolvio,
                     (SELECT IFNULL(SUM(ct.monto_abonado), 0)
                        FROM ciclos_tarjeta ct WHERE ct.id_solicitud = s.id) AS abonado_acumulado
              FROM solicitudes_gas s
              LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
-             LEFT JOIN usuarios ur ON ur.id = (SELECT MAX(u3.id) FROM usuarios u3 WHERE u3.id_usuario = s.id_resuelve)
+             LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) ur_k ON ur_k.id_usuario = s.id_resuelve LEFT JOIN mess_rrhh.usuarios ur ON ur.id = ur_k.id
              WHERE s.id_usuario = ? AND inv.estatus = 'Activo'
              ORDER BY FIELD(s.estatus,'PENDIENTE','PARCIAL','APROBADA','RECHAZADA'), s.fecha DESC"
         );
@@ -1394,10 +1392,10 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             require_once __DIR__ . '/includes/enviar_notificacion.php';
             $q = $conn->prepare(
                 "SELECT s.saldo_solicitud, s.notas_resolucion, inv.placa, inv.marca, inv.modelo,
-                        u.nombre AS nombre_sol, u.correo AS correo_sol
+                        COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre_sol, u.correo AS correo_sol
                  FROM solicitudes_gas s
                  LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
-                 LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = s.id_usuario)
+                 LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = s.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                  WHERE s.id = ? LIMIT 1"
             );
             $q->bind_param("i", $idSol);
@@ -1519,7 +1517,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                            NULLIF(TRIM(inv.usuario), '')) AS usuario_vehiculo
              FROM solicitudes_gas s
              LEFT JOIN inventario inv ON inv.id_vehiculo = s.id_vehiculo
-             LEFT JOIN usuarios uv ON uv.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = inv.id_usuario)
+             LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) uv_k ON uv_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios uv ON uv.id = uv_k.id
              LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = uv.noEmpleado
              WHERE s.id = ? LIMIT 1"
         );
@@ -1599,7 +1597,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
                     IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''),
                            NULLIF(TRIM(inv.usuario), '')) AS usuario_vehiculo
              FROM inventario inv
-             LEFT JOIN usuarios uv ON uv.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = inv.id_usuario)
+             LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) uv_k ON uv_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios uv ON uv.id = uv_k.id
              LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = uv.noEmpleado
              WHERE inv.id_vehiculo = ? LIMIT 1"
         );

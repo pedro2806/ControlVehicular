@@ -33,11 +33,11 @@ function nombreLimpio($nombre, $idUsuario) {
 $sqlNombre = "IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),''), u.nombre)";
 
 // La fila de usuarios con mayor id por id_usuario, como tabla derivada para hacer
-// `LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = x.id_usuario LEFT JOIN usuarios u ON u.id = um.id`.
+// `LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = x.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = um.id`.
 // Mismo resultado que `u.id = (SELECT MAX(u2.id) ... WHERE u2.id_usuario = x.id_usuario)`,
 // pero esa subconsulta en el ON se reevalúa por cada pareja de filas: con los ~100
 // vehículos tardaba 2.5 s, así tarda milisegundos.
-$sqlUltimoUsuario = "(SELECT id_usuario, MAX(id) AS id FROM usuarios GROUP BY id_usuario)";
+$sqlUltimoUsuario = "(SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1)";
 
 // Región de cada vehículo activo (la que muestra la ficha y usa el filtro Región): la de su
 // asignado en RRHH (mess_rrhh.usuarios.region; si no está en RRHH, la de usuarios de CV);
@@ -48,7 +48,7 @@ $sqlRegionVehiculo = "(SELECT inv.id_vehiculo,
         COALESCE(reg.region, rarea.region, NULLIF(TRIM(inv.area), '') COLLATE utf8mb3_spanish_ci) AS region
     FROM inventario inv
     LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = inv.id_us_asignado AND inv.id_us_asignado > 0
-    LEFT JOIN usuarios u ON u.id = um.id
+    LEFT JOIN mess_rrhh.usuarios u ON u.id = um.id
     LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
     LEFT JOIN mess_rrhh.region reg ON reg.id = COALESCE(rrhh.region, u.region)
     LEFT JOIN mess_rrhh.region rarea ON rarea.region = TRIM(inv.area) COLLATE utf8mb3_spanish_ci
@@ -80,7 +80,7 @@ if ($accion === 'filtros') {
          FROM (SELECT DISTINCT id_usuario FROM actividad_vehiculo
                WHERE tipo_actividad = 'INICIO' AND id_usuario > 0) t
          LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = t.id_usuario
-         LEFT JOIN usuarios u ON u.id = um.id
+         LEFT JOIN mess_rrhh.usuarios u ON u.id = um.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
          ORDER BY nombre"
     );
@@ -151,7 +151,7 @@ if ($accion === 'ubicaciones') {
          INNER JOIN inventario inv ON inv.id_vehiculo = av.id_vehiculo AND inv.estatus = 'Activo'
          LEFT JOIN " . sqlKmMessCheckin() . " m ON m.id_actividad = av.id_actividad
          LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = av.id_usuario
-         LEFT JOIN usuarios u ON u.id = um.id
+         LEFT JOIN mess_rrhh.usuarios u ON u.id = um.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
          LEFT JOIN carga_gasolina cg ON cg.id = (
              SELECT cg2.id FROM carga_gasolina cg2
@@ -257,18 +257,19 @@ if ($accion === 'resumen') {
         return $filas;
     };
 
-    // Datos fijos del vehículo. Asignado: el nombre de id_us_asignado (MAX(id) porque
-    // usuarios.id_usuario no es único) y, si no resuelve, el texto de inventario.asignado.
+    // Datos fijos del vehículo. Asignado: el nombre de id_us_asignado en RRHH y, si no
+    // resuelve (id que no existe en RRHH), el nombre escrito en inventario.usuario.
+    // inventario.asignado NO sirve de respaldo: es una marca SI/NO, y el panel mostraba "SI".
     // Región: la del asignado en RRHH (mess_rrhh.usuarios.region; la de usuarios de CV está
     // desactualizada en 9 personas, p. ej. Eduardo Trejo 283: Norte en CV, Bajío en RRHH); si
     // no está en RRHH, la de CV; si no hay asignado, el área del vehículo.
     $info = $porVehiculo(
         "SELECT inv.id_vehiculo, inv.placa, TRIM(inv.marca) AS marca, TRIM(inv.modelo) AS modelo, inv.anio, inv.foto_general,
-                TRIM(inv.asignado) AS asignado_txt, TRIM(inv.area) AS area,
+                TRIM(inv.usuario) AS asignado_txt, TRIM(inv.area) AS area,
                 $sqlNombre AS asignado, rv.region
          FROM inventario inv
          LEFT JOIN $sqlUltimoUsuario um ON um.id_usuario = inv.id_us_asignado AND inv.id_us_asignado > 0
-         LEFT JOIN usuarios u ON u.id = um.id
+         LEFT JOIN mess_rrhh.usuarios u ON u.id = um.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
          LEFT JOIN $sqlRegionVehiculo rv ON rv.id_vehiculo = inv.id_vehiculo
          WHERE inv.estatus = 'Activo'"

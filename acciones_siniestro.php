@@ -167,7 +167,7 @@ if ($accion == "consultarInventario") {
             $sqlConsultaVehiculos .= " UNION
                                 SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario
                                 FROM inventario inv
-                                INNER JOIN usuarios us ON inv.id_usuario = us.id_usuario
+                                INNER JOIN mess_rrhh.usuarios us ON inv.id_usuario = us.id_usuario
                                 WHERE us.departamento IN ($deptosEsc) AND inv.estatus = 'Activo'";
         }
     }
@@ -214,9 +214,9 @@ if ($accion == "consultarInventarioGeneral") {
     if ($rol == '1') {
         $sqlConsultaVehiculosG ="(SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'AREA' as tipo
                             FROM inventario inv
-                            INNER JOIN usuarios u ON $id_usuario = u.id_usuario
+                            INNER JOIN mess_rrhh.usuarios u ON u.id = (SELECT u2.id FROM mess_rrhh.usuarios u2 WHERE u2.id_usuario = $id_usuario ORDER BY u2.estatus = 1 DESC, u2.id LIMIT 1)
                             WHERE (inv.id_usuario = $id_usuario
-                            OR inv.id_usuario IN (SELECT id_usuario FROM usuarios WHERE jefe = u.jefe UNION ALL SELECT id_usuario FROM usuarios WHERE noEmpleado =  u.jefe))
+                            OR inv.id_usuario IN (SELECT id_usuario FROM mess_rrhh.usuarios WHERE jefe = u.jefe UNION ALL SELECT id_usuario FROM mess_rrhh.usuarios WHERE noEmpleado =  u.jefe))
                             AND inv.estatus = 'Activo' ORDER BY inv.usuario)
                             UNION
                             (SELECT inv.id_vehiculo, inv.placa, inv.modelo, inv.marca, inv.color, inv.anio, inv.usuario, inv.id_usuario, 'EXTERNO' as tipo
@@ -283,7 +283,7 @@ if ($accion == "obtenerFeedSiniestros") {
                    COUNT(f.id_foto) AS num_fotos
             FROM siniestros s
             INNER JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios u ON s.id_dueno = u.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = s.id_dueno LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
             LEFT JOIN fotos f ON f.formato = 'Siniestro' AND f.id_formato = s.id_siniestro
             $whereClause
@@ -313,7 +313,7 @@ if ($accion == "obtenerDetallesSiniestro") {
                 IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), u.nombre) AS nombre_usuario
          FROM siniestros s
          INNER JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
-         LEFT JOIN usuarios u ON s.id_dueno = u.id_usuario
+         LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = s.id_dueno LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
          LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = u.noEmpleado
          WHERE s.id_siniestro = ?"
     );

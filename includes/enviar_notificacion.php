@@ -89,8 +89,8 @@ function enviarNotificacionSolicitud($tipo) {
     $jefe = null;
     $solicitaNombre = null;
 
-    $sql_jefe = "SELECT (SELECT correo FROM usuarios WHERE noEmpleado = U.jefe) as correoJefe, U.nombre
-                FROM usuarios U
+    $sql_jefe = "SELECT (SELECT correo FROM mess_rrhh.usuarios WHERE noEmpleado = U.jefe ORDER BY estatus = 1 DESC, id LIMIT 1) as correoJefe, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(U.nombres,''),' ',IFNULL(U.apellidos,'')),'  ',' ')),''), TRIM(U.nombre)) AS nombre
+                FROM mess_rrhh.usuarios U
                 WHERE noEmpleado = ?";
 
     if ($stmt = $conn->prepare($sql_jefe)) {
@@ -165,12 +165,10 @@ function enviarNotificacionSolicitudPrestamo($conn, $idPrestamo, $destinatarios 
     $sql = "SELECT p.fecha_inc_prestamo, p.fecha_fin_prestamo, p.tipo_uso,
                    p.detalle_tipo_uso, p.Destino,
                    inv.placa, inv.marca, inv.modelo,
-                   u.nombre AS nombre_solicitante
+                   COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre_solicitante
             FROM prestamos p
             LEFT JOIN inventario inv ON inv.id_vehiculo = p.id_vehiculo
-            LEFT JOIN usuarios u ON u.id = (
-                SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = p.id_usuario
-            )
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = p.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             WHERE p.id_prestamo = ?
             LIMIT 1";
 
@@ -249,12 +247,10 @@ function enviarNotificacionResolucionMantenimiento($conn, $idMantenimiento, $res
     $sql = "SELECT m.tipo_mantenimiento, m.descripcion, m.fecha_programada, m.folio,
                    m.costo, m.notas, m.kilometraje,
                    inv.placa, inv.marca, inv.modelo,
-                   u.nombre AS nombre_solicitante, u.correo AS correo_solicitante
+                   COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) AS nombre_solicitante, u.correo AS correo_solicitante
             FROM mantenimientos m
             LEFT JOIN inventario inv ON inv.id_vehiculo = m.id_vehiculo
-            LEFT JOIN usuarios u ON u.id = (
-                SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = m.solicitante
-            )
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = m.solicitante LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
             WHERE m.id_mantenimiento = ?
             LIMIT 1";
 

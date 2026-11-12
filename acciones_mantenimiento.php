@@ -126,7 +126,7 @@ if ($accion == "manejarCarpetasYFoto") {
 
 //Consulta de Usuarios
 if ($accion == "consultarUsuarios") {
-    $sql = "SELECT id_usuario, nombre FROM usuarios ORDER BY nombre ASC";
+    $sql = "SELECT id_usuario, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(nombres,''),' ',IFNULL(apellidos,'')),'  ',' ')),''), TRIM(nombre)) AS nombre FROM mess_rrhh.usuarios WHERE id_usuario > 0 ORDER BY nombre ASC";
     $result = $conn->query($sql);
 
     $usuarios = [];
@@ -174,19 +174,19 @@ if ($accion == "consultarMantenimientos") {
 
     if ($tieneAccesoAut && ($infAdicionalAut === null || $infAdicionalAut === 'TODAS')) {
         $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
-                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(us.nombres,''),' ',IFNULL(us.apellidos,'')),'  ',' ')),''), TRIM(us.nombre)) AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                        INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                        LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) us_k ON us_k.id_usuario = mant.solicitante LEFT JOIN mess_rrhh.usuarios us ON us.id = us_k.id
                         WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
                         ORDER BY mant.fecha_registro DESC";
     } elseif ($tieneAccesoAut && $infAdicionalAut) {
         $areasEsc = implode("','", array_map(fn($a) => $conn->real_escape_string($a), array_map('trim', explode(',', $infAdicionalAut))));
         $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
-                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                        mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(us.nombres,''),' ',IFNULL(us.apellidos,'')),'  ',' ')),''), TRIM(us.nombre)) AS nombre_usuario
                         FROM mantenimientos mant
                         INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                        INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                        LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) us_k ON us_k.id_usuario = mant.solicitante LEFT JOIN mess_rrhh.usuarios us ON us.id = us_k.id
                         WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND inv.area IN ('$areasEsc')
                         ORDER BY mant.fecha_registro DESC";
     } else {
@@ -205,10 +205,10 @@ if ($accion == "consultarMantenimientos") {
 
         if ($infAdicional === 'TODAS') {
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
-                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(us.nombres,''),' ',IFNULL(us.apellidos,'')),'  ',' ')),''), TRIM(us.nombre)) AS nombre_usuario
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) us_k ON us_k.id_usuario = mant.solicitante LEFT JOIN mess_rrhh.usuarios us ON us.id = us_k.id
                             WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
                             ORDER BY mant.fecha_registro DESC";
         } elseif ($infAdicional) {
@@ -235,18 +235,18 @@ if ($accion == "consultarMantenimientos") {
             $whereExtra = implode(' OR ', $conditions);
 
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
-                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(us.nombres,''),' ',IFNULL(us.apellidos,'')),'  ',' ')),''), TRIM(us.nombre)) AS nombre_usuario
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) us_k ON us_k.id_usuario = mant.solicitante LEFT JOIN mess_rrhh.usuarios us ON us.id = us_k.id
                             WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND ($whereExtra)
                             ORDER BY mant.fecha_registro DESC";
         } else {
             $sqlConsulta = "SELECT mant.id_mantenimiento, mant.id_vehiculo, mant.fecha_registro, mant.kilometraje, mant.gasolina, mant.tipo_mantenimiento,
-                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, us.nombre AS nombre_usuario
+                            mant.descripcion, mant.VoBo_jefe, inv.placa, inv.modelo, inv.marca, inv.color, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(us.nombres,''),' ',IFNULL(us.apellidos,'')),'  ',' ')),''), TRIM(us.nombre)) AS nombre_usuario
                             FROM mantenimientos mant
                             INNER JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-                            INNER JOIN usuarios us ON mant.solicitante = us.id_usuario
+                            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) us_k ON us_k.id_usuario = mant.solicitante LEFT JOIN mess_rrhh.usuarios us ON us.id = us_k.id
                             WHERE mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo' AND inv.id_usuario = '$id_usuario'
                             ORDER BY mant.fecha_registro DESC";
         }

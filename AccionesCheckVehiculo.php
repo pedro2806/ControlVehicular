@@ -34,10 +34,10 @@ if ($opcion == "llenaTVehiculosAsignados") {
     // puede DUPLICAR vehículos en la lista. Hoy no duplica con los datos actuales, pero
     // basta con que un vehículo apunte a un id_usuario repetido para que aparezca dos
     // veces en la tabla del QR.
-    $joinUsuario = "LEFT JOIN usuarios u ON u.id = (SELECT MAX(u2.id) FROM usuarios u2 WHERE u2.id_usuario = i.id_usuario)";
+    $joinUsuario = "LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = i.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id";
     $campos = "i.id_vehiculo, i.id_usuario, i.usuario, i.area, i.placa, i.modelo, i.color, i.anio,
                i.foto_general, i.estatus, i.fecha_registro, i.km_mantenimiento, i.marca,
-               u.nombre as asignado, '' as tipo, '' as referencia";
+               COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) as asignado, '' as tipo, '' as referencia";
 
     // El checklist que cuenta es el más reciente QUE TENGA DATOS, no el más reciente
     // a secas. Una cabecera sin filas de subárea marcaba el vehículo en verde como si

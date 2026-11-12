@@ -304,7 +304,7 @@ if (!empty($_COOKIE['noEmpleadoL'])) {
     if (!$connCV->connect_error) {
         $noEmpVeh = intval($_COOKIE['noEmpleadoL']);
         $stmtVeh = $connCV->prepare(
-            "SELECT 1 FROM usuarios u
+            "SELECT 1 FROM mess_rrhh.usuarios u
              WHERE u.noEmpleado = ?
                AND (
                  EXISTS (SELECT 1 FROM inventario i WHERE i.id_usuario = u.id_usuario OR i.id_us_asignado = u.id_usuario)

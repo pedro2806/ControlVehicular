@@ -16,9 +16,9 @@ $estatus = $_POST["estatus"] ?? null;
 // Consulta para obtener los vehículos del inventario
 if ($_POST['accion'] == 'ver_inventario') {
     $id_usuario_cookie = intval($_COOKIE['id_usuario']);
-        $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, usuarios.nombre as usuario, color
-                FROM inventario 
-                INNER JOIN usuarios ON inventario.id_usuario = usuarios.id_usuario     
+        $sql = "SELECT id_vehiculo, placa, modelo, marca, anio, COALESCE(NULLIF(TRIM(REPLACE(CONCAT(IFNULL(u.nombres,''),' ',IFNULL(u.apellidos,'')),'  ',' ')),''), TRIM(u.nombre)) as usuario, color
+                FROM inventario
+                LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) u_k ON u_k.id_usuario = inventario.id_usuario LEFT JOIN mess_rrhh.usuarios u ON u.id = u_k.id
                 WHERE (inventario.id_usuario = $id_usuario OR inventario.id_us_asignado = $id_usuario)
                   AND inventario.estatus = 'Activo'";
             
@@ -49,7 +49,7 @@ if ($_POST['accion'] == 'documentosVehiculo') {
                    doc.licencia, doc.tarjeta_circulacion, doc.refrendo_actual, doc.seguro_vehiculo,
                    doc.verificacion_vigente, doc.fecha_registro, doc.fecha_prox, doc.contacto
             FROM inventario inv
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             LEFT JOIN documentacion doc ON inv.id_vehiculo = doc.id_vehiculo
             WHERE inv.id_vehiculo = $id_vehiculo
@@ -73,7 +73,7 @@ if ($_POST['accion'] == 'mantenimientoVehiculo') {
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM mantenimientos m
             JOIN inventario inv ON m.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE m.id_vehiculo = $id_vehiculo
             ORDER BY m.fecha_registro DESC
@@ -97,7 +97,7 @@ if ($_POST['accion'] == 'siniestrosVehiculo') {
             FROM siniestros s
             LEFT JOIN fotos f ON s.id_siniestro = f.id_formato
             LEFT JOIN inventario inv ON s.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE s.id_vehiculo = $id_vehiculo
             ORDER BY s.fecha_registro DESC
@@ -170,7 +170,7 @@ if ($_POST['accion'] == 'verDocumentacionXVehiculo') {
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM documentacion doc
             LEFT JOIN inventario inv ON doc.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             $whereClause
             ORDER BY doc.fecha_registro ASC";
@@ -193,7 +193,7 @@ if ($_POST['accion'] == 'verMantenimientoXVehiculo') {
                    IFNULL(NULLIF(TRIM(CONCAT(IFNULL(rrhh.nombres,''),' ',IFNULL(rrhh.apellidos,''))),'' ), inv.usuario) AS usuario
             FROM mantenimientos mant
             LEFT JOIN inventario inv ON mant.id_vehiculo = inv.id_vehiculo
-            LEFT JOIN usuarios cv_u ON cv_u.id_usuario = inv.id_usuario
+            LEFT JOIN (SELECT id_usuario, id FROM (SELECT id_usuario, id, ROW_NUMBER() OVER (PARTITION BY id_usuario ORDER BY estatus = 1 DESC, id) AS rn FROM mess_rrhh.usuarios WHERE id_usuario > 0) rrhh_uno WHERE rn = 1) cv_u_k ON cv_u_k.id_usuario = inv.id_usuario LEFT JOIN mess_rrhh.usuarios cv_u ON cv_u.id = cv_u_k.id
             LEFT JOIN mess_rrhh.usuarios rrhh ON rrhh.noEmpleado = cv_u.noEmpleado
             WHERE mant.solicitante = $id_usuario AND mant.VoBo_jefe = '$estatus' AND inv.estatus = 'Activo'
             ORDER BY mant.fecha_registro DESC";

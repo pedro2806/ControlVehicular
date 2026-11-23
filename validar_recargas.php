@@ -50,12 +50,20 @@
                         <span class="badge bg-secondary fs-6" id="badgeTotal"></span>
                     </div>
 
-                    <ul class="nav nav-pills mb-3" id="tabsEstatus">
-                        <li class="nav-item"><button class="nav-link active" data-estatus="PENDIENTE">Pendientes <span class="badge bg-light text-dark ms-1" id="cntPENDIENTE">0</span></button></li>
-                        <li class="nav-item"><button class="nav-link" data-estatus="APROBADA">Aprobadas <span class="badge bg-light text-dark ms-1" id="cntAPROBADA">0</span></button></li>
-                        <li class="nav-item"><button class="nav-link" data-estatus="RECHAZADA">Rechazadas <span class="badge bg-light text-dark ms-1" id="cntRECHAZADA">0</span></button></li>
-                        <li class="nav-item"><button class="nav-link" data-estatus="">Todas</button></li>
-                    </ul>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <ul class="nav nav-pills" id="tabsEstatus">
+                            <li class="nav-item"><button class="nav-link active" data-estatus="PENDIENTE">Pendientes <span class="badge bg-light text-dark ms-1" id="cntPENDIENTE">0</span></button></li>
+                            <li class="nav-item"><button class="nav-link" data-estatus="APROBADA">Aprobadas <span class="badge bg-light text-dark ms-1" id="cntAPROBADA">0</span></button></li>
+                            <li class="nav-item"><button class="nav-link" data-estatus="RECHAZADA">Rechazadas <span class="badge bg-light text-dark ms-1" id="cntRECHAZADA">0</span></button></li>
+                            <li class="nav-item"><button class="nav-link" data-estatus="">Todas</button></li>
+                        </ul>
+                        <!-- Buscador: filtra en el cliente lo que ya trajo consultarSolicitudesGas. -->
+                        <div class="input-group input-group-sm" style="max-width: 340px;">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="search" id="buscarSolicitud" class="form-control" autocomplete="off"
+                                   placeholder="Placa, vehículo, tarjeta, solicitante..." aria-label="Buscar solicitud">
+                        </div>
+                    </div>
 
                     <div id="feedSolicitudes" class="row"></div>
 
@@ -130,17 +138,43 @@
     /** ¿La solicitud sigue abierta? PARCIAL cuenta: falta abonarle el resto. */
     function estaAbierta(e) { return e === 'PENDIENTE' || e === 'PARCIAL'; }
 
+    /** Minúsculas y sin acentos, para que "veronica" encuentre "Verónica". */
+    function normalizar(t) {
+        return String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    /**
+     * ¿La solicitud coincide con el texto del buscador? Cada palabra debe aparecer en
+     * algún campo ("caddy nayeli" encuentra la Caddy que pidió Nayeli). La placa se
+     * compara también sin guiones ni espacios: la capturan como "SV-6353-B" y en el
+     * inventario está "SV6353B".
+     */
+    function coincideBusqueda(s) {
+        var q = normalizar($('#buscarSolicitud').val()).trim();
+        if (!q) return true;
+        var texto = normalizar([
+            s.placa, String(s.placa || '').replace(/[\s-]/g, ''), s.marca, s.modelo, s.efecticard,
+            s.solicitante, s.resolvio, s.notas_resolucion, fmtFecha(s.fecha), s.estatus
+        ].join(' '));
+        return q.split(/\s+/).every(function (p) {
+            return texto.indexOf(p) !== -1 || texto.indexOf(p.replace(/-/g, '')) !== -1;
+        });
+    }
+
     function pintar() {
         var $c = $('#feedSolicitudes').empty();
         // La pestana "Pendientes" muestra tambien las PARCIAL: siguen abiertas y son justo
         // las que no hay que perder de vista para abonarles el resto.
-        var lista = estatusActivo
+        var lista = (estatusActivo
             ? solicitudes.filter(function (s) {
                   return estatusActivo === "PENDIENTE" ? estaAbierta(s.estatus) : s.estatus === estatusActivo;
               })
-            : solicitudes;
+            : solicitudes).filter(coincideBusqueda);
 
-        $('#noResultados').toggle(lista.length === 0);
+        $('#noResultados').toggle(lista.length === 0)
+            .find('p').text($('#buscarSolicitud').val().trim()
+                ? 'Ninguna solicitud coincide con la búsqueda.'
+                : 'No hay solicitudes en este estado.');
         $('#badgeTotal').text(lista.length + (lista.length === 1 ? ' solicitud' : ' solicitudes'));
 
         lista.forEach(function (s) {
@@ -500,8 +534,9 @@
 
     function contar() {
         ['PENDIENTE', 'APROBADA', 'RECHAZADA'].forEach(function (e) {
+            // Los contadores respetan el buscador, para ver en qué pestaña cayó lo buscado.
             $('#cnt' + e).text(solicitudes.filter(function (s) {
-                return e === "PENDIENTE" ? estaAbierta(s.estatus) : s.estatus === e;
+                return (e === "PENDIENTE" ? estaAbierta(s.estatus) : s.estatus === e) && coincideBusqueda(s);
             }).length);
         });
     }
@@ -535,6 +570,12 @@
             $('#tabsEstatus button').removeClass('active');
             $(this).addClass('active');
             estatusActivo = $(this).data('estatus');
+            pintar();
+        });
+
+        // 'input' cubre teclear, pegar y la "x" de limpiar del type="search".
+        $('#buscarSolicitud').on('input', function () {
+            contar();
             pintar();
         });
 

@@ -1,21 +1,27 @@
 <?php
 /**
- * Resumen semanal de un vehículo para la pestaña Vehículo del portal (loginMaster/inicio.php,
+ * Resumen mensual de un vehículo para la pestaña Vehículo del portal (loginMaster/inicio.php,
  * renderCardVehiculo). Pedido del 24/11/2026.
  *
- * Devuelve dos cosas de la semana ISO pedida (sin `lunes`, la semana pasada):
- *   - datos:    los números de la semana (km, check-ins, cargas), calculados al momento con la
- *               regla única de KM Mess (includes/semana_vehiculos.php → sqlKmMessCheckin).
- *   - analisis: las alertas y el comentario que publicó el agente b4 (api_analisis_semanal.php),
- *               o null si todavía no lo publica.
+ * Devuelve, del mes pedido ('YYYY-MM'; sin mes, el mes pasado; solo meses cerrados):
+ *   - datos:       los números del mes (km, check-ins, cargas). Se leen de la foto guardada en
+ *                  analisis_mensual_vehiculo (includes/mes_vehiculos.php), no se recalculan.
+ *   - actualizado: cuándo se calcularon esos números.
+ *   - analisis:    las alertas y el comentario que publicó el agente b4
+ *                  (api_analisis_mensual.php), o null si todavía no lo publica.
  *
- * Solo lectura. Quién puede verlo: los vehículos que lista la pestaña (getPlaca en
- * incidencias/validaLoginMaster.php: asignados o con préstamo vigente) o quien tenga
+ * Solo responde a quien tenga el acceso especial verResumenMensual (24/11/2026: antes de
+ * liberarlo a todos lo revisa Sebastian); a los demás les devuelve status 'no_disponible' y el
+ * portal no muestra el bloque. Dentro de eso, los vehículos que lista la pestaña (getPlaca en
+ * incidencias/validaLoginMaster.php: asignados o con préstamo vigente) o todos con
  * verTodosVehiculo.
+ *
+ * Escribe solo la primera vez que se pide un mes que no tiene foto (la genera para toda la
+ * flota, ver asegurarMesGenerado).
  */
 include 'includes/api_bootstrap.php';
 require_once __DIR__ . '/calcular_ruta.php';            // sqlKmMessCheckin(); incluirlo no dispara su endpoint
-require_once __DIR__ . '/includes/semana_vehiculos.php';
+require_once __DIR__ . '/includes/mes_vehiculos.php';
 
 $accion     = $_POST['accion'] ?? '';
 $noEmpleado = intval($_COOKIE['noEmpleado'] ?? 0);
@@ -51,7 +57,12 @@ function puedeVerVehiculo(mysqli $conn, int $noEmpleado, int $idVeh): bool {
     return (bool) $filas;
 }
 
-if ($accion === 'obtenerResumenSemanal') {
+if ($accion === 'obtenerResumenMensual') {
+    // Sin el acceso especial, el portal no muestra el bloque.
+    if (!tieneAccesoEspecial($conn, $noEmpleado, 'verResumenMensual')) {
+        echo json_encode(['status' => 'no_disponible']);
+        exit;
+    }
     $idVeh = intval($_POST['id_vehiculo'] ?? 0);
     if ($idVeh <= 0) {
         echo json_encode(['status' => 'error', 'message' => 'Vehículo inválido.']);
@@ -62,27 +73,26 @@ if ($accion === 'obtenerResumenSemanal') {
         exit;
     }
 
-    $semana = semanaPedida((string) ($_POST['lunes'] ?? ''));
-    $datos = datosSemanaVehiculos($conn, $semana, [$idVeh]);
-    if (!$datos) {
+    $mes = mesPedido((string) ($_POST['mes'] ?? ''));
+    asegurarMesGenerado($conn, $mes, [$idVeh]);
+    $fila = filasMes($conn, $mes, [$idVeh])[$idVeh] ?? null;
+    if (!$fila) {
         echo json_encode(['status' => 'error', 'message' => 'Vehículo no encontrado o dado de baja.']);
         exit;
     }
-    $analisis = analisisPublicado($conn, $semana['desde'], [$idVeh]);
 
     echo json_encode([
-        'status' => 'success',
-        'semana' => [
-            'lunes'     => $semana['desde'],
-            'domingo'   => $semana['domingo'],
-            'numero'    => $semana['numero'],
-            'anio'      => $semana['anio'],
-            'en_curso'  => $semana['en_curso'],
-            'anterior'  => $semana['lunes']->modify('-7 days')->format('Y-m-d'),
-            'siguiente' => $semana['en_curso'] ? null : $semana['hasta'],
+        'status'      => 'success',
+        'mes'         => [
+            'mes'       => $mes['clave'],
+            'inicio'    => $mes['desde'],
+            'fin'       => $mes['fin'],
+            'anterior'  => $mes['anterior'],
+            'siguiente' => $mes['siguiente'],   // null en el mes pasado (el último cerrado)
         ],
-        'datos'    => $datos[0],
-        'analisis' => $analisis[$idVeh] ?? null,
+        'actualizado' => $fila['actualizado'],
+        'datos'       => $fila['datos'],
+        'analisis'    => $fila['analisis'],
     ]);
     exit;
 }

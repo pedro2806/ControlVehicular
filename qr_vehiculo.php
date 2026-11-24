@@ -836,17 +836,18 @@ if (empty($_COOKIE['noEmpleado'])) {
             }
 
             // La sección de foto solo se muestra cuando es el primer KM de la semana
-            // (resp.primerKMDeLaSemana). La foto ya NO es obligatoria (02/10/2026): se
-            // comenta la validación, la foto sigue siendo opcional.
-            // if ($('#checkinFotoSection').is(':visible') && !$('#checkinFoto')[0].files[0]) {
-            //     Swal.fire({
-            //         icon: 'warning',
-            //         title: 'Falta la foto del KM',
-            //         text: 'Es el primer registro de la semana para este vehículo: toma la foto del odómetro para continuar.',
-            //         confirmButtonText: 'Aceptar'
-            //     });
-            //     return;
-            // }
+            // (resp.primerKMDeLaSemana), y en ese caso la foto es obligatoria. Se valida
+            // aquí para no hacerle subir el formulario y rebotarlo desde el servidor,
+            // que igual lo rechaza. Se quitó el 02/10/2026 y se restauró el 24/11/2026.
+            if ($('#checkinFotoSection').is(':visible') && !$('#checkinFoto')[0].files[0]) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Falta la foto del KM',
+                    text: 'Es el primer registro de la semana para este vehículo: toma la foto del odómetro para continuar.',
+                    confirmButtonText: 'Aceptar'
+                });
+                return;
+            }
 
             // Los dos botones se bloquean: un segundo clic en el otro duplicaría el check-in.
             $(esRegreso ? '#btnRegresoSede' : '#btnGuardarCheckinKM')

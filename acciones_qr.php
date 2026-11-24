@@ -384,11 +384,11 @@ if ($accion === 'checkInQR') {
     $hayKMEstaSemana = (bool) $stmtSem->get_result()->fetch_assoc();
     $stmtSem->close();
 
-    // La foto ya NO es obligatoria (02/10/2026): se comenta la validación.
-    // if (!$hayKMEstaSemana && !(isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK)) {
-    //     echo json_encode(['error' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.']);
-    //     exit;
-    // }
+    // Se quitó el 02/10/2026 (b2ab825, sin motivo registrado) y se restauró el 24/11/2026.
+    if (!$hayKMEstaSemana && !(isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK)) {
+        echo json_encode(['error' => 'La foto del kilometraje es obligatoria en el primer registro de la semana.']);
+        exit;
+    }
 
     // Auto-cerrar check-in anterior si existe (INICIO sin FINALIZACION posterior)
     $stmtChk = $conn->prepare("

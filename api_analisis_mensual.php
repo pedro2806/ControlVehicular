@@ -1,8 +1,9 @@
 <?php
 /**
- * API del análisis semanal para el agente b4 (muse.ai). Pedido del 24/11/2026: b4 analiza
- * cada semana los vehículos y publica aquí sus alertas; la pestaña Vehículo del portal
- * (loginMaster/inicio.php, vía acciones_resumen_semanal.php) las muestra junto con los km.
+ * API del análisis mensual para el agente b4 (muse.ai). Pedido del 24/11/2026: al inicio de
+ * cada mes b4 lee los números del mes pasado y publica aquí sus alertas; la pestaña Vehículo
+ * del portal (loginMaster/inicio.php, vía acciones_resumen_mensual.php) las muestra junto con
+ * los números.
  *
  * Autenticación: token en el encabezado `X-Api-Token` (o en el campo `token` del cuerpo).
  * El token vive en config_analisis.php (fuera de git; ver config_analisis.example.php). No se
@@ -10,21 +11,24 @@
  * la URL: quedaría en los logs de Apache.
  *
  * Solo POST, cuerpo JSON (Content-Type: application/json) o formulario. Respuestas JSON.
+ * El mes va como "YYYY-MM". Solo meses cerrados: el mes en curso o uno futuro se toma como el
+ * mes pasado.
  *
  * Acciones:
- *   semana     {accion, lunes?}  → datos de la semana de cada vehículo activo con check-ins o
- *                                  cargas. Sin `lunes`, la semana pasada. Los km salen de la
- *                                  regla única (sqlKmMessCheckin); b4 no los recalcula.
- *   publicar   {accion, lunes, analisis: [{id_vehiculo, resumen?, alertas: [{nivel, texto}]}]}
- *              → guarda (o reemplaza) el análisis de esos vehículos en esa semana. Todo o nada:
- *                si un renglón no es válido no se guarda ninguno. nivel de cada alerta: 'rojo' o
+ *   mes        {accion, mes?}  → números del mes de cada vehículo activo con check-ins o cargas.
+ *                                Sin `mes`, el mes pasado. Salen de la foto guardada del mes (se
+ *                                genera una sola vez, la primera vez que se pide); los km son los
+ *                                de la regla única (sqlKmMessCheckin) y b4 no los recalcula.
+ *   publicar   {accion, mes, analisis: [{id_vehiculo, resumen?, alertas: [{nivel, texto}]}]}
+ *              → guarda (o reemplaza) el análisis de esos vehículos en ese mes. Todo o nada: si
+ *                un renglón no es válido no se guarda ninguno. nivel de cada alerta: 'rojo' o
  *                'ambar'. El nivel del vehículo lo calcula el servidor (rojo si hay alguna roja,
  *                ámbar si hay alguna ámbar, verde si no hay alertas).
- *   publicado  {accion, lunes?} → lo que está guardado para esa semana.
+ *   publicado  {accion, mes?} → el análisis guardado de ese mes.
  */
 include 'includes/api_bootstrap.php';
 require_once __DIR__ . '/calcular_ruta.php';            // sqlKmMessCheckin(); incluirlo no dispara su endpoint
-require_once __DIR__ . '/includes/semana_vehiculos.php';
+require_once __DIR__ . '/includes/mes_vehiculos.php';
 
 const ANALISIS_MAX_VEHICULOS = 300;
 const ANALISIS_MAX_ALERTAS   = 100;
@@ -65,21 +69,25 @@ if ($token === '' || !hash_equals($tokenEsperado, $token)) {
 }
 
 $accion = (string) ($entrada['accion'] ?? '');
-$semana = semanaPedida((string) ($entrada['lunes'] ?? ''));
-$infoSemana = [
-    'lunes'    => $semana['desde'],
-    'domingo'  => $semana['domingo'],
-    'numero'   => $semana['numero'],
-    'anio'     => $semana['anio'],
-    'en_curso' => $semana['en_curso'],
-];
+$mes = mesPedido((string) ($entrada['mes'] ?? ''));
+$infoMes = ['mes' => $mes['clave'], 'inicio' => $mes['desde'], 'fin' => $mes['fin']];
 
-// ----- Leer los datos de la semana
-if ($accion === 'semana') {
-    $vehiculos = datosSemanaVehiculos($conn, $semana);
+// ----- Leer los números del mes
+if ($accion === 'mes') {
+    asegurarMesGenerado($conn, $mes);
+    $vehiculos = [];
+    $actualizado = null;
+    foreach (filasMes($conn, $mes) as $f) {
+        $d = $f['datos'];
+        if ($d['conteo']['checkins'] === 0 && $d['conteo']['cargas'] === 0) continue;   // sin movimientos
+        $d['actualizado'] = $f['actualizado'];
+        $vehiculos[] = $d;
+        if ($actualizado === null || $f['actualizado'] < $actualizado) $actualizado = $f['actualizado'];
+    }
+    usort($vehiculos, function ($a, $b) { return strcmp((string) $a['placa'], (string) $b['placa']); });
     responder(200, [
         'status'       => 'success',
-        'semana'       => $infoSemana,
+        'mes'          => $infoMes + ['actualizado' => $actualizado],
         'km_viaje_max' => KM_VIAJE_MAX,   // tramos negativos o mayores cuentan 0 en el odómetro
         'vehiculos'    => $vehiculos,
     ]);
@@ -87,21 +95,21 @@ if ($accion === 'semana') {
 
 // ----- Lo publicado
 if ($accion === 'publicado') {
-    responder(200, [
-        'status'   => 'success',
-        'semana'   => $infoSemana,
-        'analisis' => array_values(analisisPublicado($conn, $semana['desde'])),
-    ]);
+    $lista = [];
+    foreach (filasMes($conn, $mes) as $idv => $f) {
+        if ($f['analisis'] === null) continue;
+        $lista[] = ['id_vehiculo' => $idv, 'placa' => $f['datos']['placa'] ?? null] + $f['analisis'];
+    }
+    responder(200, ['status' => 'success', 'mes' => $infoMes, 'analisis' => $lista]);
 }
 
 // ----- Publicar
 if ($accion === 'publicar') {
-    // La semana tiene que venir explícita y ser un lunes: publicar en la semana equivocada por
+    // El mes tiene que venir explícito y ser un mes cerrado: publicar en el mes equivocado por
     // un valor por defecto sería un error silencioso.
-    $lunesPedido = (string) ($entrada['lunes'] ?? '');
-    if ($lunesPedido !== $semana['desde']) {
+    if ((string) ($entrada['mes'] ?? '') !== $mes['clave']) {
         responder(400, ['status' => 'error',
-            'message' => 'lunes es obligatorio y debe ser el lunes de una semana que no sea futura (YYYY-MM-DD).']);
+            'message' => 'mes es obligatorio y debe ser un mes cerrado (YYYY-MM), no el mes en curso.']);
     }
     $lista = $entrada['analisis'] ?? null;
     if (!is_array($lista) || !$lista || count($lista) > ANALISIS_MAX_VEHICULOS) {
@@ -163,31 +171,32 @@ if ($accion === 'publicar') {
         responder(400, ['status' => 'error', 'message' => 'No se guardó nada.', 'errores' => $errores]);
     }
 
-    crearTablaAnalisisSemanal($conn);
+    // El análisis va en la misma fila que la foto del mes: si no existe todavía, se genera.
+    asegurarMesGenerado($conn, $mes, array_column($filas, 0));
     $conn->begin_transaction();
     try {
         $st = $conn->prepare(
-            "INSERT INTO analisis_semanal_vehiculo (id_vehiculo, semana_inicio, nivel, resumen, alertas, autor)
-             VALUES (?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE nivel = VALUES(nivel), resumen = VALUES(resumen),
-                                     alertas = VALUES(alertas), autor = VALUES(autor)"
+            "INSERT INTO " . TABLA_ANALISIS_MENSUAL . " (id_vehiculo, mes, nivel, resumen, alertas, autor, publicado)
+             VALUES (?, ?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE nivel = VALUES(nivel), resumen = VALUES(resumen), alertas = VALUES(alertas),
+                                     autor = VALUES(autor), publicado = VALUES(publicado)"
         );
         foreach ($filas as $f) {
             list($idv, $nivel, $resumen, $alertasJson) = $f;
-            $st->bind_param("isssss", $idv, $semana['desde'], $nivel, $resumen, $alertasJson, $autor);
+            $st->bind_param("isssss", $idv, $mes['desde'], $nivel, $resumen, $alertasJson, $autor);
             $st->execute();
         }
         $st->close();
         $conn->commit();
     } catch (Throwable $e) {
         $conn->rollback();
-        error_log('api_analisis_semanal publicar: ' . $e->getMessage());
+        error_log('api_analisis_mensual publicar: ' . $e->getMessage());
         responder(500, ['status' => 'error', 'message' => 'No se guardó nada: error al escribir en la base de datos.']);
     }
 
     $porNivel = ['rojo' => 0, 'ambar' => 0, 'verde' => 0];
     foreach ($filas as $f) $porNivel[$f[1]]++;
-    responder(200, ['status' => 'success', 'semana' => $infoSemana, 'guardados' => count($filas), 'por_nivel' => $porNivel]);
+    responder(200, ['status' => 'success', 'mes' => $infoMes, 'guardados' => count($filas), 'por_nivel' => $porNivel]);
 }
 
-responder(400, ['status' => 'error', 'message' => 'Acción no reconocida. Usa semana, publicar o publicado.']);
+responder(400, ['status' => 'error', 'message' => 'Acción no reconocida. Usa mes, publicar o publicado.']);

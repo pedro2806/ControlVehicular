@@ -338,16 +338,22 @@ function asegurarMesGenerado(mysqli $conn, array $mes, array $ids = []): int {
 /**
  * Filas guardadas del mes, por id_vehiculo: datos (foto), datos_actualizado y analisis (null
  * mientras b4 no publique). Sin $ids, todo el mes.
+ *
+ * datos.anio (año del vehículo, 25/11/2026: b4 lo usa para juzgar el consumo de gasolina) se
+ * toma del inventario al leer, no de la foto: así lo traen también los meses ya generados.
  */
 function filasMes(mysqli $conn, array $mes, array $ids = []): array {
-    $sql = "SELECT id_vehiculo, datos, datos_actualizado, nivel, resumen, alertas, autor, publicado
-            FROM " . TABLA_ANALISIS_MENSUAL . " WHERE mes = ? AND datos IS NOT NULL";
+    $sql = "SELECT a.id_vehiculo, a.datos, a.datos_actualizado, a.nivel, a.resumen, a.alertas, a.autor, a.publicado,
+                   i.anio
+            FROM " . TABLA_ANALISIS_MENSUAL . " a
+            LEFT JOIN inventario i ON i.id_vehiculo = a.id_vehiculo
+            WHERE a.mes = ? AND a.datos IS NOT NULL";
     $tipos = 's';
     $params = [$mes['desde']];
     $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
     if ($ids) {
         list($in, $t) = inEnteros($ids);
-        $sql .= " AND id_vehiculo IN ($in)";
+        $sql .= " AND a.id_vehiculo IN ($in)";
         $tipos .= $t;
         $params = array_merge($params, $ids);
     }
@@ -355,6 +361,11 @@ function filasMes(mysqli $conn, array $mes, array $ids = []): array {
     foreach (filasPreparadas($conn, $sql, $tipos, $params) as $f) {
         $datos = json_decode((string) $f['datos'], true);
         if (!is_array($datos)) continue;
+        // anio va justo después de modelo, para que se lea junto a marca y modelo.
+        $anio = $f['anio'] === null ? null : (int) $f['anio'];
+        $pos = array_search('modelo', array_keys($datos), true);
+        $datos = $pos === false ? $datos + ['anio' => $anio]
+               : array_slice($datos, 0, $pos + 1, true) + ['anio' => $anio] + array_slice($datos, $pos + 1, null, true);
         $alertas = json_decode((string) $f['alertas'], true);
         $res[(int) $f['id_vehiculo']] = [
             'datos'       => $datos,

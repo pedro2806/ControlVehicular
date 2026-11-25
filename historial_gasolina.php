@@ -806,7 +806,7 @@ function accionReposicion(r) {
              +   '<i class="fas fa-hourglass-half me-1"></i>Solicitud en trámite</button>'
              + '<div class="gas-nota mt-2">Cuando se resuelva podrás pedir otra.</div>';
     }
-    var iconos = { al_corriente: 'fa-check', saldo_suficiente: 'fa-gauge-high', no_autorizado: 'fa-lock' };
+    var iconos = { al_corriente: 'fa-check', no_autorizado: 'fa-lock' };
     return '<div class="gas-nota"><i class="fas ' + (iconos[r.motivo] || 'fa-circle-info') + ' me-1"></i>'
          + escHtml(r.mensaje) + '</div>';
 }

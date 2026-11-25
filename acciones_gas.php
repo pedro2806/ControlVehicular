@@ -102,13 +102,6 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
     const CREDITO_TARJETA = 4000;
 
     /**
-     * Parte del crédito por debajo de la cual se permite pedir reposición: 25% = $1,000.
-     * Acordado el 2026-10-26; antes se podía pedir con cualquier saldo (incluso $3,500 de
-     * $4,000) y quien autorizaba recibía solicitudes de $500.
-     */
-    const PORCENTAJE_REPOSICION = 0.25;
-
-    /**
      * ¿Puede este usuario pedir reposición de crédito para este vehículo?
      *
      * Una sola regla para los dos lados: solicitarReposicionGas la aplica y
@@ -118,8 +111,10 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
      * así que bastaba mandar la petición directo para saltarse lo demás.
      *
      * En orden: vehículo activo → tiene saldo registrado → tarjeta no llena → sin otra
-     * solicitud en trámite → saldo por debajo del umbral → quien pide es el responsable
-     * (dueño o asignado, que siempre puede) o quien hizo la última carga.
+     * solicitud en trámite → quien pide es el responsable (dueño o asignado, que siempre
+     * puede) o quien hizo la última carga.
+     * Se puede pedir con cualquier saldo debajo del crédito: el tope de 25% ($1,000) del
+     * 2026-10-26 se quitó el 2026-11-25.
      * La tarjeta llena va ANTES que la solicitud en trámite porque una PARCIAL puede
      * quedarse abierta aunque el crédito ya se haya completado por otra vía.
      *
@@ -127,14 +122,13 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
      * navegador: ese puede venir desactualizado o alterado y es el que se guardaba en la
      * solicitud y se mandaba en el correo.
      *
-     * @return array{puede: bool, motivo: string, mensaje: string, saldo: ?float, umbral: float}
+     * @return array{puede: bool, motivo: string, mensaje: string, saldo: ?float}
      */
     function evaluarReposicion($conn, $idVeh, $idUsr) {
         $idVeh  = intval($idVeh);
         $idUsr  = intval($idUsr);
-        $umbral = round(CREDITO_TARJETA * PORCENTAJE_REPOSICION, 2);
-        $res = function ($puede, $motivo, $mensaje, $saldo = null) use ($umbral) {
-            return ['puede' => $puede, 'motivo' => $motivo, 'mensaje' => $mensaje, 'saldo' => $saldo, 'umbral' => $umbral];
+        $res = function ($puede, $motivo, $mensaje, $saldo = null) {
+            return ['puede' => $puede, 'motivo' => $motivo, 'mensaje' => $mensaje, 'saldo' => $saldo];
         };
 
         $stmt = $conn->prepare(
@@ -180,11 +174,6 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $stmt->close();
         if ($enTramite) {
             return $res(false, 'en_tramite', 'Este vehículo ya tiene una solicitud de reposición en trámite.', $saldo);
-        }
-
-        if ($saldo >= $umbral) {
-            return $res(false, 'saldo_suficiente',
-                'Se puede pedir cuando el saldo baje de $' . number_format($umbral, 2) . '.', $saldo);
         }
 
         $esResponsable   = $idUsr > 0 && ($idUsr === intval($veh['id_usuario']) || $idUsr === intval($veh['id_us_asignado']));
@@ -1025,7 +1014,7 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         $id_vehiculo_req = isset($_POST['id_vehiculo']) ? intval($_POST['id_vehiculo']) : 0;
         $noEmp           = $_COOKIE['noEmpleado'] ?? '';
 
-        // Todas las reglas (una abierta a la vez, saldo bajo el 25%, quién puede pedirla)
+        // Todas las reglas (una abierta a la vez, tarjeta no llena, quién puede pedirla)
         // viven en evaluarReposicion(). La de "una a la vez" salió de pruebas: se mandaban
         // varias seguidas porque nada cambiaba en pantalla y el encargado recibía correos
         // duplicados de la misma tarjeta. La barrera tiene que estar aquí y no solo en la

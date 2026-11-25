@@ -1,21 +1,26 @@
 <?php
 /**
- * Resumen mensual de un vehículo para la pestaña Vehículo del portal (loginMaster/inicio.php,
- * renderCardVehiculo). Pedido del 24/11/2026.
+ * Resumen mensual para la pestaña Vehículo del portal (loginMaster/inicio.php,
+ * cargarResumenMensual). Pedido del 24/11/2026.
  *
- * Devuelve, del mes pedido ('YYYY-MM'; sin mes, el mes pasado; solo meses cerrados) y de cada
- * vehículo de `ids` (los de la pestaña, para el selector de vehículos):
- *   - datos:       los números del mes (km, check-ins, cargas). Se leen de la foto guardada en
- *                  analisis_mensual_vehiculo (includes/mes_vehiculos.php), no se recalculan.
- *   - actualizado: cuándo se calcularon esos números.
- *   - analisis:    las alertas (título y detalle) y el comentario que publicó el agente b4
- *                  (api_analisis_mensual.php), o null si todavía no lo publica.
+ * Del mes pedido ('YYYY-MM'; sin mes, el mes pasado; solo meses cerrados):
+ *   obtenerResumenMensual (ids)   → por vehículo de `ids`:
+ *       - datos:       los números del mes (km, check-ins, cargas). Se leen de la foto guardada
+ *                      en analisis_mensual_vehiculo (includes/mes_vehiculos.php), no se recalculan.
+ *       - actualizado: cuándo se calcularon esos números.
+ *       - analisis:    las alertas (título y detalle) y el comentario que publicó el agente b4
+ *                      (api_analisis_mensual.php), o null si todavía no lo publica.
+ *   listaResumenMensualFlota      → lista ligera de TODA la flota (placa, modelo, año, asignado,
+ *                                   conteos, km y nivel/alertas de b4) para el selector de BI.
+ *                                   El detalle de cada vehículo se pide con obtenerResumenMensual.
  *
- * Solo responde a quien tenga el acceso especial verResumenMensual (24/11/2026: antes de
- * liberarlo a todos lo revisa Sebastian); a los demás les devuelve status 'no_disponible' y el
- * portal no muestra el bloque. Dentro de eso, los vehículos que lista la pestaña (getPlaca en
- * incidencias/validaLoginMaster.php: asignados o con préstamo vigente) o todos con
- * verTodosVehiculo.
+ * Quién lo ve:
+ *   - verResumenMensual (24/11/2026: antes de liberarlo a todos lo revisa Sebastian): sus
+ *     vehículos, los que lista la pestaña (getPlaca en incidencias/validaLoginMaster.php:
+ *     asignados o con préstamo vigente), o todos con verTodosVehiculo.
+ *   - verResumenMensualFlota (BI, 25/11/2026: 523, 183 y 276): toda la flota activa, aunque no
+ *     tenga vehículo asignado.
+ *   - Sin ninguno de los dos: status 'no_disponible' y el portal no muestra el bloque.
  *
  * Escribe solo la primera vez que se pide un mes que no tiene foto (la genera para toda la
  * flota, ver asegurarMesGenerado).
@@ -32,9 +37,12 @@ if ($noEmpleado <= 0) {
     exit;
 }
 
-/** ¿El vehículo está en la lista de quien consulta? Ver encabezado. */
-function puedeVerVehiculo(mysqli $conn, int $noEmpleado, int $idVeh): bool {
-    if (tieneAccesoEspecial($conn, $noEmpleado, 'verTodosVehiculo')) return true;
+$verFlota   = tieneAccesoEspecial($conn, $noEmpleado, 'verResumenMensualFlota');
+$verResumen = $verFlota || tieneAccesoEspecial($conn, $noEmpleado, 'verResumenMensual');
+
+/** ¿Puede ver este vehículo? Ver encabezado. */
+function puedeVerVehiculo(mysqli $conn, int $noEmpleado, int $idVeh, bool $verFlota): bool {
+    if ($verFlota || tieneAccesoEspecial($conn, $noEmpleado, 'verTodosVehiculo')) return true;
 
     // id_usuario de RRHH por noEmpleado (único en RRHH) y el de la cookie de sesión.
     $ids = [intval($_COOKIE['id_usuario'] ?? 0)];
@@ -58,14 +66,24 @@ function puedeVerVehiculo(mysqli $conn, int $noEmpleado, int $idVeh): bool {
     return (bool) $filas;
 }
 
+function infoMes(array $mes): array {
+    return [
+        'mes'       => $mes['clave'],
+        'inicio'    => $mes['desde'],
+        'fin'       => $mes['fin'],
+        'anterior'  => $mes['anterior'],
+        'siguiente' => $mes['siguiente'],   // null en el mes pasado (el último cerrado)
+    ];
+}
+
 if ($accion === 'obtenerResumenMensual') {
-    // Sin el acceso especial, el portal no muestra el bloque.
-    if (!tieneAccesoEspecial($conn, $noEmpleado, 'verResumenMensual')) {
+    // Sin ninguno de los accesos, el portal no muestra el bloque.
+    if (!$verResumen) {
         echo json_encode(['status' => 'no_disponible']);
         exit;
     }
-    // ids: los vehículos de la pestaña ("1,2,3" o ids[]), para llenar el selector de vehículos
-    // con una sola petición. Se devuelven en ese mismo orden, solo los que la persona puede ver.
+    // ids: los vehículos a mostrar ("1,2,3" o ids[]). Se devuelven en ese mismo orden, solo los
+    // que la persona puede ver.
     $crudo = $_POST['ids'] ?? ($_POST['id_vehiculo'] ?? '');
     $lista = is_array($crudo) ? $crudo : explode(',', (string) $crudo);
     $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $lista), function ($i) {
@@ -75,8 +93,8 @@ if ($accion === 'obtenerResumenMensual') {
         echo json_encode(['status' => 'error', 'message' => 'Vehículo inválido.']);
         exit;
     }
-    $permitidos = array_values(array_filter($ids, function ($i) use ($conn, $noEmpleado) {
-        return puedeVerVehiculo($conn, $noEmpleado, $i);
+    $permitidos = array_values(array_filter($ids, function ($i) use ($conn, $noEmpleado, $verFlota) {
+        return puedeVerVehiculo($conn, $noEmpleado, $i, $verFlota);
     }));
     if (!$permitidos) {
         echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a estos vehículos.']);
@@ -96,18 +114,52 @@ if ($accion === 'obtenerResumenMensual') {
         if ($actualizado === null || $f['actualizado'] < $actualizado) $actualizado = $f['actualizado'];
     }
 
-    echo json_encode([
-        'status'      => 'success',
-        'mes'         => [
-            'mes'       => $mes['clave'],
-            'inicio'    => $mes['desde'],
-            'fin'       => $mes['fin'],
-            'anterior'  => $mes['anterior'],
-            'siguiente' => $mes['siguiente'],   // null en el mes pasado (el último cerrado)
-        ],
-        'actualizado' => $actualizado,
-        'vehiculos'   => $vehiculos,
-    ]);
+    echo json_encode(['status' => 'success', 'mes' => infoMes($mes), 'actualizado' => $actualizado, 'vehiculos' => $vehiculos]);
+    exit;
+}
+
+// Lista ligera de toda la flota para el selector de BI (verResumenMensualFlota). Trae lo
+// necesario para los botones, el filtro y el buscador; el detalle se pide al elegir.
+if ($accion === 'listaResumenMensualFlota') {
+    if (!$verFlota) {
+        echo json_encode(['status' => 'no_disponible']);
+        exit;
+    }
+    $mes = mesPedido((string) ($_POST['mes'] ?? ''));
+    asegurarMesGenerado($conn, $mes);
+
+    $vehiculos = [];
+    $actualizado = null;
+    foreach (filasMes($conn, $mes) as $idv => $f) {
+        $d = $f['datos'];
+        $a = $f['analisis'];
+        $rojas = 0;
+        $ambar = 0;
+        if ($a) {
+            foreach ($a['alertas'] as $al) {
+                $n = is_array($al) ? ($al['nivel'] ?? '') : '';
+                if ($n === 'rojo') $rojas++;
+                elseif ($n === 'ambar') $ambar++;
+            }
+        }
+        $vehiculos[] = [
+            'id_vehiculo' => $idv,
+            'datos'       => [
+                'placa'    => $d['placa'] ?? null,
+                'marca'    => $d['marca'] ?? null,
+                'modelo'   => $d['modelo'] ?? null,
+                'anio'     => $d['anio'] ?? null,
+                'asignado' => ['nombre' => $d['asignado']['nombre'] ?? null],
+                'conteo'   => ['checkins' => (int) ($d['conteo']['checkins'] ?? 0), 'cargas' => (int) ($d['conteo']['cargas'] ?? 0)],
+                'km'       => ['odometro' => (int) ($d['km']['odometro'] ?? 0)],
+            ],
+            'analisis'    => $a ? ['nivel' => $a['nivel'], 'rojas' => $rojas, 'ambar' => $ambar] : null,
+        ];
+        if ($actualizado === null || $f['actualizado'] < $actualizado) $actualizado = $f['actualizado'];
+    }
+    usort($vehiculos, function ($x, $y) { return strcmp((string) $x['datos']['placa'], (string) $y['datos']['placa']); });
+
+    echo json_encode(['status' => 'success', 'mes' => infoMes($mes), 'actualizado' => $actualizado, 'vehiculos' => $vehiculos]);
     exit;
 }
 

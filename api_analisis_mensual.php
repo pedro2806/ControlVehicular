@@ -19,10 +19,11 @@
  *                                Sin `mes`, el mes pasado. Salen de la foto guardada del mes (se
  *                                genera una sola vez, la primera vez que se pide); los km son los
  *                                de la regla única (sqlKmMessCheckin) y b4 no los recalcula.
- *   publicar   {accion, mes, analisis: [{id_vehiculo, resumen?, alertas: [{nivel, texto}]}]}
+ *   publicar   {accion, mes, analisis: [{id_vehiculo, resumen?, alertas: [{nivel, texto, detalle?}]}]}
  *              → guarda (o reemplaza) el análisis de esos vehículos en ese mes. Todo o nada: si
  *                un renglón no es válido no se guarda ninguno. nivel de cada alerta: 'rojo' o
- *                'ambar'. El nivel del vehículo lo calcula el servidor (rojo si hay alguna roja,
+ *                'ambar'; texto es el título (hasta 500) y detalle, la explicación (opcional, hasta
+ *                1000). El nivel del vehículo lo calcula el servidor (rojo si hay alguna roja,
  *                ámbar si hay alguna ámbar, verde si no hay alertas).
  *   publicado  {accion, mes?} → el análisis guardado de ese mes.
  */
@@ -33,6 +34,7 @@ require_once __DIR__ . '/includes/mes_vehiculos.php';
 const ANALISIS_MAX_VEHICULOS = 300;
 const ANALISIS_MAX_ALERTAS   = 100;
 const ANALISIS_MAX_TEXTO     = 500;
+const ANALISIS_MAX_DETALLE   = 1000;
 const ANALISIS_MAX_RESUMEN   = 4000;
 
 function responder(int $codigo, array $cuerpo): void {
@@ -160,7 +162,14 @@ if ($accion === 'publicar') {
             if ($txt === '' || mb_strlen($txt) > ANALISIS_MAX_TEXTO) {
                 $errores[] = "$pre.alertas[$j].texto: obligatorio, máximo " . ANALISIS_MAX_TEXTO . " caracteres."; continue 2;
             }
-            $limpias[] = ['nivel' => $n, 'texto' => $txt];
+            // detalle (opcional, 25/11/2026): la explicación debajo del título (texto) en la pestaña.
+            $det = is_array($al) ? ($al['detalle'] ?? null) : null;
+            if ($det !== null && !is_string($det)) { $errores[] = "$pre.alertas[$j].detalle: debe ser texto."; continue 2; }
+            $det = $det === null ? '' : trim($det);
+            if (mb_strlen($det) > ANALISIS_MAX_DETALLE) {
+                $errores[] = "$pre.alertas[$j].detalle: máximo " . ANALISIS_MAX_DETALLE . " caracteres."; continue 2;
+            }
+            $limpias[] = ['nivel' => $n, 'texto' => $txt] + ($det !== '' ? ['detalle' => $det] : []);
             if ($n === 'rojo') $nivel = 'rojo';
             elseif ($nivel === 'verde') $nivel = 'ambar';
         }

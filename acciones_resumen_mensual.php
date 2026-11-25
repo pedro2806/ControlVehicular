@@ -3,11 +3,12 @@
  * Resumen mensual de un vehículo para la pestaña Vehículo del portal (loginMaster/inicio.php,
  * renderCardVehiculo). Pedido del 24/11/2026.
  *
- * Devuelve, del mes pedido ('YYYY-MM'; sin mes, el mes pasado; solo meses cerrados):
+ * Devuelve, del mes pedido ('YYYY-MM'; sin mes, el mes pasado; solo meses cerrados) y de cada
+ * vehículo de `ids` (los de la pestaña, para el selector de vehículos):
  *   - datos:       los números del mes (km, check-ins, cargas). Se leen de la foto guardada en
  *                  analisis_mensual_vehiculo (includes/mes_vehiculos.php), no se recalculan.
  *   - actualizado: cuándo se calcularon esos números.
- *   - analisis:    las alertas y el comentario que publicó el agente b4
+ *   - analisis:    las alertas (título y detalle) y el comentario que publicó el agente b4
  *                  (api_analisis_mensual.php), o null si todavía no lo publica.
  *
  * Solo responde a quien tenga el acceso especial verResumenMensual (24/11/2026: antes de
@@ -63,22 +64,36 @@ if ($accion === 'obtenerResumenMensual') {
         echo json_encode(['status' => 'no_disponible']);
         exit;
     }
-    $idVeh = intval($_POST['id_vehiculo'] ?? 0);
-    if ($idVeh <= 0) {
+    // ids: los vehículos de la pestaña ("1,2,3" o ids[]), para llenar el selector de vehículos
+    // con una sola petición. Se devuelven en ese mismo orden, solo los que la persona puede ver.
+    $crudo = $_POST['ids'] ?? ($_POST['id_vehiculo'] ?? '');
+    $lista = is_array($crudo) ? $crudo : explode(',', (string) $crudo);
+    $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $lista), function ($i) {
+        return $i > 0;
+    }))), 0, 50);
+    if (!$ids) {
         echo json_encode(['status' => 'error', 'message' => 'Vehículo inválido.']);
         exit;
     }
-    if (!puedeVerVehiculo($conn, $noEmpleado, $idVeh)) {
-        echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a este vehículo.']);
+    $permitidos = array_values(array_filter($ids, function ($i) use ($conn, $noEmpleado) {
+        return puedeVerVehiculo($conn, $noEmpleado, $i);
+    }));
+    if (!$permitidos) {
+        echo json_encode(['status' => 'error', 'message' => 'No tienes acceso a estos vehículos.']);
         exit;
     }
 
     $mes = mesPedido((string) ($_POST['mes'] ?? ''));
-    asegurarMesGenerado($conn, $mes, [$idVeh]);
-    $fila = filasMes($conn, $mes, [$idVeh])[$idVeh] ?? null;
-    if (!$fila) {
-        echo json_encode(['status' => 'error', 'message' => 'Vehículo no encontrado o dado de baja.']);
-        exit;
+    asegurarMesGenerado($conn, $mes, $permitidos);
+    $filas = filasMes($conn, $mes, $permitidos);
+
+    $vehiculos = [];
+    $actualizado = null;
+    foreach ($permitidos as $idv) {
+        if (!isset($filas[$idv])) continue;   // dado de baja
+        $f = $filas[$idv];
+        $vehiculos[] = ['id_vehiculo' => $idv, 'actualizado' => $f['actualizado'], 'datos' => $f['datos'], 'analisis' => $f['analisis']];
+        if ($actualizado === null || $f['actualizado'] < $actualizado) $actualizado = $f['actualizado'];
     }
 
     echo json_encode([
@@ -90,9 +105,8 @@ if ($accion === 'obtenerResumenMensual') {
             'anterior'  => $mes['anterior'],
             'siguiente' => $mes['siguiente'],   // null en el mes pasado (el último cerrado)
         ],
-        'actualizado' => $fila['actualizado'],
-        'datos'       => $fila['datos'],
-        'analisis'    => $fila['analisis'],
+        'actualizado' => $actualizado,
+        'vehiculos'   => $vehiculos,
     ]);
     exit;
 }

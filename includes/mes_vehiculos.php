@@ -86,7 +86,8 @@ const SQL_FECHA_LECTURA_CARGA = "CASE WHEN DATE(cg.fecha_registro) = cg.fecha_ca
  * Solo lo llama asegurarMesGenerado(): el resto lee la foto guardada.
  *
  * Por vehículo:
- *   km.inicial          último check-in antes del mes (desde ahí se mide el primer tramo)
+ *   km.inicial          último check-in antes del mes (desde ahí se mide el primer tramo);
+ *                       km.inicial_fecha, su fecha
  *   km.final            último check-in del mes
  *   km.odometro         Σ tramos válidos de los check-ins del mes = mess + personales
  *   km.avance_lecturas  final − inicial. Si es mayor que odometro hubo tramos descartados
@@ -187,8 +188,8 @@ function datosMesVehiculos(mysqli $conn, array $mes, array $ids): array {
             'marca'       => $v['marca'],
             'modelo'      => $v['modelo'],
             'asignado'    => ['id_usuario' => (int) $v['id_us_asignado'], 'nombre' => $nombre($v['id_us_asignado'])],
-            'km'          => ['inicial' => null, 'final' => null, 'odometro' => 0, 'mess' => 0, 'personales' => 0,
-                              'pct_mess' => null, 'avance_lecturas' => null],
+            'km'          => ['inicial' => null, 'inicial_fecha' => null, 'final' => null, 'odometro' => 0, 'mess' => 0,
+                              'personales' => 0, 'pct_mess' => null, 'avance_lecturas' => null],
             'conteo'      => ['checkins' => 0, 'ot' => 0, 'ov' => 0, 'otros' => 0, 'cargas' => 0, 'monto_cargado' => 0.0],
             'checkins'    => [],
             'cargas'      => [],
@@ -199,7 +200,10 @@ function datosMesVehiculos(mysqli $conn, array $mes, array $ids): array {
                 ? ['fecha' => $cargaCierre[$idv]['f'], 'km' => (int) $cargaCierre[$idv]['km_actual']]
                 : null,
         ];
-        if (isset($ciAntes[$idv])) $res[$idv]['km']['inicial'] = (int) $ciAntes[$idv]['km_actual'];
+        if (isset($ciAntes[$idv])) {
+            $res[$idv]['km']['inicial'] = (int) $ciAntes[$idv]['km_actual'];
+            $res[$idv]['km']['inicial_fecha'] = $ciAntes[$idv]['fecha_actividad'];
+        }
     }
 
     foreach ($checkins as $c) {

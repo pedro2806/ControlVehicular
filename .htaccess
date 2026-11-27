@@ -1,6 +1,23 @@
 <IfModule mod_rewrite.c>
 RewriteEngine on
 
+# Produccion siempre por HTTPS. Por http la geolocalizacion esta bloqueada en todos los
+# navegadores: Chrome sube solo a https y por eso no se nota, pero Safari se queda en
+# http y la niega sin preguntar (ningun ajuste del telefono lo arregla).
+# - Solo messbook.com.mx: en WAMP (localhost / IP de la red) no hay certificado.
+# - Solo GET/HEAD: un POST redirigido llega como GET sin sus datos (p. ej. el login
+#   que manda loginMaster a validaLoginMaster si loginMaster se abrio por http).
+# - 302 y no 301: el 301 queda en la cache del navegador y no se podria revertir.
+# - La ruta sale de THE_REQUEST y no de REQUEST_URI: este ya viene con el .php agregado
+#   (qr_vehiculo -> qr_vehiculo.php). Solo la ruta, sin el "?...": Apache 2.4.60+ da 403
+#   si lo capturado trae "?" (AH10508); el query string lo agrega Apache solo.
+RewriteCond %{HTTP_HOST} ^(www\.)?messbook\.com\.mx$ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !^https$ [NC]
+RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+RewriteCond %{THE_REQUEST} ^\S+\s+(/[^?\s]*)
+RewriteRule ^ https://%{HTTP_HOST}%1 [R=302,L,NE]
+
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.*)$ $1.php

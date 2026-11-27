@@ -109,13 +109,7 @@ function enviarNotificacionSolicitud($tipo) {
         exit();
     }
 
-    $destinatarios = [];
-    if ($tipo === 'mantenimiento') {
-        $destinatarios[] = 'rafael@mess.com.mx';
-    } else {
-        $destinatarios[] = 'pedro.martinez@mess.com.mx';
-        $destinatarios[] = 'rafael@mess.com.mx';
-    }
+    $destinatarios = ['rafael@mess.com.mx'];
 
     $solicitaN = $solicitaNombre;
     $tipoLabel = ($tipo === 'mantenimiento') ? 'mantenimiento' : 'prestamo';
@@ -213,7 +207,7 @@ function enviarNotificacionSolicitudPrestamo($conn, $idPrestamo, $destinatarios 
         </h3>';
 
     $res = enviarCorreoMess(
-        $destinatarios ?: ['pedro.martinez@mess.com.mx', 'rafael@mess.com.mx'],
+        $destinatarios ?: ['rafael@mess.com.mx'],
         'Nueva solicitud de préstamo — Control Vehicular',
         plantillaCorreoMess('Aviso de Nueva Solicitud', 'rgb(29, 179, 47)', $contenido)
     );

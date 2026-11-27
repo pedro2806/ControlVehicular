@@ -1,4 +1,11 @@
 function verificarPermisoUbicacion() {
+    // Por http la geolocalización está bloqueada: Safari la niega sin mostrar el diálogo
+    // y ningún ajuste del teléfono lo cambia (Chrome sube solo a https, por eso ahí no
+    // se notaba). El .htaccess ya redirige; esto cubre lo que llegue por http igual.
+    if (window.isSecureContext === false && /(^|\.)messbook\.com\.mx$/i.test(location.hostname)) {
+        location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+        return;
+    }
     if (!navigator.geolocation) return;
     var banner = document.getElementById('avisoUbicacion');
     if (!banner) return;

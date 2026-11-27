@@ -120,6 +120,13 @@
 
     function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
 
+    /** Date -> 'YYYY-MM-DDTHH:MM' en hora local, el formato de <input type="datetime-local">. */
+    function fechaParaInput(d) {
+        function dos(n) { return (n < 10 ? '0' : '') + n; }
+        return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate())
+             + 'T' + dos(d.getHours()) + ':' + dos(d.getMinutes());
+    }
+
     function fmtFecha(f) {
         if (!f) return '';
         var p = String(f).split(/[- :]/);
@@ -679,6 +686,17 @@
             // la diferencia. Si la tarjeta ya trae 4,000 o más no se propone nada.
             var abonoSugerido = Math.max(0, CREDITO_TARJETA - saldoActual);
 
+            // Fecha de respuesta: se propone la actual y solo se manda si la cambian; sin
+            // cambios el servidor guarda NOW(), igual que antes. Formato datetime-local.
+            var fechaPropuesta = fechaParaInput(new Date());
+            var fechaMinima    = sol.fecha ? String(sol.fecha).slice(0, 16).replace(' ', 'T') : '';
+            var htmlFecha =
+                  '<label class="form-label small fw-semibold mt-3" for="swalFecha">Fecha de respuesta</label>'
+                + '<input id="swalFecha" type="datetime-local" class="form-control"'
+                +   ' value="' + fechaPropuesta + '" max="' + fechaPropuesta + '"'
+                +   (fechaMinima ? ' min="' + fechaMinima + '"' : '') + '>'
+                + '<div class="form-text">Déjala así para registrar la fecha y hora actuales.</div>';
+
             // Al aprobar se captura CUÁNTO se abonó: puede no ser lo que se pidió (recarga
             // parcial), y ese monto es el que abre el ciclo de tarjeta y viaja en el correo.
             var htmlAprobar =
@@ -697,12 +715,14 @@
                 +   '<span id="swalResultado" class="fw-semibold">' + money(saldoActual + abonoSugerido) + '</span>.</div>'
                 + '<label class="form-label small fw-semibold mt-3" for="swalNotas">Notas</label>'
                 + '<textarea id="swalNotas" class="form-control" rows="3" placeholder="Referencia del abono, comentarios..."></textarea>'
+                + htmlFecha
                 + '</div>';
 
             var htmlRechazar =
                 '<div class="text-start">'
                 + '<label class="form-label small fw-semibold" for="swalNotas">Motivo del rechazo</label>'
                 + '<textarea id="swalNotas" class="form-control" rows="3" placeholder="Explica por qué se rechaza..."></textarea>'
+                + htmlFecha
                 + '</div>';
 
             Swal.fire({
@@ -731,14 +751,34 @@
                         Swal.showValidationMessage('Las notas son obligatorias.');
                         return false;
                     }
-                    if (!aprobar) return { notas: notas, monto: 0 };
+
+                    // '' = sin cambios: el servidor pone la fecha automática.
+                    var fechaCampo = $('#swalFecha').val() || '';
+                    var fecha = '';
+                    if (fechaCampo !== fechaPropuesta) {
+                        if (!fechaCampo) {
+                            Swal.showValidationMessage('Captura la fecha de respuesta.');
+                            return false;
+                        }
+                        if (fechaMinima && fechaCampo < fechaMinima) {
+                            Swal.showValidationMessage('La fecha de respuesta no puede ser anterior a la solicitud.');
+                            return false;
+                        }
+                        if (fechaCampo > fechaParaInput(new Date(Date.now() + 600000))) {
+                            Swal.showValidationMessage('La fecha de respuesta no puede ser futura.');
+                            return false;
+                        }
+                        fecha = fechaCampo;
+                    }
+
+                    if (!aprobar) return { notas: notas, monto: 0, fecha: fecha };
 
                     var monto = parseFloat($('#swalMonto').val());
                     if (isNaN(monto) || monto <= 0) {
                         Swal.showValidationMessage('Captura el monto que se abonó a la tarjeta.');
                         return false;
                     }
-                    return { notas: notas, monto: monto };
+                    return { notas: notas, monto: monto, fecha: fecha };
                 }
             }).then(function (r) {
                 if (!r.isConfirmed) return;
@@ -746,7 +786,8 @@
                     url: 'acciones_gas.php', method: 'POST', dataType: 'json',
                     data: {
                         accion: 'resolverSolicitudGas', id_solicitud: id, resolucion: res,
-                        notas: r.value.notas, monto_recarga: r.value.monto
+                        notas: r.value.notas, monto_recarga: r.value.monto,
+                        fecha_resuelto: r.value.fecha
                     }
                 }).done(function (resp) {
                     if (!resp || resp.status !== 'success') {

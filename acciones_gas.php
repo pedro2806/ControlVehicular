@@ -1309,6 +1309,36 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             exit;
         }
 
+        // Fecha de respuesta editada por quien autoriza (p. ej. abonó un día y lo registra
+        // después). La vista solo la manda si la cambiaron; vacía = NOW(), como siempre.
+        // Llega de un <input type="datetime-local"> ('2026-11-27T10:30').
+        $fechaResuelto = null;
+        $fechaPost = trim($_POST['fecha_resuelto'] ?? '');
+        if ($fechaPost !== '') {
+            $dt = DateTime::createFromFormat('Y-m-d\TH:i', $fechaPost)
+               ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $fechaPost);
+            if (!$dt) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no es válida.']);
+                exit;
+            }
+            // 10 min de tolerancia por si el reloj del equipo va adelantado.
+            if ($dt->getTimestamp() > time() + 600) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no puede ser futura.']);
+                exit;
+            }
+            $qf = $conn->prepare("SELECT fecha FROM solicitudes_gas WHERE id = ? LIMIT 1");
+            $qf->bind_param("i", $idSol);
+            $qf->execute();
+            $rf = $qf->get_result()->fetch_assoc();
+            $qf->close();
+            // Se compara por minuto: el input no trae segundos.
+            if ($rf && $dt->format('Y-m-d H:i') < substr((string) $rf['fecha'], 0, 16)) {
+                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no puede ser anterior a la solicitud.']);
+                exit;
+            }
+            $fechaResuelto = $dt->format('Y-m-d H:i:00');
+        }
+
         // Una recarga PARCIAL no cierra la solicitud: se queda abierta con estatus
         // 'PARCIAL' para no perder de vista que falta abonar el resto. Solo se marca
         // APROBADA cuando la tarjeta alcanza el crédito completo.
@@ -1336,12 +1366,13 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
         // para poder abonarle el resto). Evita que dos personas la cambien dos veces o
         // que se reabra algo ya cerrado.
         $idResuelve = intval($_COOKIE['id_usuario'] ?? 0);
+        // COALESCE: sin fecha editada ($fechaResuelto null) queda NOW().
         $stmt = $conn->prepare(
             "UPDATE solicitudes_gas
-                SET estatus = ?, id_resuelve = ?, fecha_resuelto = NOW(), notas_resolucion = ?
+                SET estatus = ?, id_resuelve = ?, fecha_resuelto = COALESCE(?, NOW()), notas_resolucion = ?
               WHERE id = ? AND estatus IN ('PENDIENTE', 'PARCIAL')"
         );
-        $stmt->bind_param("sisi", $estatusFinal, $idResuelve, $notas, $idSol);
+        $stmt->bind_param("sissi", $estatusFinal, $idResuelve, $fechaResuelto, $notas, $idSol);
         $stmt->execute();
         $cambio = $stmt->affected_rows > 0;
         $stmt->close();

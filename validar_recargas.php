@@ -689,12 +689,14 @@
             // Fecha de respuesta: se propone la actual y solo se manda si la cambian; sin
             // cambios el servidor guarda NOW(), igual que antes. Formato datetime-local.
             var fechaPropuesta = fechaParaInput(new Date());
-            var fechaMinima    = sol.fecha ? String(sol.fecha).slice(0, 16).replace(' ', 'T') : '';
+            // Al rechazar no hay recarga: ahí sigue siendo la fecha de respuesta.
+            var nombreFecha    = aprobar ? 'fecha de recarga' : 'fecha de respuesta';
+            // Sin min ni max a propósito: se acepta cualquier fecha, antes o después.
             var htmlFecha =
-                  '<label class="form-label small fw-semibold mt-3" for="swalFecha">Fecha de respuesta</label>'
+                  '<label class="form-label small fw-semibold mt-3" for="swalFecha">'
+                +   (aprobar ? 'Fecha de recarga' : 'Fecha de respuesta') + '</label>'
                 + '<input id="swalFecha" type="datetime-local" class="form-control"'
-                +   ' value="' + fechaPropuesta + '" max="' + fechaPropuesta + '"'
-                +   (fechaMinima ? ' min="' + fechaMinima + '"' : '') + '>'
+                +   ' value="' + fechaPropuesta + '">'
                 + '<div class="form-text">Déjala así para registrar la fecha y hora actuales.</div>';
 
             // Al aprobar se captura CUÁNTO se abonó: puede no ser lo que se pidió (recarga
@@ -757,15 +759,7 @@
                     var fecha = '';
                     if (fechaCampo !== fechaPropuesta) {
                         if (!fechaCampo) {
-                            Swal.showValidationMessage('Captura la fecha de respuesta.');
-                            return false;
-                        }
-                        if (fechaMinima && fechaCampo < fechaMinima) {
-                            Swal.showValidationMessage('La fecha de respuesta no puede ser anterior a la solicitud.');
-                            return false;
-                        }
-                        if (fechaCampo > fechaParaInput(new Date(Date.now() + 600000))) {
-                            Swal.showValidationMessage('La fecha de respuesta no puede ser futura.');
+                            Swal.showValidationMessage('Captura la ' + nombreFecha + '.');
                             return false;
                         }
                         fecha = fechaCampo;

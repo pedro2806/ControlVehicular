@@ -1309,33 +1309,23 @@ $fecha_registro = isset($_POST['fecha_registro']) ? $_POST['fecha_registro'] : n
             exit;
         }
 
-        // Fecha de respuesta editada por quien autoriza (p. ej. abonó un día y lo registra
-        // después). La vista solo la manda si la cambiaron; vacía = NOW(), como siempre.
+        // Fecha de recarga (o de respuesta, si se rechaza) editada por quien autoriza: p. ej.
+        // abonó un día y lo registra después, o lo aprueba antes de abonar. La vista solo la
+        // manda si la cambiaron; vacía = NOW(), como siempre.
         // Llega de un <input type="datetime-local"> ('2026-11-27T10:30').
         $fechaResuelto = null;
         $fechaPost = trim($_POST['fecha_resuelto'] ?? '');
+        // Mismo nombre que ve quien autoriza en el modal.
+        $nombreFecha = ($resolucion === 'APROBADA') ? 'La fecha de recarga' : 'La fecha de respuesta';
         if ($fechaPost !== '') {
             $dt = DateTime::createFromFormat('Y-m-d\TH:i', $fechaPost)
                ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $fechaPost);
             if (!$dt) {
-                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no es válida.']);
+                echo json_encode(['status' => 'error', 'message' => $nombreFecha . ' no es válida.']);
                 exit;
             }
-            // 10 min de tolerancia por si el reloj del equipo va adelantado.
-            if ($dt->getTimestamp() > time() + 600) {
-                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no puede ser futura.']);
-                exit;
-            }
-            $qf = $conn->prepare("SELECT fecha FROM solicitudes_gas WHERE id = ? LIMIT 1");
-            $qf->bind_param("i", $idSol);
-            $qf->execute();
-            $rf = $qf->get_result()->fetch_assoc();
-            $qf->close();
-            // Se compara por minuto: el input no trae segundos.
-            if ($rf && $dt->format('Y-m-d H:i') < substr((string) $rf['fecha'], 0, 16)) {
-                echo json_encode(['status' => 'error', 'message' => 'La fecha de respuesta no puede ser anterior a la solicitud.']);
-                exit;
-            }
+            // Sin rango a propósito (27/11/2026): se acepta cualquier fecha, futura o
+            // anterior a la solicitud. Solo se valida que sea una fecha.
             $fechaResuelto = $dt->format('Y-m-d H:i:00');
         }
 
